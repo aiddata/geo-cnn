@@ -126,8 +126,8 @@ class BandDataset(Dataset):
             win = ((r-dim/2, r+dim/2), (c-dim/2, c+dim/2))
             data = season_mosaics.read(1, window=win)
 
-            # if data.shape != (dim, dim):
-            #     raise Exception("bad feature")
+            if data.shape != (dim, dim):
+                raise Exception("bad feature")
 
             feature[bnum] = data
 
