@@ -26,6 +26,7 @@ from __future__ import print_function, division
 import time
 import os
 import copy
+import glob
 
 import rasterio
 import pandas as pd
@@ -80,6 +81,47 @@ lsms_cluster['type'] = np.random.choice(["train", "val"], size=(len(lsms_cluster
 training_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
 validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
 
+
+
+# -----------------------------------------------------------------------------
+
+import os
+import rasterio
+import glob
+
+
+def get_ntl(lon, lat, ntl_dim=7):
+    """Get nighttime lights average value for grid around point
+    """
+    ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+    ntl_year = 2010
+    ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(ntl_year)))[0]
+    ntl_file = rasterio.open(ntl_path)
+    r, c = ntl_file.index(lon, lat)
+    ntl_win = ((r-ntl_dim/2, r+ntl_dim/2), (c-ntl_dim/2, c+ntl_dim/2))
+    ntl_data = ntl_file.read(1, window=ntl_win)
+    ntl_mean = ntl_data.mean()
+    return ntl_mean
+
+
+lsms_cluster['ntl'] = lsms_cluster.apply(
+    lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+
+
+class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean()))
+
+
+# TODO:
+# define our sample grid
+#
+# look up ntl values for each grid cell
+#
+# find nearest neighbor for each grid cell using class_ntl_means
+#
+# label cells by class
+#
+
+# -----------------------------------------------------------------------------
 
 
 class BandDataset(Dataset):
@@ -241,7 +283,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
 
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
+                best_acc = float(epoch_acc)
                 best_model_wts = copy.deepcopy(model.state_dict())
 
         if not quiet:
