@@ -3,122 +3,126 @@ import sys
 import os
 import json
 import time
+import copy
 
-base_dir = os.path.dirname(os.path.realpath(__file__))
+import fiona
+from shapely.geometry import shape, Point
+from shapely.prepared import prep
+from shapely.ops import cascaded_union
 
-tstart = time.time()
-
-# -----------------------------------------------------------------------------
-
-
-xsize = 0.5
-ysize = 0.5
-
-xmin = -180
-xmax = 180
-
-ymin = -90
-ymax = 90
+import pandas as pd
+import geopandas as gpd
 
 
-# -----------------------------------------------------------------------------
+
+class PointGrid():
+    """ Generate a point grid given a boundary and pixel size
+    """
+
+    def __init__(self, boundary_geom):
+        bnds = boundary_geom.bounds
+        (self.minx, self.miny, self.maxx, self.maxy) = bnds
+        self.prep_shape = prep(cascaded_union([shape(f['geometry']) for f in boundary_geom]))
+        self.prop_list = None
 
 
-xmax = xmax - xsize
-ymin = ymin + ysize
+    def gen_grid(self, pixel_size, quiet=False):
 
-ncols = int((xmax - xmin) / xsize) + 1
-nrows = int((ymax - ymin) / ysize) + 1
+        xsize = pixel_size
+        ysize = pixel_size
 
-feature_list = []
+        self.maxx = self.maxx - xsize
+        self.miny = self.miny + ysize
 
-# start in top left and go row by row
-for r in xrange(nrows):
-    y = ymax - (r * ysize)
+        ncols = int((self.maxx - self.minx) / xsize) + 1
+        nrows = int((self.maxy - self.miny) / ysize) + 1
 
-    for c in xrange(ncols):
-        x = xmin + (c * xsize)
+        # start in top left and go row by row
+        for r in xrange(nrows):
+            y = self.maxy - (r * ysize)
 
-        cell_id = (r * ncols) + c
+            for c in xrange(ncols):
+                x = self.minx + (c * xsize)
 
-        b_xmin = x
-        b_xmax = x + xsize
-        b_ymin = y - ysize
-        b_ymax = y
+                if not self.prep_shape.contains(Point(x, y)):
+                    continue
 
-        # b_bnds = (b_xmin, b_ymin, b_xmax, b_ymax)
+                cell_id = (r * ncols) + c
 
-        # env = [
-        #     [b_xmin, b_ymax],
-        #     [b_xmin, b_ymin],
-        #     [b_xmax, b_ymin],
-        #     [b_xmax, b_ymax]
-        # ]
+                props = {
+                    "cell_id": cell_id,
+                    "row": r,
+                    "column": c,
+                    "lon": x,
+                    "lat": y
+                }
 
-        # geom = {
-        #     "type": "Polygon",
-        #     "coordinates": [ [
-        #         env[0],
-        #         env[1],
-        #         env[2],
-        #         env[3],
-        #         env[0]
-        #     ] ]
-        # }
+                yield props
 
-        geom = {
-            "type": "Polygon",
-            "coordinates": [ [
-                [b_xmin, b_ymax],
-                [b_xmin, b_ymin],
-                [b_xmax, b_ymin],
-                [b_xmax, b_ymax],
-                [b_xmin, b_ymax]
-            ] ]
+
+    def grid(self, pixel_size, **kwargs):
+        self.prop_list = list(self.gen_grid(pixel_size, **kwargs))
+
+
+    def size(self):
+        if self.prop_list is None:
+            raise Exception("Generate grid before running `size`")
+        self.size = len(self.prop_list)
+        return self.size
+
+
+    def to_geojson(self, path):
+        if self.prop_list is None:
+            raise Exception("Generate grid before running `to_geojson`")
+
+        feature_list = []
+
+        for props in self.prop_list:
+            geom = {
+                "type": "Point",
+                "coordinates": [props['lon'], props['lat']]
+            }
+
+            feature = {
+                "type": "Feature",
+                "properties": props,
+                "geometry": geom
+            }
+
+            feature_list.append(feature)
+
+        geo_out = {
+            "type": "FeatureCollection",
+            "features": feature_list
         }
 
-        props = {
-            "cell_id": cell_id,
-            "row": r,
-            "column": c,
-            "xcenter": b_xmin + (b_xmax - b_xmin) / 2,
-            "ycenter": b_ymax - (b_ymax - b_ymin) / 2,
-            "xmin": b_xmin,
-            "ymin": b_ymin,
-            "xmax": b_xmax,
-            "ymax": b_ymax
-        }
-
-        # add prio id if grid matches prio grid resolution
-        if xsize == 0.5 and ysize == 0.5:
-            prio_row = nrows - r
-            prio_col = c + 1
-            props["prio_id"] = ((prio_row - 1) * ncols) + prio_col
-
-        feature = {
-            "type": "Feature",
-            "properties": props,
-            "geometry": geom
-        }
+        geo_file = open(path, "w")
+        json.dump(geo_out, geo_file)
+        geo_file.close()
 
 
-        feature_list.append(feature)
+    def to_csv(self, path):
+        if not hasattr(self, 'df'):
+            self.df = self.to_dataframe()
+        self.df.to_csv(path, index=False, encoding='utf-8')
 
 
-
-print "Run time: {0} seconds".format(round(time.time() - tstart), 2)
-
-
-geo_out = {
-    "type": "FeatureCollection",
-    "features": feature_list
-}
+    def to_dataframe(self):
+        if self.prop_list is None:
+            raise Exception("Generate grid before running `to_dataframe`")
+        self.df = pd.DataFrame(self.prop_list)
+        return self.df
 
 
-# -----------------------------------------------------------------------------
+    def to_geodataframe(self):
+        if self.prop_list is None:
+            raise Exception("Generate grid before running `to_geodataframe`")
+        if hasattr(self, 'df'):
+            df = copy.deepcopy(self.df)
+        else:
+            df = self.to_dataframe()
+        df['geometry'] = df.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
+        self.gdf = gpd.GeoDataFrame(df)
+        return self.gdf
 
 
-geo_path = os.path.join(base_dir, "grid_0.5_degree.geojson")
-geo_file = open(geo_path, "w")
-json.dump(geo_out, geo_file)
-geo_file.close()
