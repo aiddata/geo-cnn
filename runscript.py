@@ -31,6 +31,7 @@ import glob
 import rasterio
 import pandas as pd
 import numpy as np
+import fiona
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -42,6 +43,8 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 
 import resnet
+
+from create_grid import PointGrid
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
