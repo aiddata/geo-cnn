@@ -82,7 +82,6 @@ training_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
 validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
 
 
-
 # -----------------------------------------------------------------------------
 
 import os
@@ -98,10 +97,12 @@ def get_ntl(lon, lat, ntl_dim=7):
     ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(ntl_year)))[0]
     ntl_file = rasterio.open(ntl_path)
     r, c = ntl_file.index(lon, lat)
-    ntl_win = ((r-ntl_dim/2, r+ntl_dim/2), (c-ntl_dim/2, c+ntl_dim/2))
+    ntl_win = ((r-ntl_dim/2+1, r+ntl_dim/2+1), (c-ntl_dim/2+1, c+ntl_dim/2+1))
     ntl_data = ntl_file.read(1, window=ntl_win)
     ntl_mean = ntl_data.mean()
     return ntl_mean
+
+get_ntl(31.6285388947, -1.89018394947, ntl_dim=7)
 
 
 lsms_cluster['ntl'] = lsms_cluster.apply(
@@ -110,16 +111,50 @@ lsms_cluster['ntl'] = lsms_cluster.apply(
 
 class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean()))
 
+# -----------------------------------------------------------------------------
 
-# TODO:
-# define our sample grid
-#
+
+import os
+base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
+
+
+import fiona
+from create_grid import PointGrid
+
+# boundary
+tza_adm0_path = os.path.join(base_path, 'TZA_ADM0_GADM28_simplified.geojson')
+tza_adm0 = fiona.open(tza_adm0_path)
+
+
+# define, build, and save sample grid
+pixel_size = 0.1
+
+grid = PointGrid(tza_adm0)
+grid.grid(pixel_size)
+
+geo_path = os.path.join(base_path, "sample_grid.geojson")
+grid.to_geojson(geo_path)
+
+csv_path = os.path.join(base_path, "sample_grid.csv")
+grid.to_csv(csv_path)
+
+df = grid.to_dataframe()
+
 # look up ntl values for each grid cell
-#
+df['ntl'] = df.apply(lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+
 # find nearest neighbor for each grid cell using class_ntl_means
-#
+
+# set all where ntl <  lowest class automatically to lowest class
+df['nn'] = None
+df.loc[df['ntl'] <= class_ntl_means[min(cat_names)], 'nn'] = min(cat_names)
+
+# run nearest neigbor on remaining
+# df['nn'] =
+
 # label cells by class
-#
+# df['label'] =
+
 
 # -----------------------------------------------------------------------------
 
