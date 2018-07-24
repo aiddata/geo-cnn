@@ -102,8 +102,6 @@ def get_ntl(lon, lat, ntl_dim=7):
     ntl_mean = ntl_data.mean()
     return ntl_mean
 
-get_ntl(31.6285388947, -1.89018394947, ntl_dim=7)
-
 
 lsms_cluster['ntl'] = lsms_cluster.apply(
     lambda z: get_ntl(z['lon'], z['lat']), axis=1)
