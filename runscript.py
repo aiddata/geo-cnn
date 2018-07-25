@@ -49,7 +49,9 @@ import resnet
 from load_data import BandDataset
 from create_grid import PointGrid
 
+
 print("Initializing...")
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -173,7 +175,7 @@ keep_ratio = keep_ratio if keep_ratio < 1 else 1
 df['drop'] = 'keep'
 df.loc[df['label'] == 0, 'drop'] = np.random.choice(["drop", "keep"], size=(low_count,), p=[1-keep_ratio, keep_ratio])
 
-df = df[df['drop'] == 'keep']
+df = df.loc[df['drop'] == 'keep']
 
 print("Samples per cat (reduced):")
 for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
@@ -356,7 +358,9 @@ def run(**kwargs):
 
     model_x = model_x.to(device)
 
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor([0.2, 0.4, 1]))
+    loss_weights = torch.tensor([0.2, 0.4, 1]).cuda()
+
+    criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
     # Observe that only parameters of final layer are being optimized as
     # opposed to before.
