@@ -149,8 +149,30 @@ to_label = df['ntl'] > class_ntl_means[min(cat_names)]
 df.loc[to_label, 'label'] = df.loc[to_label].apply(lambda z: find_nn(z['ntl']), axis=1)
 
 
-# diagnostic
-print("Samples per cat:")
+print("Samples per cat (raw):")
+for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
+
+
+# drop out some of the extra from low category
+original_df = df.copy(deep=True)
+
+# for debugging
+# df = original_df.copy(deep=True)
+
+
+low_count = sum(df['label'] == 0)
+other_count = sum(df['label'] == 1) + sum(df['label'] == 1)
+
+keep_ratio = (other_count * 1.00) / low_count
+
+keep_ratio = keep_ratio if keep_ratio < 1 else 1
+
+df['drop'] = 'keep'
+df.loc[df['label'] == 0, 'drop'] = np.random.choice(["drop", "keep"], size=(low_count,), p=[1-keep_ratio, keep_ratio])
+
+df = df[df['drop'] == 'keep']
+
+print("Samples per cat (reduced):")
 for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
 
 
