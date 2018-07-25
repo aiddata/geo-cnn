@@ -7,3 +7,4 @@ cp $src/create_grid.py $dst
 cp $src/runscript.py $dst
 cp $src/jobscript $dst
 cp $src/resnet.py $dst
+cp $src/load_data.py $dst

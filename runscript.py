@@ -46,8 +46,10 @@ from torch.optim import lr_scheduler
 
 import resnet
 
+from load_data import BandDataset
 from create_grid import PointGrid
 
+print("Initializing...")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -109,6 +111,7 @@ class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean(
 
 # -----------------------------------------------------------------------------
 
+print("Preparing grid")
 
 # boundary
 tza_adm0_path = os.path.join(base_path, 'TZA_ADM0_GADM28_simplified.geojson')
@@ -179,6 +182,9 @@ for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
 # -----------------------------------------------------------------------------
 
 
+print("Building datasets")
+
+
 # lsms_cluster['type'] = np.random.choice(["train", "val"], size=(len(lsms_cluster),), p=[0.90, 0.10])
 
 # training_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
@@ -200,64 +206,10 @@ for i in cat_names:  print("{0}: {1}".format(i, sum(validation_df['label'] == i)
 
 
 
+
+
+
 # -----------------------------------------------------------------------------
-
-
-class BandDataset(Dataset):
-    """Get the data
-    """
-    def __init__(self, dataframe, root_dir, transform=None):
-
-        self.dim = 224
-        self.year = 2010
-        # self.bands = ["b1", "b2", "b3", ]
-        self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"]
-        # self.bands = ["b3", "b4", "b5"]
-
-        self.dataframe = dataframe
-        self.root_dir = root_dir
-        self.transform = transform
-
-
-    def __len__(self):
-        return len(self.dataframe)
-
-
-    def __getitem__(self, idx):
-        dim = self.dim
-
-        row = self.dataframe.iloc[idx]
-
-        label = row['label']
-
-        lon = row['lon']
-        lat = row['lat']
-
-        feature = np.empty((len(self.bands), dim, dim))
-
-        for bnum, band in enumerate(self.bands):
-
-            season_mosaics_path = os.path.join(
-                self.root_dir, "season_mosaics/all",
-                "{}_all_{}.tif".format(self.year, band))
-
-            season_mosaics = rasterio.open(season_mosaics_path)
-
-            r, c = season_mosaics.index(lon, lat)
-            win = ((r-dim/2, r+dim/2), (c-dim/2, c+dim/2))
-            data = season_mosaics.read(1, window=win)
-
-            if data.shape != (dim, dim):
-                raise Exception("bad feature")
-
-            feature[bnum] = data
-
-        if self.transform:
-            feature = np.transpose(feature,(1,2,0))
-            feature = self.transform(feature)
-
-        # return torch.from_numpy(feature).float(), label
-        return feature.float(), label
 
 
 # bands = 8
@@ -404,7 +356,7 @@ def run(**kwargs):
 
     model_x = model_x.to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([0.2, 0.4, 1]))
 
     # Observe that only parameters of final layer are being optimized as
     # opposed to before.
