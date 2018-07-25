@@ -390,12 +390,14 @@ if __name__ == "__main__":
         df.to_csv(df_output_path, index=False, encoding='utf-8')
 
 
-    if True:
+    batch = True
+
+    if not batch:
 
         params = {
             "run_type": 2,
             "n_input_channels": 8,
-            "n_epochs": 1,
+            "n_epochs": 60,
             "lr": 0.0005,
             "momentum": 0.9,
             "step_size": 5,
@@ -412,15 +414,25 @@ if __name__ == "__main__":
 
     # -------------------------------------
 
-    if False:
+    if batch:
+
+        # pranges = {
+        #     "run_type": [1,2],
+        #     "n_input_channels": [8],
+        #     "n_epochs": [60],
+        #     "lr": [ 0.0005, 0.001, 0.005, 0.01, 0.05],
+        #     "momentum": [0.5, 0.7, 0.9, 1.1, 1.3],
+        #     "step_size": [5, 10, 15],
+        #     "gamma": [0.01, 0.05]
+        # }
 
         pranges = {
-            "run_type": [1,2],
+            "run_type": [2],
             "n_input_channels": [8],
-            "n_epochs": [60],
-            "lr": [ 0.0005, 0.001, 0.005, 0.01, 0.05],
-            "momentum": [0.5, 0.7, 0.9, 1.1, 1.3],
-            "step_size": [5, 10, 15],
+            "n_epochs": [30],
+            "lr": [0.0001, 0.0005, 0.001],
+            "momentum": [0.9],
+            "step_size": [5, 10],
             "gamma": [0.01, 0.05]
         }
 
