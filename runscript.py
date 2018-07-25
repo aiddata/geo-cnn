@@ -193,7 +193,7 @@ print("Building datasets")
 # validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
 
 
-df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10])
+df.loc[:, 'type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10])
 
 training_df = df.loc[df['type'] == "train"]
 validation_df = df.loc[df['type'] == "val"]
