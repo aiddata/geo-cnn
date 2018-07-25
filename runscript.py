@@ -23,10 +23,12 @@ mpirun -mca orte_base_help_aggregate 0 --mca mpi_warn_on_fork 0 --map-by node -n
 
 from __future__ import print_function, division
 
-import time
 import os
 import copy
 import glob
+import itertools
+import datetime
+import time
 
 import rasterio
 import pandas as pd
@@ -79,26 +81,18 @@ def classify(val):
 lsms_cluster['label'] = lsms_cluster.apply(
     lambda z: classify(z['cons']), axis=1)
 
-lsms_cluster['type'] = np.random.choice(["train", "val"], size=(len(lsms_cluster),), p=[0.90, 0.10])
-
-training_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
-validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
-
 
 # -----------------------------------------------------------------------------
 
-import os
-import rasterio
-import glob
 
+ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+ntl_year = 2010
+ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(ntl_year)))[0]
+ntl_file = rasterio.open(ntl_path)
 
 def get_ntl(lon, lat, ntl_dim=7):
     """Get nighttime lights average value for grid around point
     """
-    ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
-    ntl_year = 2010
-    ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(ntl_year)))[0]
-    ntl_file = rasterio.open(ntl_path)
     r, c = ntl_file.index(lon, lat)
     ntl_win = ((r-ntl_dim/2+1, r+ntl_dim/2+1), (c-ntl_dim/2+1, c+ntl_dim/2+1))
     ntl_data = ntl_file.read(1, window=ntl_win)
@@ -112,15 +106,9 @@ lsms_cluster['ntl'] = lsms_cluster.apply(
 
 class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean()))
 
+
 # -----------------------------------------------------------------------------
 
-
-import os
-base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
-
-
-import fiona
-from create_grid import PointGrid
 
 # boundary
 tza_adm0_path = os.path.join(base_path, 'TZA_ADM0_GADM28_simplified.geojson')
@@ -128,7 +116,7 @@ tza_adm0 = fiona.open(tza_adm0_path)
 
 
 # define, build, and save sample grid
-pixel_size = 0.1
+pixel_size = 0.008
 
 grid = PointGrid(tza_adm0)
 grid.grid(pixel_size)
@@ -142,19 +130,52 @@ grid.to_csv(csv_path)
 df = grid.to_dataframe()
 
 # look up ntl values for each grid cell
-df['ntl'] = df.apply(lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+df['ntl'] = df.apply(lambda z: get_ntl(z['lon'], z['lat'], ntl_dim=7), axis=1)
 
 # find nearest neighbor for each grid cell using class_ntl_means
 
 # set all where ntl <  lowest class automatically to lowest class
-df['nn'] = None
-df.loc[df['ntl'] <= class_ntl_means[min(cat_names)], 'nn'] = min(cat_names)
+df['label'] = None
+df.loc[df['ntl'] <= class_ntl_means[min(cat_names)], 'label'] = min(cat_names)
 
-# run nearest neigbor on remaining
-# df['nn'] =
 
-# label cells by class
-# df['label'] =
+def find_nn(val):
+    nn_options = [(k, abs(val - v)) for k, v in class_ntl_means.iteritems()]
+    nn_class = sorted(nn_options, key=lambda x: x[1])[0][0]
+    return nn_class
+
+# run nearest neigbor class label for remaining
+to_label = df['ntl'] > class_ntl_means[min(cat_names)]
+df.loc[to_label, 'label'] = df.loc[to_label].apply(lambda z: find_nn(z['ntl']), axis=1)
+
+
+# diagnostic
+print("Samples per cat:")
+for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
+
+
+# -----------------------------------------------------------------------------
+
+
+# lsms_cluster['type'] = np.random.choice(["train", "val"], size=(len(lsms_cluster),), p=[0.90, 0.10])
+
+# training_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
+# validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
+
+
+df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10])
+
+training_df = df.loc[df['type'] == "train"]
+validation_df = df.loc[df['type'] == "val"]
+
+
+print("Samples per cat (training):")
+for i in cat_names:  print("{0}: {1}".format(i, sum(training_df['label'] == i)))
+
+print("Samples per cat (validation):")
+for i in cat_names:  print("{0}: {1}".format(i, sum(validation_df['label'] == i)))
+
+
 
 
 # -----------------------------------------------------------------------------
@@ -364,10 +385,10 @@ def run(**kwargs):
     criterion = nn.CrossEntropyLoss()
 
     # Observe that only parameters of final layer are being optimized as
-    # opoosed to before.
+    # opposed to before.
     optimizer_x = optim.SGD(model_x.fc.parameters(), lr=kwargs["lr"], momentum=kwargs["momentum"])
 
-    # Decay LR by a factor of 0.1 every 7 epochs
+    # Decay LR by a factor of `gamma` every `step_size` epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_x, step_size=kwargs["step_size"], gamma=kwargs["gamma"])
 
 
@@ -380,51 +401,58 @@ def run(**kwargs):
 
 if __name__ == "__main__":
 
-    # params = {
-    #     "run_type": 1,
-    #     "n_input_channels": 8,
-    #     "n_epochs": 50,
-    #     "lr": 0.001,
-    #     "momentum": 0.9,
-    #     "step_size": 5,
-    #     "gamma": 0.01
-    # }
-
-    # run(**params)
-
-
-    import itertools
-    import pandas as pd
-    import datetime
-
-
-    pranges = {
-        "run_type": [1,2],
-        "n_input_channels": [8],
-        "n_epochs": [60],
-        "lr": [ 0.0005, 0.001, 0.005, 0.01, 0.05],
-        "momentum": [0.5, 0.7, 0.9, 1.1, 1.3],
-        "step_size": [5, 10, 15],
-        "gamma": [0.01, 0.05]
-    }
-
-    def dict_product(d):
-        keys = d.keys()
-        for element in itertools.product(*d.values()):
-            yield dict(zip(keys, element))
-
+    results = []
 
     timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y_%m_%d_%H_%M_%S')
     df_output_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/results_{}.csv".format(timestamp)
+
 
     def output_csv():
         df = pd.DataFrame(results)
         df.to_csv(df_output_path, index=False, encoding='utf-8')
 
 
-    results = []
-    for ix, p in enumerate(dict_product(pranges)):
-        if ix > 185:
+    if True:
+
+        params = {
+            "run_type": 2,
+            "n_input_channels": 8,
+            "n_epochs": 1,
+            "lr": 0.0005,
+            "momentum": 0.9,
+            "step_size": 5,
+            "gamma": 0.05
+        }
+
+        model_p, acc_p, time_p = run(**params)
+        params['acc'] = acc_p
+        params['time'] = time_p
+        results.append(params)
+
+        output_csv()
+
+
+    # -------------------------------------
+
+    if False:
+
+        pranges = {
+            "run_type": [1,2],
+            "n_input_channels": [8],
+            "n_epochs": [60],
+            "lr": [ 0.0005, 0.001, 0.005, 0.01, 0.05],
+            "momentum": [0.5, 0.7, 0.9, 1.1, 1.3],
+            "step_size": [5, 10, 15],
+            "gamma": [0.01, 0.05]
+        }
+
+        def dict_product(d):
+            keys = d.keys()
+            for element in itertools.product(*d.values()):
+                yield dict(zip(keys, element))
+
+
+        for ix, p in enumerate(dict_product(pranges)):
             print("Parameter combination: {}".format(ix))
             model_p, acc_p, time_p = run(**p)
             pout = copy.deepcopy(p)
@@ -435,70 +463,4 @@ if __name__ == "__main__":
                 output_csv()
 
 
-
-    output_csv()
-
-    # run_type = 2
-
-    # n_epochs = 2
-
-    # n_input_channels = 8
-
-    # # -----------------------------------------------------------------------------
-
-    # if run_type in [1, 3]:
-
-    #     print("\nfine tuning:\n")
-
-    #     model_ft = resnet.resnet18(pretrained=True, n_input_channels=n_input_channels)
-
-    #     num_ftrs = model_ft.fc.in_features
-    #     model_ft.fc = nn.Linear(num_ftrs, ncats)
-
-    #     model_ft = model_ft.to(device)
-
-    #     criterion = nn.CrossEntropyLoss()
-
-    #     # Observe that all parameters are being optimized
-    #     optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
-
-    #     # Decay LR by a factor of 0.1 every 7 epochs
-    #     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=10, gamma=0.1)
-
-
-    #     model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,
-    #                            num_epochs=n_epochs)
-
-    # # -----------------------------------------------------------------------------
-
-    # if run_type in [2, 3]:
-
-    #     print("\nfixed feature extractor:\n")
-
-    #     model_conv = resnet.resnet18(pretrained=True, n_input_channels=n_input_channels)
-    #     for param in model_conv.parameters():
-    #         param.requires_grad = False
-
-    #     # Parameters of newly constructed modules have requires_grad=True by default
-    #     num_ftrs = model_conv.fc.in_features
-
-    #     model_conv.fc = nn.Linear(num_ftrs, ncats)
-
-
-    #     model_conv = model_conv.to(device)
-
-    #     criterion = nn.CrossEntropyLoss()
-
-    #     # Observe that only parameters of final layer are being optimized as
-    #     # opoosed to before.
-    #     optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
-
-    #     # Decay LR by a factor of 0.1 every 7 epochs
-    #     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=10, gamma=0.1)
-
-
-    #     model_conv = train_model(model_conv, criterion, optimizer_conv,
-    #                              exp_lr_scheduler, num_epochs=n_epochs)
-
-
-
+        output_csv()
