@@ -175,7 +175,7 @@ keep_ratio = keep_ratio if keep_ratio < 1 else 1
 df['drop'] = 'keep'
 df.loc[df['label'] == 0, 'drop'] = np.random.choice(["drop", "keep"], size=(low_count,), p=[1-keep_ratio, keep_ratio])
 
-df = df.loc[df['drop'] == 'keep']
+df = df.loc[df['drop'] == 'keep'].copy(deep=True)
 
 print("Samples per cat (reduced):")
 for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
@@ -193,7 +193,7 @@ print("Building datasets")
 # validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
 
 
-df.loc[:, 'type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10])
+df.loc[:, 'type'] = pd.Series(np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10]))
 
 training_df = df.loc[df['type'] == "train"]
 validation_df = df.loc[df['type'] == "val"]
