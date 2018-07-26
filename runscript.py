@@ -168,7 +168,7 @@ original_df = df.copy(deep=True)
 low_count = sum(df['label'] == 0)
 other_count = sum(df['label'] == 1) + sum(df['label'] == 1)
 
-keep_ratio = (other_count * 1.00) / low_count
+keep_ratio = (other_count * 2.00) / low_count
 
 keep_ratio = keep_ratio if keep_ratio < 1 else 1
 
@@ -358,7 +358,8 @@ def run(**kwargs):
 
     model_x = model_x.to(device)
 
-    loss_weights = torch.tensor([0.2, 0.4, 1]).cuda()
+    # loss_weights = torch.tensor([0.2, 0.4, 1]).cuda()
+    loss_weights = torch.tensor([0.1, 0.4, 1]).cuda()
 
     criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
@@ -427,12 +428,12 @@ if __name__ == "__main__":
         # }
 
         pranges = {
-            "run_type": [2],
+            "run_type": [1],
             "n_input_channels": [8],
             "n_epochs": [30],
-            "lr": [0.0001, 0.0005, 0.001],
+            "lr": [0.0005, 0.001, 0.005],
             "momentum": [0.9],
-            "step_size": [5, 10],
+            "step_size": [10, 15],
             "gamma": [0.01, 0.05]
         }
 
