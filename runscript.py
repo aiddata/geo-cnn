@@ -193,7 +193,7 @@ print("Building datasets")
 # validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
 
 
-df.loc[:, 'type'] = pd.Series(np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10]))
+df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10])
 
 training_df = df.loc[df['type'] == "train"]
 validation_df = df.loc[df['type'] == "val"]
@@ -332,13 +332,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
     return model, best_acc, time_elapsed
 
 
-
-run_types = {
-    1: 'fine tuning',
-    2: 'fixed feature extractor'
-}
-
-
 def run(**kwargs):
 
     print("\n{}:\n".format(run_types[kwargs["run_type"]]))
@@ -359,7 +352,8 @@ def run(**kwargs):
     model_x = model_x.to(device)
 
     # loss_weights = torch.tensor([0.2, 0.4, 1]).cuda()
-    loss_weights = torch.tensor([0.1, 0.4, 1]).cuda()
+    # loss_weights = torch.tensor([0.1, 0.4, 1]).cuda()
+    loss_weights = torch.tensor([1, 1, 1]).cuda()
 
     criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
@@ -376,6 +370,11 @@ def run(**kwargs):
 
     return model_x, acc_x, time_x
 
+
+run_types = {
+    1: 'fine tuning',
+    2: 'fixed feature extractor'
+}
 
 
 if __name__ == "__main__":
@@ -396,9 +395,9 @@ if __name__ == "__main__":
     if not batch:
 
         params = {
-            "run_type": 2,
+            "run_type": 1,
             "n_input_channels": 8,
-            "n_epochs": 60,
+            "n_epochs": 30,
             "lr": 0.0005,
             "momentum": 0.9,
             "step_size": 5,
