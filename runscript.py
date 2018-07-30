@@ -404,12 +404,12 @@ if __name__ == "__main__":
             "loss_weights",
             "class_sizes"
         ]
-        df = pd.DataFrame(results)
-        df['pixel_size'] = pixel_size
-        df['ncats'] = ncats
-        df["class_sizes"] = class_sizes
-        df = df[col_order]
-        df.to_csv(df_output_path, index=False, encoding='utf-8')
+        df_out = pd.DataFrame(results)
+        df_out['pixel_size'] = pixel_size
+        df_out['ncats'] = ncats
+        df_out["class_sizes"] = class_sizes
+        df_out = df_out[col_order]
+        df_out.to_csv(df_output_path, index=False, encoding='utf-8')
 
 
     batch = True
