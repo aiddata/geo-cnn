@@ -407,7 +407,7 @@ if __name__ == "__main__":
         df_out = pd.DataFrame(results)
         df_out['pixel_size'] = pixel_size
         df_out['ncats'] = ncats
-        df_out["class_sizes"] = class_sizes
+        df_out["class_sizes"] = [class_sizes] * len(df_out)
         df_out = df_out[col_order]
         df_out.to_csv(df_output_path, index=False, encoding='utf-8')
 
@@ -453,16 +453,16 @@ if __name__ == "__main__":
         pranges = {
             "run_type": [1],
             "n_input_channels": [8],
-            "n_epochs": [30],
+            "n_epochs": [10],
             "optim": ["sgd"],
             "lr": [0.005, 0.0075],
             "momentum": [0.9],
             "step_size": [15],
             "gamma": [0.01],
             "loss_weights": [
-                [0.1, 0.4, 1],
+                # [0.1, 0.4, 1],
                 [0.4, 0.4, 1],
-                [0.7, 0.4, 1]
+                [0.8, 0.4, 1]
             ]
         }
 
