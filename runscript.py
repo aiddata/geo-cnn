@@ -168,7 +168,7 @@ original_df = df.copy(deep=True)
 low_count = sum(df['label'] == 0)
 other_count = sum(df['label'] == 1) + sum(df['label'] == 1)
 
-keep_ratio = (other_count * 2.00) / low_count
+keep_ratio = (other_count * 0.5) / low_count
 
 keep_ratio = keep_ratio if keep_ratio < 1 else 1
 
@@ -179,6 +179,7 @@ df = df.loc[df['drop'] == 'keep'].copy(deep=True)
 
 print("Samples per cat (reduced):")
 for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
+class_sizes = [sum(df['label'] == i) for i in cat_names]
 
 
 # -----------------------------------------------------------------------------
@@ -351,15 +352,14 @@ def run(**kwargs):
 
     model_x = model_x.to(device)
 
-    # loss_weights = torch.tensor([0.2, 0.4, 1]).cuda()
-    # loss_weights = torch.tensor([0.1, 0.4, 1]).cuda()
-    loss_weights = torch.tensor([1, 1, 1]).cuda()
+    loss_weights = torch.tensor(
+        map(float, kwargs["loss_weights"])).cuda()
 
     criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
-    # Observe that only parameters of final layer are being optimized as
-    # opposed to before.
-    optimizer_x = optim.SGD(model_x.fc.parameters(), lr=kwargs["lr"], momentum=kwargs["momentum"])
+    if kwargs["optim"] == "sgd"
+        # Observe that only parameters of final layer are being optimized as opposed to before.
+        optimizer_x = optim.SGD(model_x.fc.parameters(), lr=kwargs["lr"], momentum=kwargs["momentum"])
 
     # Decay LR by a factor of `gamma` every `step_size` epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_x, step_size=kwargs["step_size"], gamma=kwargs["gamma"])
@@ -384,9 +384,28 @@ if __name__ == "__main__":
     timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y_%m_%d_%H_%M_%S')
     df_output_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/results_{}.csv".format(timestamp)
 
-
     def output_csv():
+        col_order = [
+            "acc",
+            "time",
+            "run_type",
+            "n_epochs",
+            "optim",
+            "lr",
+            "momentum",
+            "step_size",
+            "gamma",
+            "n_input_channels",
+            "pixel_size",
+            "ncats",
+            "loss_weights",
+            "class_sizes"
+        ]
         df = pd.DataFrame(results)
+        df['pixel_size'] = pixel_size
+        df['ncats'] = ncats
+        df["class_sizes"] = class_sizes
+        df = df[col_order]
         df.to_csv(df_output_path, index=False, encoding='utf-8')
 
 
@@ -398,10 +417,12 @@ if __name__ == "__main__":
             "run_type": 1,
             "n_input_channels": 8,
             "n_epochs": 30,
+            "optim": "sgd",
             "lr": 0.0005,
             "momentum": 0.9,
             "step_size": 5,
-            "gamma": 0.05
+            "gamma": 0.05,
+            "loss_weights": [0.1, 0.4, 1]
         }
 
         model_p, acc_p, time_p = run(**params)
@@ -430,10 +451,15 @@ if __name__ == "__main__":
             "run_type": [1],
             "n_input_channels": [8],
             "n_epochs": [30],
-            "lr": [0.0005, 0.001, 0.005],
+            "optim": ["sgd"],
+            "lr": [0.005, 0.0075],
             "momentum": [0.9],
-            "step_size": [10, 15],
-            "gamma": [0.01, 0.05]
+            "step_size": [15],
+            "gamma": [0.01],
+            "loss_weights": [
+                [0.1, 0.4, 1],
+                [0.7, 0.4, 1]
+            ]
         }
 
         def dict_product(d):
