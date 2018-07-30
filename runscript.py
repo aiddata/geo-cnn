@@ -357,7 +357,7 @@ def run(**kwargs):
 
     criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
-    if kwargs["optim"] == "sgd"
+    if kwargs["optim"] == "sgd":
         # Observe that only parameters of final layer are being optimized as opposed to before.
         optimizer_x = optim.SGD(model_x.fc.parameters(), lr=kwargs["lr"], momentum=kwargs["momentum"])
 
