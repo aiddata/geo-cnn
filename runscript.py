@@ -157,9 +157,6 @@ to_label = df['ntl'] > class_ntl_means[min(cat_names)]
 df.loc[to_label, 'label'] = df.loc[to_label].apply(lambda z: find_nn(z['ntl']), axis=1)
 
 
-print("Samples per cat (raw):")
-for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
-
 
 # drop out some of the extra from low category
 original_df = df.copy(deep=True)
@@ -168,21 +165,49 @@ original_df = df.copy(deep=True)
 # df = original_df.copy(deep=True)
 
 
-low_count = sum(df['label'] == 0)
-other_count = sum(df['label'] == 1) + sum(df['label'] == 2)
 
-keep_ratio = (other_count * 0.5) / low_count
+print("Samples per cat (raw):")
+for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 
-keep_ratio = keep_ratio if keep_ratio < 1 else 1
 
-df['drop'] = 'keep'
-df.loc[df['label'] == 0, 'drop'] = np.random.choice(["drop", "keep"], size=(low_count,), p=[1-keep_ratio, keep_ratio])
+# ==============================
+
+
+# low_count = sum(df['label'] == 0)
+# other_count = sum(df['label'] == 1) + sum(df['label'] == 2)
+
+# keep_ratio = (other_count * 1.0) / low_count
+
+# keep_ratio = keep_ratio if keep_ratio < 1 else 1
+
+# df['drop'] = 'keep'
+# df.loc[df['label'] == 0, 'drop'] = np.random.choice(["drop", "keep"], size=(low_count,), p=[1-keep_ratio, keep_ratio])
+
+
+# ==============================
+# equal class sizes based on smallest class size
+
+class_sizes = [sum(df['label'] == i) for i in cat_names]
+
+nkeep = min(class_sizes)
+
+df['drop'] = 'drop'
+
+for i in cat_names:
+    class_index = df.loc[df['label'] == i].index
+    n_keep = min(class_sizes)
+    keepers = np.random.permutation(class_index)[:nkeep]
+    df.loc[keepers, 'drop'] = 'keep'
+
+
+# ==============================
+
 
 df = df.loc[df['drop'] == 'keep'].copy(deep=True)
 
 print("Samples per cat (reduced):")
 for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
-class_sizes = [sum(df['label'] == i) for i in cat_names]
+
 
 
 # -----------------------------------------------------------------------------
@@ -193,21 +218,22 @@ print("Building datasets")
 
 # lsms_cluster['type'] = np.random.choice(["train", "val"], size=(len(lsms_cluster),), p=[0.90, 0.10])
 
-# training_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
-# validation_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
+# train_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
+# val_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
 
 
-df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.90, 0.10])
+# df['type'] = np.random.choice(["train", "val", "test"], size=(len(df),), p=[0.80, 0.10, 0.10])
+df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.85, 0.15])
 
-training_df = df.loc[df['type'] == "train"]
-validation_df = df.loc[df['type'] == "val"]
+train_df = df.loc[df['type'] == "train"]
+val_df = df.loc[df['type'] == "val"]
 
 
-print("Samples per cat (training):")
-for i in cat_names: print("{0}: {1}".format(i, sum(training_df['label'] == i)))
+print("Samples per cat (train):")
+for i in cat_names: print("{0}: {1}".format(i, sum(train_df['label'] == i)))
 
-print("Samples per cat (validation):")
-for i in cat_names: print("{0}: {1}".format(i, sum(validation_df['label'] == i)))
+print("Samples per cat (val):")
+for i in cat_names: print("{0}: {1}".format(i, sum(val_df['label'] == i)))
 
 
 
@@ -237,12 +263,16 @@ data_transform = transforms.Compose([
 batch_size = 64
 num_workers = 16
 
-train_dset = BandDataset(training_df, base_path, transform=data_transform)
+train_dset = BandDataset(train_df, base_path, transform=data_transform)
 train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
 
-val_dset = BandDataset(validation_df, base_path, transform=data_transform)
+val_dset = BandDataset(val_df, base_path, transform=data_transform)
 val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+
+
+# test_dset = BandDataset(test_df, base_path, transform=data_transform)
+# test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
 
 dataloaders = {
@@ -298,17 +328,11 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                         optimizer.step()
 
                 # statistics
-                # print(loss.item())
-                # print(inputs.size(0))
-                # print(torch.sum(preds == labels.data))
-                # print(inputs.size(0) == len(labels.data))
-                # print('++++++++++')
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
                 running_count += inputs.size(0)
 
 
-            # print(dataset_sizes[phase])
             # epoch_loss = running_loss / dataset_sizes[phase]
             # epoch_acc = running_corrects.double() / dataset_sizes[phase]
             epoch_loss = running_loss / running_count
@@ -451,18 +475,19 @@ if __name__ == "__main__":
         # }
 
         pranges = {
-            "run_type": [1],
+            "run_type": [1, 2],
             "n_input_channels": [8],
-            "n_epochs": [10],
+            "n_epochs": [30],
             "optim": ["sgd"],
             "lr": [0.005, 0.0075],
-            "momentum": [0.9],
+            "momentum": [0.9, 1.1],
             "step_size": [15],
             "gamma": [0.01],
             "loss_weights": [
-                # [0.1, 0.4, 1],
-                [0.4, 0.4, 1],
-                [0.8, 0.4, 1]
+                # [0.1, 0.4, 1.0],
+                # [0.4, 0.4, 1.0],
+                # [0.8, 0.4, 1.0]
+                [1.0, 1.0, 1.0]
             ]
         }
 
@@ -473,7 +498,8 @@ if __name__ == "__main__":
 
 
         for ix, p in enumerate(dict_product(pranges)):
-            print("Parameter combination: {}".format(ix))
+            print('-' * 10)
+            print("\nParameter combination: {}".format(ix))
             model_p, acc_p, time_p = run(**p)
             pout = copy.deepcopy(p)
             pout['acc'] = acc_p
