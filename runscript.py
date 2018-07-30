@@ -35,14 +35,15 @@ import pandas as pd
 import numpy as np
 import fiona
 
-import torch
-from torch.utils.data import Dataset, DataLoader
+
 import torchvision
 from torchvision import utils, datasets, models, transforms
 
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
+from torch.utils.data import Dataset, DataLoader
 
 import resnet
 
@@ -69,8 +70,10 @@ lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
 
 ncats = 3
 cats = range(1, ncats+1)
-cat_vals = map(lambda x: np.percentile(list(lsms_cluster['cons']), x*100/ncats),
-               cats)
+
+consumption_list = list(lsms_cluster['cons'])
+cat_vals = [np.percentile(consumption_list, x*100/ncats) for x in cats]
+
 
 # cat_names = ['low', 'med', 'high']
 cat_names = [0, 1, 2]
@@ -155,7 +158,7 @@ df.loc[to_label, 'label'] = df.loc[to_label].apply(lambda z: find_nn(z['ntl']), 
 
 
 print("Samples per cat (raw):")
-for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
+for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 
 
 # drop out some of the extra from low category
@@ -166,7 +169,7 @@ original_df = df.copy(deep=True)
 
 
 low_count = sum(df['label'] == 0)
-other_count = sum(df['label'] == 1) + sum(df['label'] == 1)
+other_count = sum(df['label'] == 1) + sum(df['label'] == 2)
 
 keep_ratio = (other_count * 0.5) / low_count
 
@@ -178,7 +181,7 @@ df.loc[df['label'] == 0, 'drop'] = np.random.choice(["drop", "keep"], size=(low_
 df = df.loc[df['drop'] == 'keep'].copy(deep=True)
 
 print("Samples per cat (reduced):")
-for i in cat_names:  print("{0}: {1}".format(i, sum(df['label'] == i)))
+for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 class_sizes = [sum(df['label'] == i) for i in cat_names]
 
 
@@ -201,10 +204,10 @@ validation_df = df.loc[df['type'] == "val"]
 
 
 print("Samples per cat (training):")
-for i in cat_names:  print("{0}: {1}".format(i, sum(training_df['label'] == i)))
+for i in cat_names: print("{0}: {1}".format(i, sum(training_df['label'] == i)))
 
 print("Samples per cat (validation):")
-for i in cat_names:  print("{0}: {1}".format(i, sum(validation_df['label'] == i)))
+for i in cat_names: print("{0}: {1}".format(i, sum(validation_df['label'] == i)))
 
 
 
@@ -458,6 +461,7 @@ if __name__ == "__main__":
             "gamma": [0.01],
             "loss_weights": [
                 [0.1, 0.4, 1],
+                [0.4, 0.4, 1],
                 [0.7, 0.4, 1]
             ]
         }
