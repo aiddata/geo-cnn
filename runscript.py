@@ -233,7 +233,7 @@ type_names = ["train", "val", "test"]
 
 # ratio for train, val, test data
 # must sum to 1.0
-type_weights = [0.85, 0.14, 0.01]
+type_weights = [0.85, 0.149, 0.001]
 
 type_sizes = np.zeros(ncats).astype(int)
 for i in cat_names:
@@ -292,7 +292,7 @@ data_transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225]),
 ])
 
-batch_size = 64
+batch_size = 128
 num_workers = 16
 
 train_dset = BandDataset(train_df, base_path, transform=data_transform)
@@ -418,7 +418,8 @@ def run(quiet=False, **kwargs):
     print("\n{}:\n".format(run_types[kwargs["run_type"]]))
     print(kwargs)
 
-    model_x = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    # model_x = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    model_x = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
 
     if kwargs["run_type"] == 2:
         for param in model_x.parameters():
@@ -537,7 +538,7 @@ if __name__ == "__main__":
         pranges = {
             "run_type": [1, 2],
             "n_input_channels": [8],
-            "n_epochs": [10, 20, 30],
+            "n_epochs": [10, 20],
             "optim": ["sgd"],
             "lr": [0.008],
             "momentum": [0.95],
