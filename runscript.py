@@ -233,7 +233,7 @@ type_names = ["train", "val", "test"]
 
 # ratio for train, val, test data
 # must sum to 1.0
-type_weights = [0.80, 0.10, 0.10]
+type_weights = [0.85, 0.14, 0.01]
 
 type_sizes = np.zeros(ncats).astype(int)
 for i in cat_names:
@@ -535,12 +535,12 @@ if __name__ == "__main__":
         # }
 
         pranges = {
-            "run_type": [2],
+            "run_type": [1, 2],
             "n_input_channels": [8],
-            "n_epochs": [10],
+            "n_epochs": [10, 20, 30],
             "optim": ["sgd"],
-            "lr": [0.0075, 0.008],
-            "momentum": [0.85, 0.9, 0.95],
+            "lr": [0.008],
+            "momentum": [0.95],
             "step_size": [15],
             "gamma": [0.01],
             "loss_weights": [
