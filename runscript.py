@@ -383,6 +383,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
             epoch_loss = running_loss / running_count
             epoch_acc = running_correct.item() / running_count
 
+            class_acc = [class_correct[i] / class_count[i] for i in range(len(cat_names))]
+
             if not quiet:
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                     phase, epoch_loss, epoch_acc))
@@ -390,15 +392,14 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
-                class_acc = [class_correct[i] / class_count[i] for i in range(len(cat_names))]
+                best_class_acc = class_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
 
             if phase == 'val':
                 # ==========
                 for i in range(len(cat_names)):
-                    percent_acc = 100 * class_correct[i].item() / class_count[i]
                     print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
-                        i, class_correct[i], class_count[i], percent_acc))
+                        i, class_correct[i], class_count[i], class_acc[i]))
                 # ==========
 
 
@@ -409,7 +410,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
 
     # load best model weights
     model.load_state_dict(best_model_wts)
-    return model, best_acc, class_acc, time_elapsed
+    return model, best_acc, best_class_acc, time_elapsed
 
 
 def run(quiet=False, **kwargs):
