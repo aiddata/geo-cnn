@@ -177,25 +177,6 @@ def resnet18(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(
             prepare_weights(model_zoo.load_url(model_urls['resnet18']), **kwargs))
-
-        # model_weights = model_zoo.load_url(model_urls['resnet18'])
-
-        # trained_kernel = model_weights['conv1.weight']
-
-        # if 'n_input_channels' in kwargs:
-        #     n_input_channels = kwargs['n_input_channels']
-
-        # dims = trained_kernel.shape
-        # dims[1] = n_input_channels - 3
-
-        # d = 1
-        # untrained = torch.mean(trained_kernel, d).unsqueeze(d).expand(dims)
-
-        # new_weights = torch.cat( (trained_kernel, untrained), 1)
-
-        # model_weights['conv1.weight'] = new_weights
-
-        # model.load_state_dict(model_weights)
     return model
 
 
@@ -207,7 +188,8 @@ def resnet34(pretrained=False, **kwargs):
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
+        model.load_state_dict(
+            prepare_weights(model_zoo.load_url(model_urls['resnet34']), **kwargs))
     return model
 
 
@@ -219,7 +201,8 @@ def resnet50(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
+        model.load_state_dict(
+            prepare_weights(model_zoo.load_url(model_urls['resnet50']), **kwargs))
     return model
 
 
@@ -231,7 +214,8 @@ def resnet101(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet101']))
+        model.load_state_dict(
+            prepare_weights(model_zoo.load_url(model_urls['resnet101']), **kwargs))
     return model
 
 
@@ -243,5 +227,6 @@ def resnet152(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet152']))
+        model.load_state_dict(
+            prepare_weights(model_zoo.load_url(model_urls['resnet152']), **kwargs))
     return model
