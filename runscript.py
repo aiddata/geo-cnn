@@ -229,8 +229,27 @@ print("Building datasets")
 # ==========
 
 
-df['type'] = np.random.choice(["train", "val", "test"], size=(len(df),), p=[0.80, 0.10, 0.10])
-# df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.85, 0.15])
+type_names = ["train", "val", "test"]
+
+# ratio for train, val, test data
+# must sum to 1.0
+type_weights = [0.80, 0.10, 0.10]
+
+type_sizes = np.zeros(ncats).astype(int)
+for i in cat_names:
+    type_sizes[i] = int(np.floor(nkeep * type_weights[i]))
+
+# used floor for all counts, so total will always be short
+for _ in range(nkeep-sum(type_sizes)):
+    type_sizes[np.random.randint(0, ncats)] += 1
+
+type_list = [[type_names[i]] * type_sizes[i] for i in cat_names]
+type_list = list(itertools.chain.from_iterable(type_list))
+
+df['type'] = None
+for i in cat_names:
+    np.random.shuffle(type_list)
+    df.loc[df['label'] == i, 'type'] = type_list
 
 
 train_df = df.loc[df['type'] == "train"]
@@ -289,14 +308,12 @@ test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num
 
 
 
-
 dataloaders = {
     "train": train_dataloader,
     "val": val_dataloader,
     "test": test_dataloader
 }
 
-dataset_sizes = {x: len(dataloaders[x]) for x in ['train', 'val']}
 
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=True):
@@ -319,12 +336,12 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                 model.eval()   # Set model to evaluate mode
 
             running_loss = 0.0
-            running_corrects = 0
+            running_correct = 0
             running_count = 0
 
             # ==========
             class_correct = [0] * len(cat_names)
-            class_total = [0] * len(cat_names)
+            class_count = [0] * len(cat_names)
             # ==========
 
             # Iterate over data.
@@ -351,23 +368,20 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
 
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
+
+                running_correct += torch.sum(preds == labels.data)
                 running_count += inputs.size(0)
 
                 # ==========
-                c = (preds == labels.data).squeeze()
-
                 for i in range(len(cat_names)):
-                    label = labels.data[i]
-                    class_correct[label] += c[i]
-                    class_total[label] += 1
+                    label_indexes = (labels == i).nonzero().squeeze()
+                    class_correct[i] += sum(preds[label_indexes] == labels[label_indexes])
+                    class_count[i] += len(label_indexes)
                 # ==========
 
 
-            # epoch_loss = running_loss / dataset_sizes[phase]
-            # epoch_acc = running_corrects.double() / dataset_sizes[phase]
             epoch_loss = running_loss / running_count
-            epoch_acc = running_corrects.double() / running_count
+            epoch_acc = running_correct.item() / running_count
 
             if not quiet:
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
@@ -375,15 +389,15 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
 
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
-                best_acc = float(epoch_acc)
+                best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
 
             if phase == 'val':
                 # ==========
                 for i in range(len(cat_names)):
-                    percent_acc = 100 * class_correct[i].item() / class_total[i]
+                    percent_acc = 100 * class_correct[i].item() / class_count[i]
                     print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
-                        i, class_correct[i], class_total[i], percent_acc))
+                        i, class_correct[i], class_count[i], percent_acc))
                 # ==========
 
 
