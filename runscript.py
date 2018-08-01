@@ -375,7 +375,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                 # ==========
                 for i in range(len(cat_names)):
                     label_indexes = (labels == i).nonzero().squeeze()
-                    class_correct[i] += sum(preds[label_indexes] == labels[label_indexes])
+                    class_correct[i] += sum(preds[label_indexes] == labels[label_indexes]).item()
                     class_count[i] += len(label_indexes)
                 # ==========
 
@@ -390,6 +390,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
+                class_acc = [class_correct[i] / class_count[i] for i in range(len(cat_names))]
                 best_model_wts = copy.deepcopy(model.state_dict())
 
             if phase == 'val':
@@ -408,7 +409,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
 
     # load best model weights
     model.load_state_dict(best_model_wts)
-    return model, best_acc, time_elapsed
+    return model, best_acc, class_acc, time_elapsed
 
 
 def run(quiet=False, **kwargs):
@@ -443,11 +444,11 @@ def run(quiet=False, **kwargs):
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_x, step_size=kwargs["step_size"], gamma=kwargs["gamma"])
 
 
-    model_x, acc_x, time_x = train_model(model_x, criterion, optimizer_x,
+    model_x, acc_x, class_x, time_x = train_model(model_x, criterion, optimizer_x,
                                          exp_lr_scheduler, num_epochs=kwargs["n_epochs"],
                                          quiet=quiet)
 
-    return model_x, acc_x, time_x
+    return model_x, acc_x, class_x, time_x
 
 
 run_types = {
@@ -481,7 +482,8 @@ if __name__ == "__main__":
             "ncats",
             "loss_weights",
             "train_class_sizes",
-            "val_class_sizes"
+            "val_class_sizes",
+            "class_acc"
         ]
         df_out = pd.DataFrame(results)
         df_out['pixel_size'] = pixel_size
@@ -508,8 +510,9 @@ if __name__ == "__main__":
             "loss_weights": [0.1, 0.4, 1]
         }
 
-        model_p, acc_p, time_p = run(quiet=quiet, **params)
+        model_p, acc_p, class_p, time_p = run(quiet=quiet, **params)
         params['acc'] = acc_p
+        params['class_acc'] = class_p
         params['time'] = time_p
         results.append(params)
 
@@ -536,7 +539,7 @@ if __name__ == "__main__":
             "n_epochs": [10],
             "optim": ["sgd"],
             "lr": [0.0075, 0.008],
-            "momentum": [0.085, 0.9, 0.095],
+            "momentum": [0.85, 0.9, 0.95],
             "step_size": [15],
             "gamma": [0.01],
             "loss_weights": [
@@ -557,9 +560,10 @@ if __name__ == "__main__":
         for ix, p in enumerate(dict_product(pranges)):
             print('-' * 10)
             print("\nParameter combination: {}/{}".format(ix, pcount))
-            model_p, acc_p, time_p = run(quiet=quiet, **p)
+            model_p, acc_p, class_p, time_p = run(quiet=quiet, **p)
             pout = copy.deepcopy(p)
             pout['acc'] = acc_p
+            pout['class_acc'] = class_p
             pout['time'] = time_p
             results.append(pout)
             if ix % 10 == 0:
