@@ -59,6 +59,16 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Running on:", device)
 
 
+
+# cat_names = ['low', 'med', 'high']
+cat_names = [0, 1, 2]
+
+ncats = len(cat_names)
+
+
+# -----------------------------------------------------------------------------
+
+
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
 lsms_clusters_path = os.path.join(
@@ -68,15 +78,10 @@ lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
                            na_values='', keep_default_na=False,
                            encoding='utf-8')
 
-ncats = 3
-cats = range(1, ncats+1)
 
 consumption_list = list(lsms_cluster['cons'])
-cat_vals = [np.percentile(consumption_list, x*100/ncats) for x in cats]
+cat_vals = [np.percentile(consumption_list, x*100/ncats) for x in range(1, ncats+1)]
 
-
-# cat_names = ['low', 'med', 'high']
-cat_names = [0, 1, 2]
 
 def classify(val):
     for cix, cval in enumerate(cat_vals):
@@ -187,15 +192,15 @@ for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 # ==============================
 # equal class sizes based on smallest class size
 
-class_sizes = [sum(df['label'] == i) for i in cat_names]
+raw_class_sizes = [sum(df['label'] == i) for i in cat_names]
 
-nkeep = min(class_sizes)
+nkeep = min(raw_class_sizes)
 
 df['drop'] = 'drop'
 
 for i in cat_names:
     class_index = df.loc[df['label'] == i].index
-    n_keep = min(class_sizes)
+    n_keep = min(raw_class_sizes)
     keepers = np.random.permutation(class_index)[:nkeep]
     df.loc[keepers, 'drop'] = 'keep'
 
@@ -216,17 +221,26 @@ for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 print("Building datasets")
 
 
+# ==========
 # lsms_cluster['type'] = np.random.choice(["train", "val"], size=(len(lsms_cluster),), p=[0.90, 0.10])
 
 # train_df = lsms_cluster.loc[lsms_cluster['type'] == "train"]
 # val_df = lsms_cluster.loc[lsms_cluster['type'] == "val"]
+# ==========
 
 
-# df['type'] = np.random.choice(["train", "val", "test"], size=(len(df),), p=[0.80, 0.10, 0.10])
-df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.85, 0.15])
+df['type'] = np.random.choice(["train", "val", "test"], size=(len(df),), p=[0.80, 0.10, 0.10])
+# df['type'] = np.random.choice(["train", "val"], size=(len(df),), p=[0.85, 0.15])
+
 
 train_df = df.loc[df['type'] == "train"]
 val_df = df.loc[df['type'] == "val"]
+test_df = df.loc[df['type'] == "test"]
+
+
+train_class_sizes = [sum(train_df['label'] == i) for i in cat_names]
+val_class_sizes = [sum(val_df['label'] == i) for i in cat_names]
+test_class_sizes = [sum(test_df['label'] == i) for i in cat_names]
 
 
 print("Samples per cat (train):")
@@ -235,9 +249,8 @@ for i in cat_names: print("{0}: {1}".format(i, sum(train_df['label'] == i)))
 print("Samples per cat (val):")
 for i in cat_names: print("{0}: {1}".format(i, sum(val_df['label'] == i)))
 
-
-
-
+print("Samples per cat (test):")
+for i in cat_names: print("{0}: {1}".format(i, sum(test_df['label'] == i)))
 
 
 
@@ -271,13 +284,16 @@ val_dset = BandDataset(val_df, base_path, transform=data_transform)
 val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
 
-# test_dset = BandDataset(test_df, base_path, transform=data_transform)
-# test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+test_dset = BandDataset(test_df, base_path, transform=data_transform)
+test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+
+
 
 
 dataloaders = {
     "train": train_dataloader,
-    "val": val_dataloader
+    "val": val_dataloader,
+    "test": test_dataloader
 }
 
 dataset_sizes = {x: len(dataloaders[x]) for x in ['train', 'val']}
@@ -291,7 +307,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
 
     for epoch in range(num_epochs):
         if not quiet:
-            print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+            print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
             print('-' * 10)
 
         # Each epoch has a training and validation phase
@@ -305,6 +321,11 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
             running_loss = 0.0
             running_corrects = 0
             running_count = 0
+
+            # ==========
+            class_correct = [0] * len(cat_names)
+            class_total = [0] * len(cat_names)
+            # ==========
 
             # Iterate over data.
             for inputs, labels in dataloaders[phase]:
@@ -322,6 +343,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
+
                     # backward + optimize only if in training phase
                     if phase == 'train':
                         loss.backward()
@@ -331,6 +353,15 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
                 running_count += inputs.size(0)
+
+                # ==========
+                c = (preds == labels.data).squeeze()
+
+                for i in range(len(cat_names)):
+                    label = labels.data[i]
+                    class_correct[label] += c[i]
+                    class_total[label] += 1
+                # ==========
 
 
             # epoch_loss = running_loss / dataset_sizes[phase]
@@ -347,11 +378,17 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                 best_acc = float(epoch_acc)
                 best_model_wts = copy.deepcopy(model.state_dict())
 
-        if not quiet:
-            print()
+            if phase == 'val':
+                # ==========
+                for i in range(len(cat_names)):
+                    percent_acc = 100 * class_correct[i].item() / class_total[i]
+                    print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
+                        i, class_correct[i], class_total[i], percent_acc))
+                # ==========
+
 
     time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(
+    print('\nTraining complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
     print('Best val Acc: {:4f}'.format(best_acc))
 
@@ -360,7 +397,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
     return model, best_acc, time_elapsed
 
 
-def run(**kwargs):
+def run(quiet=False, **kwargs):
 
     print("\n{}:\n".format(run_types[kwargs["run_type"]]))
     print(kwargs)
@@ -393,7 +430,8 @@ def run(**kwargs):
 
 
     model_x, acc_x, time_x = train_model(model_x, criterion, optimizer_x,
-                                         exp_lr_scheduler, num_epochs=kwargs["n_epochs"])
+                                         exp_lr_scheduler, num_epochs=kwargs["n_epochs"],
+                                         quiet=quiet)
 
     return model_x, acc_x, time_x
 
@@ -405,6 +443,8 @@ run_types = {
 
 
 if __name__ == "__main__":
+
+    quiet = False
 
     results = []
 
@@ -426,12 +466,14 @@ if __name__ == "__main__":
             "pixel_size",
             "ncats",
             "loss_weights",
-            "class_sizes"
+            "train_class_sizes",
+            "val_class_sizes"
         ]
         df_out = pd.DataFrame(results)
         df_out['pixel_size'] = pixel_size
         df_out['ncats'] = ncats
-        df_out["class_sizes"] = [class_sizes] * len(df_out)
+        df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
+        df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
         df_out = df_out[col_order]
         df_out.to_csv(df_output_path, index=False, encoding='utf-8')
 
@@ -452,7 +494,7 @@ if __name__ == "__main__":
             "loss_weights": [0.1, 0.4, 1]
         }
 
-        model_p, acc_p, time_p = run(**params)
+        model_p, acc_p, time_p = run(quiet=quiet, **params)
         params['acc'] = acc_p
         params['time'] = time_p
         results.append(params)
@@ -475,12 +517,12 @@ if __name__ == "__main__":
         # }
 
         pranges = {
-            "run_type": [1, 2],
+            "run_type": [2],
             "n_input_channels": [8],
-            "n_epochs": [30],
+            "n_epochs": [10],
             "optim": ["sgd"],
-            "lr": [0.005, 0.0075],
-            "momentum": [0.9, 1.1],
+            "lr": [0.0075, 0.008],
+            "momentum": [0.085, 0.9, 0.095],
             "step_size": [15],
             "gamma": [0.01],
             "loss_weights": [
@@ -496,11 +538,12 @@ if __name__ == "__main__":
             for element in itertools.product(*d.values()):
                 yield dict(zip(keys, element))
 
+        pcount = np.prod([len(i) for i in pranges.values()])
 
         for ix, p in enumerate(dict_product(pranges)):
             print('-' * 10)
-            print("\nParameter combination: {}".format(ix))
-            model_p, acc_p, time_p = run(**p)
+            print("\nParameter combination: {}/{}".format(ix, pcount))
+            model_p, acc_p, time_p = run(quiet=quiet, **p)
             pout = copy.deepcopy(p)
             pout['acc'] = acc_p
             pout['time'] = time_p
