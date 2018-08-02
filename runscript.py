@@ -292,20 +292,18 @@ data_transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225]),
 ])
 
+
+train_dset = BandDataset(train_df, base_path, transform=data_transform)
+val_dset = BandDataset(val_df, base_path, transform=data_transform)
+test_dset = BandDataset(test_df, base_path, transform=data_transform)
+
+
 batch_size = 128
 num_workers = 16
 
-train_dset = BandDataset(train_df, base_path, transform=data_transform)
 train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-
-
-val_dset = BandDataset(val_df, base_path, transform=data_transform)
 val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-
-
-test_dset = BandDataset(test_df, base_path, transform=data_transform)
 test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-
 
 
 dataloaders = {
@@ -422,6 +420,12 @@ def run(quiet=False, **kwargs):
         model_x = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
     elif kwargs["net"] == "resnet34":
         model_x = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    elif kwargs["net"] == "resnet50":
+        model_x = resnet.resnet50(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    elif kwargs["net"] == "resnet101":
+        model_x = resnet.resnet101(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    elif kwargs["net"] == "resnet152":
+        model_x = resnet.resnet152(pretrained=True, n_input_channels=kwargs["n_input_channels"])
     else:
         raise Exception("net not found")
 
