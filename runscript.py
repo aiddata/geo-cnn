@@ -299,6 +299,8 @@ test_dset = BandDataset(test_df, base_path, transform=data_transform)
 
 
 batch_size = 128
+batch_size = 64
+
 num_workers = 16
 
 train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
@@ -573,11 +575,13 @@ if __name__ == "__main__":
             "train_class_sizes",
             "val_class_sizes",
             "class_acc",
-            "net"
+            "net",
+            "batch_size"
         ]
         df_out = pd.DataFrame(results)
         df_out['pixel_size'] = pixel_size
         df_out['ncats'] = ncats
+        df_out['batch_size'] = batch_size
         df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
         df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
         df_out = df_out[col_order]
@@ -625,9 +629,9 @@ if __name__ == "__main__":
         # }
 
         pranges = {
-            "run_type": [1, 2],
+            "run_type": [2],
             "n_input_channels": [8],
-            "n_epochs": [10, 20],
+            "n_epochs": [10],
             "optim": ["sgd"],
             "lr": [0.008],
             "momentum": [0.95],
@@ -639,7 +643,7 @@ if __name__ == "__main__":
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
             ],
-            "net": ["resnet50", "resnet101", "resnet152"]
+            "net": ["resnet101", "resnet152"]
         }
 
         def dict_product(d):
@@ -651,7 +655,7 @@ if __name__ == "__main__":
 
         for ix, p in enumerate(dict_product(pranges)):
             print('-' * 10)
-            print("\nParameter combination: {}/{}".format(ix, pcount))
+            print("\nParameter combination: {}/{}".format(ix+1, pcount))
             model_p, acc_p, class_p, time_p = run(quiet=quiet, **p)
             pout = copy.deepcopy(p)
             pout['acc'] = acc_p

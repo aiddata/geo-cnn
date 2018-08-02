@@ -31,7 +31,7 @@ class BandDataset(Dataset):
         row = self.dataframe.iloc[idx]
 
         label = None
-        if 'label' in row
+        if 'label' in row:
             label = row['label']
 
         lon = row['lon']
