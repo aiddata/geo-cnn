@@ -418,8 +418,12 @@ def run(quiet=False, **kwargs):
     print("\n{}:\n".format(run_types[kwargs["run_type"]]))
     print(kwargs)
 
-    # model_x = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
-    model_x = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    if kwargs["net"] == "resnet18":
+        model_x = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    elif kwargs["net"] == "resnet34":
+        model_x = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+    else:
+        raise Exception("net not found")
 
     if kwargs["run_type"] == 2:
         for param in model_x.parameters():
@@ -485,7 +489,8 @@ if __name__ == "__main__":
             "loss_weights",
             "train_class_sizes",
             "val_class_sizes",
-            "class_acc"
+            "class_acc",
+            "net"
         ]
         df_out = pd.DataFrame(results)
         df_out['pixel_size'] = pixel_size
@@ -509,7 +514,8 @@ if __name__ == "__main__":
             "momentum": 0.9,
             "step_size": 5,
             "gamma": 0.05,
-            "loss_weights": [0.1, 0.4, 1]
+            "loss_weights": [0.1, 0.4, 1],
+            "net": "resnet18"
         }
 
         model_p, acc_p, class_p, time_p = run(quiet=quiet, **params)
@@ -549,7 +555,8 @@ if __name__ == "__main__":
                 # [0.4, 0.4, 1.0],
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
-            ]
+            ],
+            "net": ["resnet34"]
         }
 
         def dict_product(d):
