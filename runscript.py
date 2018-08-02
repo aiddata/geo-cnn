@@ -337,10 +337,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
             running_correct = 0
             running_count = 0
 
-            # ==========
             class_correct = [0] * len(cat_names)
             class_count = [0] * len(cat_names)
-            # ==========
 
             # Iterate over data.
             for inputs, labels in dataloaders[phase]:
@@ -370,12 +368,10 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                 running_correct += torch.sum(preds == labels.data)
                 running_count += inputs.size(0)
 
-                # ==========
                 for i in range(len(cat_names)):
                     label_indexes = (labels == i).nonzero().squeeze()
                     class_correct[i] += sum(preds[label_indexes] == labels[label_indexes]).item()
                     class_count[i] += len(label_indexes)
-                # ==========
 
 
             epoch_loss = running_loss / running_count
@@ -394,11 +390,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
                 best_model_wts = copy.deepcopy(model.state_dict())
 
             if phase == 'val':
-                # ==========
                 for i in range(len(cat_names)):
                     print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
                         i, class_correct[i], class_count[i], class_acc[i]))
-                # ==========
 
 
     time_elapsed = time.time() - since
@@ -409,6 +403,91 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
     # load best model weights
     model.load_state_dict(best_model_wts)
     return model, best_acc, best_class_acc, time_elapsed
+
+
+def test_model(model, criterion, optimizer):
+    since = time.time()
+
+    model.eval()   # Set model to evaluate mode
+
+    running_loss = 0.0
+    running_correct = 0
+    running_count = 0
+
+    class_correct = [0] * len(cat_names)
+    class_count = [0] * len(cat_names)
+
+    # Iterate over data.
+    for inputs, labels in dataloaders[phase]:
+        inputs = inputs.to(device)
+
+        labels = labels.to(device)
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        with torch.set_grad_enabled(0):
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            loss = criterion(outputs, labels)
+
+        # statistics
+        running_loss += loss.item() * inputs.size(0)
+
+        running_correct += torch.sum(preds == labels.data)
+        running_count += inputs.size(0)
+
+        for i in range(len(cat_names)):
+            label_indexes = (labels == i).nonzero().squeeze()
+            class_correct[i] += sum(preds[label_indexes] == labels[label_indexes]).item()
+            class_count[i] += len(label_indexes)
+
+
+    epoch_loss = running_loss / running_count
+    epoch_acc = running_correct.item() / running_count
+
+    class_acc = [class_correct[i] / class_count[i] for i in range(len(cat_names))]
+
+    print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+        phase, epoch_loss, epoch_acc))
+
+    for i in range(len(cat_names)):
+        print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
+            i, class_correct[i], class_count[i], class_acc[i]))
+
+
+    time_elapsed = time.time() - since
+    print('\nTesting complete in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
+
+    return epoch_loss, epoch_acc, class_acc, time_elapsed
+
+
+
+def predict_model(model):
+    since = time.time()
+
+    model.eval()   # Set model to evaluate mode
+
+    full_preds = []
+
+    # iterate over data
+    for inputs, _ in dataloaders[phase]:
+        inputs = inputs.to(device)
+
+        with torch.set_grad_enabled(0):
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            full_preds += preds # need to test this
+
+    time_elapsed = time.time() - since
+    print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
+
+    # load best model weights
+    return full_preds, time_elapsed
+
+
 
 
 def run(quiet=False, **kwargs):
@@ -454,9 +533,9 @@ def run(quiet=False, **kwargs):
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_x, step_size=kwargs["step_size"], gamma=kwargs["gamma"])
 
 
-    model_x, acc_x, class_x, time_x = train_model(model_x, criterion, optimizer_x,
-                                         exp_lr_scheduler, num_epochs=kwargs["n_epochs"],
-                                         quiet=quiet)
+    model_x, acc_x, class_x, time_x = train_model(
+        model_x, criterion, optimizer_x, exp_lr_scheduler,
+        num_epochs=kwargs["n_epochs"], quiet=quiet)
 
     return model_x, acc_x, class_x, time_x
 
@@ -560,7 +639,7 @@ if __name__ == "__main__":
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
             ],
-            "net": ["resnet34"]
+            "net": ["resnet50", "resnet101", "resnet152"]
         }
 
         def dict_product(d):
