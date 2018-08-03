@@ -60,6 +60,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Running on:", device)
 
 
+run_types = {
+    1: 'fine tuning',
+    2: 'fixed feature extractor'
+}
+
 
 # cat_names = ['low', 'med', 'high']
 cat_names = [0, 1, 2]
@@ -132,19 +137,23 @@ tza_adm0 = fiona.open(tza_adm0_path)
 # define, build, and save sample grid
 pixel_size = 0.008
 
-grid = PointGrid(tza_adm0)
-grid.grid(pixel_size)
-
-geo_path = os.path.join(base_path, "sample_grid.geojson")
-grid.to_geojson(geo_path)
-
 csv_path = os.path.join(base_path, "sample_grid.csv")
-grid.to_csv(csv_path)
 
-df = grid.to_dataframe()
+if os.path.isfile(csv_path):
+    df = pd.read_csv(csv_path, sep=",", encoding='utf-8')
+else:
+    grid = PointGrid(tza_adm0)
+    grid.grid(pixel_size)
+    # geo_path = os.path.join(base_path, "sample_grid.geojson")
+    # grid.to_geojson(geo_path)
+    # csv_path = os.path.join(base_path, "sample_grid.csv")
+    # grid.to_csv(csv_path)
+    grid.df = grid.to_dataframe()
+    # look up ntl values for each grid cell
+    grid.df['ntl'] = grid.df.apply(lambda z: get_ntl(z['lon'], z['lat'], ntl_dim=7), axis=1)
+    grid.to_csv(csv_path)
+    df = grid.df.copy(deep=True)
 
-# look up ntl values for each grid cell
-df['ntl'] = df.apply(lambda z: get_ntl(z['lon'], z['lat'], ntl_dim=7), axis=1)
 
 # find nearest neighbor for each grid cell using class_ntl_means
 
@@ -293,13 +302,14 @@ data_transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225]),
 ])
 
+dim = 224
 
-train_dset = BandDataset(train_df, base_path, transform=data_transform)
-val_dset = BandDataset(val_df, base_path, transform=data_transform)
-test_dset = BandDataset(test_df, base_path, transform=data_transform)
+train_dset = BandDataset(train_df, base_path, dim=dim, transform=data_transform)
+val_dset = BandDataset(val_df, base_path, dim=dim, transform=data_transform)
+test_dset = BandDataset(test_df, base_path, dim=dim, transform=data_transform)
 
 
-batch_size = 128
+# batch_size = 128
 batch_size = 64
 
 num_workers = 16
@@ -343,7 +353,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
             class_correct = [0] * len(cat_names)
             class_count = [0] * len(cat_names)
 
-            # Iterate over data.
+            # iterate over data
             for inputs, labels in dataloaders[phase]:
                 inputs = inputs.to(device)
 
@@ -543,10 +553,7 @@ def run(quiet=False, **kwargs):
     return model_x, acc_x, class_x, time_x
 
 
-run_types = {
-    1: 'fine tuning',
-    2: 'fixed feature extractor'
-}
+
 
 
 if __name__ == "__main__":
@@ -633,10 +640,10 @@ if __name__ == "__main__":
             "n_input_channels": [8],
             "n_epochs": [10],
             "optim": ["sgd"],
-            "lr": [0.0005, 0.001, 0.005, 0.009],
-            "momentum": [0.085, 0.95],
+            "lr": [0.005, 0.007, 0.009],
+            "momentum": [0.95],
             "step_size": [15],
-            "gamma": [0.01],
+            "gamma": [0.1],
             "loss_weights": [
                 # [0.1, 0.4, 1.0],
                 # [0.4, 0.4, 1.0],
@@ -667,4 +674,3 @@ if __name__ == "__main__":
             pout['time'] = time_p
             results.append(pout)
             output_csv()
-

@@ -11,7 +11,7 @@ from shapely.prepared import prep
 from shapely.ops import cascaded_union
 
 import pandas as pd
-# import geopandas as gpd
+import geopandas as gpd
 
 
 
@@ -114,15 +114,15 @@ class PointGrid():
         return self.df
 
 
-    # def to_geodataframe(self):
-    #     if self.prop_list is None:
-    #         raise Exception("Generate grid before running `to_geodataframe`")
-    #     if hasattr(self, 'df'):
-    #         df = copy.deepcopy(self.df)
-    #     else:
-    #         df = self.to_dataframe()
-    #     df['geometry'] = df.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
-    #     self.gdf = gpd.GeoDataFrame(df)
-    #     return self.gdf
+    def to_geodataframe(self):
+        if self.prop_list is None:
+            raise Exception("Generate grid before running `to_geodataframe`")
+        if hasattr(self, 'df'):
+            df = copy.deepcopy(self.df)
+        else:
+            df = self.to_dataframe()
+        df['geometry'] = df.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
+        self.gdf = gpd.GeoDataFrame(df)
+        return self.gdf
 
 

@@ -8,9 +8,9 @@ from torch.utils.data import Dataset
 class BandDataset(Dataset):
     """Get the data
     """
-    def __init__(self, dataframe, root_dir, transform=None):
+    def __init__(self, dataframe, root_dir, dim=224, transform=None):
 
-        self.dim = 224
+        self.dim = dim
         self.year = 2010
         # self.bands = ["b1", "b2", "b3", ]
         self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"]
