@@ -610,7 +610,6 @@ if __name__ == "__main__":
         params['class_acc'] = class_p
         params['time'] = time_p
         results.append(params)
-
         output_csv()
 
 
@@ -633,7 +632,7 @@ if __name__ == "__main__":
             "n_input_channels": [8],
             "n_epochs": [10],
             "optim": ["sgd"],
-            "lr": [0.0005, 0.001, 0.003],
+            "lr": [0.0005, 0.001, 0.005, 0.009],
             "momentum": [0.085, 0.95],
             "step_size": [15],
             "gamma": [0.01],
@@ -643,7 +642,7 @@ if __name__ == "__main__":
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
             ],
-            "net": ["resnet18", "resnet34", "resnet50", "resnet152", "resnet152"]
+            "net": ["resnet152"]
         }
 
         def dict_product(d):
@@ -662,8 +661,5 @@ if __name__ == "__main__":
             pout['class_acc'] = class_p
             pout['time'] = time_p
             results.append(pout)
-            if ix % 10 == 0:
-                output_csv()
+            output_csv()
 
-
-        output_csv()
