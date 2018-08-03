@@ -29,6 +29,7 @@ import glob
 import itertools
 import datetime
 import time
+import pprint
 
 import rasterio
 import pandas as pd
@@ -644,6 +645,10 @@ if __name__ == "__main__":
             ],
             "net": ["resnet152"]
         }
+
+        print("\nPreparing following parameter set:\n")
+        pprint.pprint(pranges, indent=4)
+        print('-' * 20)
 
         def dict_product(d):
             keys = d.keys()
