@@ -372,7 +372,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=Tru
 
                 for i in range(len(cat_names)):
                     label_indexes = (labels == i).nonzero().squeeze()
-                    class_correct[i] += sum(preds[label_indexes] == labels[label_indexes]).item()
+                    class_correct[i] += torch.sum(preds[label_indexes] == labels[label_indexes]).item()
                     class_count[i] += len(label_indexes)
 
 
@@ -629,12 +629,12 @@ if __name__ == "__main__":
         # }
 
         pranges = {
-            "run_type": [2],
+            "run_type": [1],
             "n_input_channels": [8],
             "n_epochs": [10],
             "optim": ["sgd"],
-            "lr": [0.008],
-            "momentum": [0.95],
+            "lr": [0.0005, 0.001, 0.003],
+            "momentum": [0.085, 0.95],
             "step_size": [15],
             "gamma": [0.01],
             "loss_weights": [
@@ -643,7 +643,7 @@ if __name__ == "__main__":
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
             ],
-            "net": ["resnet101", "resnet152"]
+            "net": ["resnet18", "resnet34", "resnet50", "resnet152", "resnet152"]
         }
 
         def dict_product(d):
