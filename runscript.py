@@ -357,8 +357,8 @@ if __name__ == "__main__":
         df_out.to_csv(df_output_path, index=False, encoding='utf-8')
 
 
-    # batch = True
-    batch = False
+    batch = True
+    # batch = False
 
     if not batch:
 
@@ -378,7 +378,7 @@ if __name__ == "__main__":
             "dim": 300
         }
 
-        dataloaders = build_dataloaders(data_transforms=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"])
+        dataloaders = build_dataloaders(data_transform=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"])
         model_p, acc_p, class_p, time_p = run(quiet=quiet, **params)
         params['acc'] = acc_p
         params['class_acc'] = class_p
@@ -436,7 +436,7 @@ if __name__ == "__main__":
         for ix, p in enumerate(dict_product(pranges)):
             print('-' * 10)
             print("\nParameter combination: {}/{}".format(ix+1, pcount))
-            dataloaders = build_dataloaders(data_transforms=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"])
+            dataloaders = build_dataloaders(data_transform=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"])
             model_p, acc_p, class_p, time_p = run(quiet=quiet, **p)
             pout = copy.deepcopy(p)
             pout['acc'] = acc_p
