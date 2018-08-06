@@ -334,7 +334,7 @@ if __name__ == "__main__":
     results = []
 
     timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y_%m_%d_%H_%M_%S')
-    df_output_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/results_{}.csv".format(timestamp)
+    df_output_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/run_data/results_{}.csv".format(timestamp)
 
     def output_csv():
         col_order = [
