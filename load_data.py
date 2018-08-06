@@ -52,7 +52,7 @@ class BandDataset(Dataset):
             data = season_mosaics.read(1, window=win)
 
             if data.shape != (dim, dim):
-                raise Exception("bad feature")
+                raise Exception("bad feature (dim: ({0}, {0}), data shape: {1}".format(dim, data.shape))
 
             feature[bnum] = data
 

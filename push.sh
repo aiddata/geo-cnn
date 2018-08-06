@@ -8,3 +8,4 @@ cp $src/runscript.py $dst
 cp $src/jobscript $dst
 cp $src/resnet.py $dst
 cp $src/load_data.py $dst
+cp $src/data_prep.py $dst
