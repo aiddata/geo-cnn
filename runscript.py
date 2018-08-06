@@ -57,45 +57,34 @@ from data_prep import *
 # -----------------------------------------------------------------------------
 
 
-# bands = 8
 
-# imagenet_means = [0.485, 0.456, 0.406]
-# imagenet_stds = [0.229, 0.224, 0.225]
+def build_dataloaders(data_transform=None, dim=224, batch_size=64, num_workers=16):
 
-# new_means = imagenet_means #+ [np.mean(imagenet_means)] * (bands-3)
-# new_stds = imagenet_stds #+ [np.mean(imagenet_stds)] * (bands-3)
+    if data_transform == None:
 
-data_transform = transforms.Compose([
-    # transforms.RandomSizedCrop(224),
-    # transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225]),
-])
+        data_transform = transforms.Compose([
+            # transforms.RandomSizedCrop(224),
+            # transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], # imagenet means
+                                 std=[0.229, 0.224, 0.225]), # imagenet stds
+        ])
 
-dim = 224
+    train_dset = BandDataset(train_df, base_path, dim=dim, transform=data_transform)
+    val_dset = BandDataset(val_df, base_path, dim=dim, transform=data_transform)
+    test_dset = BandDataset(test_df, base_path, dim=dim, transform=data_transform)
 
-train_dset = BandDataset(train_df, base_path, dim=dim, transform=data_transform)
-val_dset = BandDataset(val_df, base_path, dim=dim, transform=data_transform)
-test_dset = BandDataset(test_df, base_path, dim=dim, transform=data_transform)
+    train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
+    dataloaders = {
+        "train": train_dataloader,
+        "val": val_dataloader,
+        "test": test_dataloader
+    }
 
-# batch_size = 128
-batch_size = 64
-
-num_workers = 16
-
-train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-
-
-dataloaders = {
-    "train": train_dataloader,
-    "val": val_dataloader,
-    "test": test_dataloader
-}
-
+    return dataloaders
 
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=True):
@@ -355,35 +344,41 @@ if __name__ == "__main__":
             "val_class_sizes",
             "class_acc",
             "net",
-            "batch_size"
+            "batch_size",
+            "num_workers",
+            "dim"
         ]
         df_out = pd.DataFrame(results)
         df_out['pixel_size'] = pixel_size
         df_out['ncats'] = ncats
-        df_out['batch_size'] = batch_size
         df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
         df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
         df_out = df_out[col_order]
         df_out.to_csv(df_output_path, index=False, encoding='utf-8')
 
 
-    batch = True
+    # batch = True
+    batch = False
 
     if not batch:
 
         params = {
             "run_type": 1,
             "n_input_channels": 8,
-            "n_epochs": 30,
+            "n_epochs": 1,
             "optim": "sgd",
-            "lr": 0.0005,
-            "momentum": 0.9,
-            "step_size": 5,
-            "gamma": 0.05,
-            "loss_weights": [0.1, 0.4, 1],
-            "net": "resnet18"
+            "lr": 0.009,
+            "momentum": 0.95,
+            "step_size": 15,
+            "gamma": 0.1,
+            "loss_weights": [1.0, 1.0, 1.0],
+            "net": "resnet18",
+            "batch_size": 64,
+            "num_workers": 16,
+            "dim": 300
         }
 
+        dataloaders = build_dataloaders(data_transforms=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"])
         model_p, acc_p, class_p, time_p = run(quiet=quiet, **params)
         params['acc'] = acc_p
         params['class_acc'] = class_p
@@ -409,10 +404,10 @@ if __name__ == "__main__":
         pranges = {
             "run_type": [2],
             "n_input_channels": [8],
-            "n_epochs": [10, 30],
+            "n_epochs": [10],
             "optim": ["sgd"],
-            "lr": [0.005, 0.007, 0.009],
-            "momentum": [0.9, 0.95, 0.99],
+            "lr": [0.009],
+            "momentum": [0.95],
             "step_size": [15],
             "gamma": [0.1],
             "loss_weights": [
@@ -421,7 +416,10 @@ if __name__ == "__main__":
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
             ],
-            "net": ["resnet101", "resnet152"]
+            "net": ["resnet18"],
+            "batch_size": [64],
+            "num_workers": [16],
+            "dim": [224, 300, 400]
         }
 
         print("\nPreparing following parameter set:\n")
@@ -438,6 +436,7 @@ if __name__ == "__main__":
         for ix, p in enumerate(dict_product(pranges)):
             print('-' * 10)
             print("\nParameter combination: {}/{}".format(ix+1, pcount))
+            dataloaders = build_dataloaders(data_transforms=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"])
             model_p, acc_p, class_p, time_p = run(quiet=quiet, **p)
             pout = copy.deepcopy(p)
             pout['acc'] = acc_p
