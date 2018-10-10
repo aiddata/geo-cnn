@@ -2,6 +2,8 @@
 
 qsub -I -l nodes=1:hima:gpu:ppn=64 -l walltime=8:00:00
 
+hi06 = p100 x2
+hi07 = v100 x2
 
 mpirun -mca orte_base_help_aggregate 0 --mca mpi_warn_on_fork 0 --map-by node -np 32 python-mpi lsms_imagery_prep.py
 
@@ -58,7 +60,7 @@ from data_prep import *
 
 
 
-def build_dataloaders(data_transform=None, dim=224, batch_size=64, num_workers=16):
+def build_dataloaders(data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="max"):
 
     if data_transform == None:
 
@@ -70,9 +72,9 @@ def build_dataloaders(data_transform=None, dim=224, batch_size=64, num_workers=1
                                  std=[0.229, 0.224, 0.225]), # imagenet stds
         ])
 
-    train_dset = BandDataset(train_df, base_path, dim=dim, transform=data_transform)
-    val_dset = BandDataset(val_df, base_path, dim=dim, transform=data_transform)
-    test_dset = BandDataset(test_df, base_path, dim=dim, transform=data_transform)
+    train_dset = BandDataset(train_df, base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+    val_dset = BandDataset(val_df, base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+    test_dset = BandDataset(test_df, base_path, dim=dim, transform=data_transform, agg_method=agg_method)
 
     train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
@@ -290,9 +292,6 @@ def run(quiet=False, **kwargs):
 
     model_x.fc = nn.Linear(num_ftrs, ncats)
 
-
-    model_x = model_x.to(device)
-
     loss_weights = torch.tensor(
         map(float, kwargs["loss_weights"])).cuda()
 
@@ -306,12 +305,17 @@ def run(quiet=False, **kwargs):
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_x, step_size=kwargs["step_size"], gamma=kwargs["gamma"])
 
 
+    if torch.cuda.device_count() > 1:
+        print("Using", torch.cuda.device_count(), "GPUs")
+        model_x = nn.DataParallel(model_x)
+
+    model_x = model_x.to(device)
+
     model_x, acc_x, class_x, time_x = train_model(
         model_x, criterion, optimizer_x, exp_lr_scheduler,
         num_epochs=kwargs["n_epochs"], quiet=quiet)
 
     return model_x, acc_x, class_x, time_x
-
 
 
 
@@ -324,6 +328,7 @@ if __name__ == "__main__":
 
     timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y_%m_%d_%H_%M_%S')
     df_output_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/run_data/results_{}.csv".format(timestamp)
+
 
     def output_csv():
         col_order = [
@@ -346,7 +351,8 @@ if __name__ == "__main__":
             "net",
             "batch_size",
             "num_workers",
-            "dim"
+            "dim",
+            "agg_method"
         ]
         df_out = pd.DataFrame(results)
         df_out['pixel_size'] = pixel_size
@@ -363,22 +369,23 @@ if __name__ == "__main__":
     if not batch:
 
         params = {
-            "run_type": 1,
+            "run_type": 2,
             "n_input_channels": 8,
-            "n_epochs": 1,
+            "n_epochs": 10,
             "optim": "sgd",
             "lr": 0.009,
             "momentum": 0.95,
             "step_size": 15,
             "gamma": 0.1,
             "loss_weights": [1.0, 1.0, 1.0],
-            "net": "resnet18",
-            "batch_size": 64,
+            "net": "resnet152",
+            "batch_size": 150,
             "num_workers": 16,
-            "dim": 300
+            "dim": 224,
+            "agg_method": "min"
         }
 
-        dataloaders = build_dataloaders(data_transform=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"])
+        dataloaders = build_dataloaders(data_transform=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"], agg_method=params["agg_method"])
         model_p, acc_p, class_p, time_p = run(quiet=quiet, **params)
         params['acc'] = acc_p
         params['class_acc'] = class_p
@@ -404,7 +411,7 @@ if __name__ == "__main__":
         pranges = {
             "run_type": [2],
             "n_input_channels": [8],
-            "n_epochs": [10],
+            "n_epochs": [2],
             "optim": ["sgd"],
             "lr": [0.009],
             "momentum": [0.95],
@@ -416,10 +423,11 @@ if __name__ == "__main__":
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
             ],
-            "net": ["resnet18"],
-            "batch_size": [64],
+            "net": ["resnet152"],
+            "batch_size": [150],
             "num_workers": [16],
-            "dim": [224, 300, 400]
+            "dim": [224],
+            "agg_method": ["mean", "max", "min"]
         }
 
         print("\nPreparing following parameter set:\n")
@@ -436,7 +444,7 @@ if __name__ == "__main__":
         for ix, p in enumerate(dict_product(pranges)):
             print('-' * 10)
             print("\nParameter combination: {}/{}".format(ix+1, pcount))
-            dataloaders = build_dataloaders(data_transform=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"])
+            dataloaders = build_dataloaders(data_transform=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"], agg_method=p["agg_method"])
             model_p, acc_p, class_p, time_p = run(quiet=quiet, **p)
             pout = copy.deepcopy(p)
             pout['acc'] = acc_p

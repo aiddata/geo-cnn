@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 class BandDataset(Dataset):
     """Get the data
     """
-    def __init__(self, dataframe, root_dir, dim=224, transform=None):
+    def __init__(self, dataframe, root_dir, dim=224, transform=None, agg_method="max"):
 
         self.dim = dim
         self.year = 2010
@@ -19,6 +19,8 @@ class BandDataset(Dataset):
         self.dataframe = dataframe
         self.root_dir = root_dir
         self.transform = transform
+
+        self.agg_method = agg_method
 
 
     def __len__(self):
@@ -42,7 +44,7 @@ class BandDataset(Dataset):
         for bnum, band in enumerate(self.bands):
 
             season_mosaics_path = os.path.join(
-                self.root_dir, "season_mosaics/all",
+                self.root_dir, "season_mosaics", "all", self.agg_method,
                 "{}_all_{}.tif".format(self.year, band))
 
             season_mosaics = rasterio.open(season_mosaics_path)
