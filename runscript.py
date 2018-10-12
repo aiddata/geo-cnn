@@ -411,19 +411,19 @@ if __name__ == "__main__":
         pranges = {
             "run_type": [2],
             "n_input_channels": [8],
-            "n_epochs": [2],
+            "n_epochs": [30],
             "optim": ["sgd"],
-            "lr": [0.009],
+            "lr": [0.008, 0.009, 0.010],
             "momentum": [0.95],
-            "step_size": [15],
-            "gamma": [0.1],
+            "step_size": [5, 10, 15],
+            "gamma": [0.1, 0.01],
             "loss_weights": [
                 # [0.1, 0.4, 1.0],
                 # [0.4, 0.4, 1.0],
                 # [0.8, 0.4, 1.0]
                 [1.0, 1.0, 1.0]
             ],
-            "net": ["resnet152"],
+            "net": ["resnet50", "resnet152"],
             "batch_size": [150],
             "num_workers": [16],
             "dim": [224],
