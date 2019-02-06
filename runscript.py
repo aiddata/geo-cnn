@@ -25,430 +25,578 @@ mpirun -mca orte_base_help_aggregate 0 --mca mpi_warn_on_fork 0 --map-by node -n
 
 from __future__ import print_function, division
 
-import os
+# import os
 import copy
-import glob
-import itertools
-import datetime
+# import glob
+# import itertools
+# import datetime
 import time
-import pprint
+# import pprint
 
-import rasterio
-import pandas as pd
-import numpy as np
-import fiona
+# import rasterio
+# import pandas as pd
+# import numpy as np
+# import fiona
 
 
-import torchvision
-from torchvision import utils, datasets, models, transforms
+# import torchvision
+# from torchvision import utils, datasets, models
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-from torch.utils.data import Dataset, DataLoader
+# from torch.utils.data import Dataset
 
 import resnet
 
-from load_data import BandDataset
-from create_grid import PointGrid
+# from load_data import build_dataloaders
 
-from data_prep import *
+# from data_prep import *
+
+
+class RunCNN()
+
+    def __init__(self, dataloaders, device, cat_names, parallel=False, quiet=False, **kwargs):
+
+        self.dataloaders = dataloaders
+        self.device = device
+
+        self.ncats = len(cat_names)
+
+        self.parallel = parallel
+        self.quiet = quiet
+
+        self.kwargs = kwargs
+
+        print("Initializing with kwargs: \n\t {}".format(kwargs))
+
+        if kwargs["net"] == "resnet18":
+            self.model = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+        elif kwargs["net"] == "resnet34":
+            self.model = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+        elif kwargs["net"] == "resnet50":
+            self.model = resnet.resnet50(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+        elif kwargs["net"] == "resnet101":
+            self.model = resnet.resnet101(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+        elif kwargs["net"] == "resnet152":
+            self.model = resnet.resnet152(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+        else:
+            raise Exception("net not found ({})".format(kwargs["net"]))
+
+        self.criterion = None
+        self.optimzer = None
+        self.exp_lr_scheduler = None
+
+
+    def export_to_device(self):
+
+        if self.parallel and torch.cuda.device_count() > 1:
+            print("Using", torch.cuda.device_count(), "GPUs")
+            self.model = nn.DataParallel(self.model)
+
+        self.model = self.model.to(self.device)
+
+
+    def train(self, quiet=None):
+
+        if quiet == None
+            quiet = self.quiet
+
+        if self.kwargs["run_type"] == 2:
+            for param in self.model.parameters():
+                param.requires_grad = False
+
+        # Parameters of newly constructed modules have requires_grad=True by default
+        # get existing number for input features
+        # set new number for output features to number of categories being classified
+        num_ftrs = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_ftrs, self.ncats)
+
+        loss_weights = torch.tensor(
+            map(float, self.kwargs["loss_weights"])).cuda()
+
+        self.criterion = nn.CrossEntropyLoss(weight=loss_weights)
+
+        if self.kwargs["optim"] == "sgd":
+            # Observe that only parameters of final layer are being optimized as opposed to before.
+            self.optimizer = optim.SGD(self.model.fc.parameters(), lr=self.kwargs["lr"], momentum=self.kwargs["momentum"])
+
+        # Decay LR by a factor of `gamma` every `step_size` epochs
+        # exp lr scheduler
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.kwargs["step_size"], gamma=self.kwargs["gamma"])
+
+        self.export_to_device()
+
+        self.model, acc_x, class_x, time_x = _train(num_epochs=self.kwargs["n_epochs"], quiet)
+
+
+
+    def _train(self, num_epochs=25, quiet):
+        since = time.time()
+
+        best_model_wts = copy.deepcopy(self.model.state_dict())
+        best_acc = 0.0
+
+        for epoch in range(num_epochs):
+            if not quiet:
+                print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
+                print('-' * 10)
+
+            # Each epoch has a training and validation phase
+            for phase in ['train', 'val']:
+                if phase == 'train':
+                    self.scheduler.step()
+                    self.model.train()  # Set model to training mode
+                else:
+                    self.model.eval()   # Set model to evaluate mode
+
+                running_loss = 0.0
+                running_correct = 0
+                running_count = 0
+
+                class_correct = [0] * self.ncats
+                class_count = [0] * self.ncats
+
+                # iterate over data
+                for inputs, labels in self.dataloaders[phase]:
+                    inputs = inputs.to(self.device)
+
+                    labels = labels.to(self.device)
+
+                    # zero the parameter gradients
+                    self.optimizer.zero_grad()
+
+                    # forward
+                    # track history if only in train
+                    with torch.set_grad_enabled(phase == 'train'):
+                        outputs = self.model(inputs)
+                        _, preds = torch.max(outputs, 1)
+                        loss = self.criterion(outputs, labels)
+
+
+                        # backward + optimize only if in training phase
+                        if phase == 'train':
+                            loss.backward()
+                            self.optimizer.step()
+
+                    # statistics
+                    running_loss += loss.item() * inputs.size(0)
+
+                    running_correct += torch.sum(preds == labels.data)
+                    running_count += inputs.size(0)
+
+                    for i in range(self.ncats):
+                        label_indexes = (labels == i).nonzero().squeeze()
+                        class_correct[i] += torch.sum(preds[label_indexes] == labels[label_indexes]).item()
+                        class_count[i] += len(label_indexes)
+
+
+                epoch_loss = running_loss / running_count
+                epoch_acc = running_correct.item() / running_count
+
+                class_acc = [class_correct[i] / class_count[i] for i in range(self.ncats)]
+
+                if not quiet:
+                    print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+                        phase, epoch_loss, epoch_acc))
+
+                # deep copy the model
+                if phase == 'val' and epoch_acc > best_acc:
+                    best_acc = epoch_acc
+                    best_class_acc = class_acc
+                    best_model_wts = copy.deepcopy(model.state_dict())
+
+                if phase == 'val':
+                    for i in range(self.ncats):
+                        print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
+                            i, class_correct[i], class_count[i], class_acc[i]))
+
+
+        time_elapsed = time.time() - since
+        print('\nTraining complete in {:.0f}m {:.0f}s'.format(
+            time_elapsed // 60, time_elapsed % 60))
+        print('Best val Acc: {:4f}'.format(best_acc))
+
+        # load best model weights
+        self.model.load_state_dict(best_model_wts)
+
+        return model, best_acc, best_class_acc, time_elapsed
+
+
+    def test(self):
+
+        if self.kwargs["run_type"] == 2:
+            for param in self.model.parameters():
+                param.requires_grad = False
+
+        # Parameters of newly constructed modules have requires_grad=True by default
+        num_ftrs = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_ftrs, self.ncats)
+
+
+        loss_weights = torch.tensor(
+            map(float, self.kwargs["loss_weights"])).cuda()
+
+        criterion = nn.CrossEntropyLoss(weight=loss_weights)
+
+        if self.kwargs["optim"] == "sgd":
+            # Observe that only parameters of final layer are being optimized as opposed to before.
+            self.optimizer = optim.SGD(self.model.fc.parameters(), lr=self.kwargs["lr"], momentum=self.kwargs["momentum"])
+
+        # Decay LR by a factor of `gamma` every `step_size` epochs
+        exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.kwargs["step_size"], gamma=self.kwargs["gamma"])
+
+
+        self.export_to_device()
+
+        self.model, acc_x, class_x, time_x = _train(
+            self.model, criterion, self.optimizer, exp_lr_scheduler,
+            num_epochs=self.kwargs["n_epochs"], quiet=quiet)
+
+
+
+    def predict(self):
+        pass
+
+
+    def _test(model, criterion, self.optimizer):
+        since = time.time()
+
+        model.eval()   # Set model to evaluate mode
+
+        running_loss = 0.0
+        running_correct = 0
+        running_count = 0
+
+        class_correct = [0] * self.ncats
+        class_count = [0] * self.ncats
+
+        # Iterate over data.
+        for inputs, labels in self.dataloaders[phase]:
+            inputs = inputs.to(self.device)
+
+            labels = labels.to(self.device)
+
+            # zero the parameter gradients
+            self.optimizer.zero_grad()
+
+            with torch.set_grad_enabled(0):
+                outputs = model(inputs)
+                _, preds = torch.max(outputs, 1)
+                loss = criterion(outputs, labels)
+
+            # statistics
+            running_loss += loss.item() * inputs.size(0)
+
+            running_correct += torch.sum(preds == labels.data)
+            running_count += inputs.size(0)
+
+            for i in range(self.ncats):
+                label_indexes = (labels == i).nonzero().squeeze()
+                class_correct[i] += sum(preds[label_indexes] == labels[label_indexes]).item()
+                class_count[i] += len(label_indexes)
+
+
+        epoch_loss = running_loss / running_count
+        epoch_acc = running_correct.item() / running_count
+
+        class_acc = [class_correct[i] / class_count[i] for i in range(self.ncats)]
+
+        print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+            phase, epoch_loss, epoch_acc))
+
+        for i in range(self.ncats):
+            print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
+                i, class_correct[i], class_count[i], class_acc[i]))
+
+
+        time_elapsed = time.time() - since
+        print('\nTesting complete in {:.0f}m {:.0f}s'.format(
+            time_elapsed // 60, time_elapsed % 60))
+
+        return epoch_loss, epoch_acc, class_acc, time_elapsed
+
+
+
+    def _predict(self):
+        since = time.time()
+
+        model.eval()   # Set model to evaluate mode
+
+        full_preds = []
+
+        # iterate over data
+        for inputs, _ in self.dataloaders[phase]:
+            inputs = inputs.to(self.device)
+
+            with torch.set_grad_enabled(0):
+                outputs = model(inputs)
+                _, preds = torch.max(outputs, 1)
+                full_preds += preds # need to test this
+
+        time_elapsed = time.time() - since
+        print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
+            time_elapsed // 60, time_elapsed % 60))
+
+        # load best model weights
+        return full_preds, time_elapsed
+
+
+
+
+
 
 
 # -----------------------------------------------------------------------------
 
 
 
-def build_dataloaders(data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="max"):
 
-    if data_transform == None:
 
-        data_transform = transforms.Compose([
-            # transforms.RandomSizedCrop(224),
-            # transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], # imagenet means
-                                 std=[0.229, 0.224, 0.225]), # imagenet stds
-        ])
 
-    train_dset = BandDataset(train_df, base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-    val_dset = BandDataset(val_df, base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-    test_dset = BandDataset(test_df, base_path, dim=dim, transform=data_transform, agg_method=agg_method)
 
-    train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+# def run(dataloaders, device, mode="train", quiet=False, **kwargs):
 
-    dataloaders = {
-        "train": train_dataloader,
-        "val": val_dataloader,
-        "test": test_dataloader
-    }
+#     # print("\n{}:\n".format(run_types[kwargs["run_type"]]))
+#     print(kwargs)
 
-    return dataloaders
+#     if kwargs["net"] == "resnet18":
+#         model_x = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+#     elif kwargs["net"] == "resnet34":
+#         model_x = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+#     elif kwargs["net"] == "resnet50":
+#         model_x = resnet.resnet50(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+#     elif kwargs["net"] == "resnet101":
+#         model_x = resnet.resnet101(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+#     elif kwargs["net"] == "resnet152":
+#         model_x = resnet.resnet152(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+#     else:
+#         raise Exception("net not found ({})".format(kwargs["net"]))
 
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs=25, quiet=True):
-    since = time.time()
+#     if mode == "train":
 
-    best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = 0.0
+#         if kwargs["run_type"] == 2:
+#             for param in model_x.parameters():
+#                 param.requires_grad = False
 
-    for epoch in range(num_epochs):
-        if not quiet:
-            print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
-            print('-' * 10)
+#         # Parameters of newly constructed modules have requires_grad=True by default
+#         num_ftrs = model_x.fc.in_features
 
-        # Each epoch has a training and validation phase
-        for phase in ['train', 'val']:
-            if phase == 'train':
-                scheduler.step()
-                model.train()  # Set model to training mode
-            else:
-                model.eval()   # Set model to evaluate mode
+#         model_x.fc = nn.Linear(num_ftrs, kwargs["ncats"])
 
-            running_loss = 0.0
-            running_correct = 0
-            running_count = 0
+#         loss_weights = torch.tensor(
+#             map(float, kwargs["loss_weights"])).cuda()
 
-            class_correct = [0] * len(cat_names)
-            class_count = [0] * len(cat_names)
+#         criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
-            # iterate over data
-            for inputs, labels in dataloaders[phase]:
-                inputs = inputs.to(device)
+#         if kwargs["optim"] == "sgd":
+#             # Observe that only parameters of final layer are being optimized as opposed to before.
+#             optimizer_x = optim.SGD(model_x.fc.parameters(), lr=kwargs["lr"], momentum=kwargs["momentum"])
 
-                labels = labels.to(device)
+#         # Decay LR by a factor of `gamma` every `step_size` epochs
+#         exp_lr_scheduler = lr_scheduler.StepLR(optimizer_x, step_size=kwargs["step_size"], gamma=kwargs["gamma"])
 
-                # zero the parameter gradients
-                optimizer.zero_grad()
 
-                # forward
-                # track history if only in train
-                with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
-                    _, preds = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)
+#         # if torch.cuda.device_count() > 1:
+#         #     print("Using", torch.cuda.device_count(), "GPUs")
+#         #     model_x = nn.DataParallel(model_x)
 
+#         model_x = model_x.to(device)
 
-                    # backward + optimize only if in training phase
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+#         model_x, acc_x, class_x, time_x = train_model(
+#             model_x, dataloaders, device, criterion, optimizer_x, exp_lr_scheduler,
+#             num_epochs=kwargs["n_epochs"], quiet=quiet)
 
-                # statistics
-                running_loss += loss.item() * inputs.size(0)
 
-                running_correct += torch.sum(preds == labels.data)
-                running_count += inputs.size(0)
+#     if mode == "test":
+#         pass
+#         # test_model(model_x, dataloaders, criterion, optimizer_x)
 
-                for i in range(len(cat_names)):
-                    label_indexes = (labels == i).nonzero().squeeze()
-                    class_correct[i] += torch.sum(preds[label_indexes] == labels[label_indexes]).item()
-                    class_count[i] += len(label_indexes)
 
+#     if mode == "predict":
+#         pass
+#         # predict_model(model_x, dataloaders)
 
-            epoch_loss = running_loss / running_count
-            epoch_acc = running_correct.item() / running_count
 
-            class_acc = [class_correct[i] / class_count[i] for i in range(len(cat_names))]
+#     return model_x, acc_x, class_x, time_x
 
-            if not quiet:
-                print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                    phase, epoch_loss, epoch_acc))
 
-            # deep copy the model
-            if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
-                best_class_acc = class_acc
-                best_model_wts = copy.deepcopy(model.state_dict())
 
-            if phase == 'val':
-                for i in range(len(cat_names)):
-                    print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
-                        i, class_correct[i], class_count[i], class_acc[i]))
 
 
-    time_elapsed = time.time() - since
-    print('\nTraining complete in {:.0f}m {:.0f}s'.format(
-        time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc: {:4f}'.format(best_acc))
+# def train_model(model, dataloaders, device, criterion, optimizer, scheduler, num_epochs=25, quiet=True):
+#     since = time.time()
 
-    # load best model weights
-    model.load_state_dict(best_model_wts)
-    return model, best_acc, best_class_acc, time_elapsed
+#     best_model_wts = copy.deepcopy(model.state_dict())
+#     best_acc = 0.0
 
+#     for epoch in range(num_epochs):
+#         if not quiet:
+#             print('\nEpoch {}/{}'.format(epoch, num_epochs - 1))
+#             print('-' * 10)
 
-def test_model(model, criterion, optimizer):
-    since = time.time()
+#         # Each epoch has a training and validation phase
+#         for phase in ['train', 'val']:
+#             if phase == 'train':
+#                 scheduler.step()
+#                 model.train()  # Set model to training mode
+#             else:
+#                 model.eval()   # Set model to evaluate mode
 
-    model.eval()   # Set model to evaluate mode
+#             running_loss = 0.0
+#             running_correct = 0
+#             running_count = 0
 
-    running_loss = 0.0
-    running_correct = 0
-    running_count = 0
+#             class_correct = [0] * ncats
+#             class_count = [0] * ncats
 
-    class_correct = [0] * len(cat_names)
-    class_count = [0] * len(cat_names)
+#             # iterate over data
+#             for inputs, labels in dataloaders[phase]:
+#                 inputs = inputs.to(device)
 
-    # Iterate over data.
-    for inputs, labels in dataloaders[phase]:
-        inputs = inputs.to(device)
+#                 labels = labels.to(device)
 
-        labels = labels.to(device)
+#                 # zero the parameter gradients
+#                 optimizer.zero_grad()
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+#                 # forward
+#                 # track history if only in train
+#                 with torch.set_grad_enabled(phase == 'train'):
+#                     outputs = model(inputs)
+#                     _, preds = torch.max(outputs, 1)
+#                     loss = criterion(outputs, labels)
 
-        with torch.set_grad_enabled(0):
-            outputs = model(inputs)
-            _, preds = torch.max(outputs, 1)
-            loss = criterion(outputs, labels)
 
-        # statistics
-        running_loss += loss.item() * inputs.size(0)
+#                     # backward + optimize only if in training phase
+#                     if phase == 'train':
+#                         loss.backward()
+#                         optimizer.step()
 
-        running_correct += torch.sum(preds == labels.data)
-        running_count += inputs.size(0)
+#                 # statistics
+#                 running_loss += loss.item() * inputs.size(0)
 
-        for i in range(len(cat_names)):
-            label_indexes = (labels == i).nonzero().squeeze()
-            class_correct[i] += sum(preds[label_indexes] == labels[label_indexes]).item()
-            class_count[i] += len(label_indexes)
+#                 running_correct += torch.sum(preds == labels.data)
+#                 running_count += inputs.size(0)
 
+#                 for i in range(ncats):
+#                     label_indexes = (labels == i).nonzero().squeeze()
+#                     class_correct[i] += torch.sum(preds[label_indexes] == labels[label_indexes]).item()
+#                     class_count[i] += len(label_indexes)
 
-    epoch_loss = running_loss / running_count
-    epoch_acc = running_correct.item() / running_count
 
-    class_acc = [class_correct[i] / class_count[i] for i in range(len(cat_names))]
+#             epoch_loss = running_loss / running_count
+#             epoch_acc = running_correct.item() / running_count
 
-    print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-        phase, epoch_loss, epoch_acc))
+#             class_acc = [class_correct[i] / class_count[i] for i in range(ncats)]
 
-    for i in range(len(cat_names)):
-        print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
-            i, class_correct[i], class_count[i], class_acc[i]))
+#             if not quiet:
+#                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+#                     phase, epoch_loss, epoch_acc))
 
+#             # deep copy the model
+#             if phase == 'val' and epoch_acc > best_acc:
+#                 best_acc = epoch_acc
+#                 best_class_acc = class_acc
+#                 best_model_wts = copy.deepcopy(model.state_dict())
 
-    time_elapsed = time.time() - since
-    print('\nTesting complete in {:.0f}m {:.0f}s'.format(
-        time_elapsed // 60, time_elapsed % 60))
+#             if phase == 'val':
+#                 for i in range(ncats):
+#                     print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
+#                         i, class_correct[i], class_count[i], class_acc[i]))
 
-    return epoch_loss, epoch_acc, class_acc, time_elapsed
 
+#     time_elapsed = time.time() - since
+#     print('\nTraining complete in {:.0f}m {:.0f}s'.format(
+#         time_elapsed // 60, time_elapsed % 60))
+#     print('Best val Acc: {:4f}'.format(best_acc))
 
+#     # load best model weights
+#     model.load_state_dict(best_model_wts)
+#     return model, best_acc, best_class_acc, time_elapsed
 
-def predict_model(model):
-    since = time.time()
 
-    model.eval()   # Set model to evaluate mode
+# def test_model(model, dataloaders, device, criterion, optimizer):
+#     since = time.time()
 
-    full_preds = []
+#     model.eval()   # Set model to evaluate mode
 
-    # iterate over data
-    for inputs, _ in dataloaders[phase]:
-        inputs = inputs.to(device)
+#     running_loss = 0.0
+#     running_correct = 0
+#     running_count = 0
 
-        with torch.set_grad_enabled(0):
-            outputs = model(inputs)
-            _, preds = torch.max(outputs, 1)
-            full_preds += preds # need to test this
+#     class_correct = [0] * ncats
+#     class_count = [0] * ncats
 
-    time_elapsed = time.time() - since
-    print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
-        time_elapsed // 60, time_elapsed % 60))
+#     # Iterate over data.
+#     for inputs, labels in dataloaders[phase]:
+#         inputs = inputs.to(device)
 
-    # load best model weights
-    return full_preds, time_elapsed
+#         labels = labels.to(device)
 
+#         # zero the parameter gradients
+#         optimizer.zero_grad()
 
+#         with torch.set_grad_enabled(0):
+#             outputs = model(inputs)
+#             _, preds = torch.max(outputs, 1)
+#             loss = criterion(outputs, labels)
 
+#         # statistics
+#         running_loss += loss.item() * inputs.size(0)
 
-def run(quiet=False, **kwargs):
+#         running_correct += torch.sum(preds == labels.data)
+#         running_count += inputs.size(0)
 
-    print("\n{}:\n".format(run_types[kwargs["run_type"]]))
-    print(kwargs)
+#         for i in range(ncats):
+#             label_indexes = (labels == i).nonzero().squeeze()
+#             class_correct[i] += sum(preds[label_indexes] == labels[label_indexes]).item()
+#             class_count[i] += len(label_indexes)
 
-    if kwargs["net"] == "resnet18":
-        model_x = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
-    elif kwargs["net"] == "resnet34":
-        model_x = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
-    elif kwargs["net"] == "resnet50":
-        model_x = resnet.resnet50(pretrained=True, n_input_channels=kwargs["n_input_channels"])
-    elif kwargs["net"] == "resnet101":
-        model_x = resnet.resnet101(pretrained=True, n_input_channels=kwargs["n_input_channels"])
-    elif kwargs["net"] == "resnet152":
-        model_x = resnet.resnet152(pretrained=True, n_input_channels=kwargs["n_input_channels"])
-    else:
-        raise Exception("net not found")
 
-    if kwargs["run_type"] == 2:
-        for param in model_x.parameters():
-            param.requires_grad = False
+#     epoch_loss = running_loss / running_count
+#     epoch_acc = running_correct.item() / running_count
 
-    # Parameters of newly constructed modules have requires_grad=True by default
-    num_ftrs = model_x.fc.in_features
+#     class_acc = [class_correct[i] / class_count[i] for i in range(ncats)]
 
-    model_x.fc = nn.Linear(num_ftrs, ncats)
+#     print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+#         phase, epoch_loss, epoch_acc))
 
-    loss_weights = torch.tensor(
-        map(float, kwargs["loss_weights"])).cuda()
+#     for i in range(ncats):
+#         print('Accuracy of class {} : {} / {} = {:.4f} %'.format(
+#             i, class_correct[i], class_count[i], class_acc[i]))
 
-    criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
-    if kwargs["optim"] == "sgd":
-        # Observe that only parameters of final layer are being optimized as opposed to before.
-        optimizer_x = optim.SGD(model_x.fc.parameters(), lr=kwargs["lr"], momentum=kwargs["momentum"])
+#     time_elapsed = time.time() - since
+#     print('\nTesting complete in {:.0f}m {:.0f}s'.format(
+#         time_elapsed // 60, time_elapsed % 60))
 
-    # Decay LR by a factor of `gamma` every `step_size` epochs
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_x, step_size=kwargs["step_size"], gamma=kwargs["gamma"])
+#     return epoch_loss, epoch_acc, class_acc, time_elapsed
 
 
-    if torch.cuda.device_count() > 1:
-        print("Using", torch.cuda.device_count(), "GPUs")
-        model_x = nn.DataParallel(model_x)
 
-    model_x = model_x.to(device)
+# def predict_model(model, dataloaders, device):
+#     since = time.time()
 
-    model_x, acc_x, class_x, time_x = train_model(
-        model_x, criterion, optimizer_x, exp_lr_scheduler,
-        num_epochs=kwargs["n_epochs"], quiet=quiet)
+#     model.eval()   # Set model to evaluate mode
 
-    return model_x, acc_x, class_x, time_x
+#     full_preds = []
 
+#     # iterate over data
+#     for inputs, _ in dataloaders[phase]:
+#         inputs = inputs.to(device)
 
+#         with torch.set_grad_enabled(0):
+#             outputs = model(inputs)
+#             _, preds = torch.max(outputs, 1)
+#             full_preds += preds # need to test this
 
+#     time_elapsed = time.time() - since
+#     print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
+#         time_elapsed // 60, time_elapsed % 60))
 
-if __name__ == "__main__":
+#     # load best model weights
+#     return full_preds, time_elapsed
 
-    quiet = False
 
-    results = []
-
-    timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y_%m_%d_%H_%M_%S')
-    df_output_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/run_data/results_{}.csv".format(timestamp)
-
-
-    def output_csv():
-        col_order = [
-            "acc",
-            "time",
-            "run_type",
-            "n_epochs",
-            "optim",
-            "lr",
-            "momentum",
-            "step_size",
-            "gamma",
-            "n_input_channels",
-            "pixel_size",
-            "ncats",
-            "loss_weights",
-            "train_class_sizes",
-            "val_class_sizes",
-            "class_acc",
-            "net",
-            "batch_size",
-            "num_workers",
-            "dim",
-            "agg_method"
-        ]
-        df_out = pd.DataFrame(results)
-        df_out['pixel_size'] = pixel_size
-        df_out['ncats'] = ncats
-        df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
-        df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
-        df_out = df_out[col_order]
-        df_out.to_csv(df_output_path, index=False, encoding='utf-8')
-
-
-    batch = True
-    # batch = False
-
-    if not batch:
-
-        params = {
-            "run_type": 2,
-            "n_input_channels": 8,
-            "n_epochs": 10,
-            "optim": "sgd",
-            "lr": 0.009,
-            "momentum": 0.95,
-            "step_size": 15,
-            "gamma": 0.1,
-            "loss_weights": [1.0, 1.0, 1.0],
-            "net": "resnet152",
-            "batch_size": 150,
-            "num_workers": 16,
-            "dim": 224,
-            "agg_method": "min"
-        }
-
-        dataloaders = build_dataloaders(data_transform=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"], agg_method=params["agg_method"])
-        model_p, acc_p, class_p, time_p = run(quiet=quiet, **params)
-        params['acc'] = acc_p
-        params['class_acc'] = class_p
-        params['time'] = time_p
-        results.append(params)
-        output_csv()
-
-
-    # -------------------------------------
-
-    if batch:
-
-        # pranges = {
-        #     "run_type": [1,2],
-        #     "n_input_channels": [8],
-        #     "n_epochs": [60],
-        #     "lr": [ 0.0005, 0.001, 0.005, 0.01, 0.05],
-        #     "momentum": [0.5, 0.7, 0.9, 1.1, 1.3],
-        #     "step_size": [5, 10, 15],
-        #     "gamma": [0.01, 0.05]
-        # }
-
-        pranges = {
-            "run_type": [2],
-            "n_input_channels": [8],
-            "n_epochs": [30],
-            "optim": ["sgd"],
-            "lr": [0.008, 0.009, 0.010],
-            "momentum": [0.95],
-            "step_size": [5, 10, 15],
-            "gamma": [0.1, 0.01],
-            "loss_weights": [
-                # [0.1, 0.4, 1.0],
-                # [0.4, 0.4, 1.0],
-                # [0.8, 0.4, 1.0]
-                [1.0, 1.0, 1.0]
-            ],
-            "net": ["resnet50", "resnet152"],
-            "batch_size": [150],
-            "num_workers": [16],
-            "dim": [224],
-            "agg_method": ["mean", "max", "min"]
-        }
-
-        print("\nPreparing following parameter set:\n")
-        pprint.pprint(pranges, indent=4)
-        print('-' * 20)
-
-        def dict_product(d):
-            keys = d.keys()
-            for element in itertools.product(*d.values()):
-                yield dict(zip(keys, element))
-
-        pcount = np.prod([len(i) for i in pranges.values()])
-
-        for ix, p in enumerate(dict_product(pranges)):
-            print('-' * 10)
-            print("\nParameter combination: {}/{}".format(ix+1, pcount))
-            dataloaders = build_dataloaders(data_transform=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"], agg_method=p["agg_method"])
-            model_p, acc_p, class_p, time_p = run(quiet=quiet, **p)
-            pout = copy.deepcopy(p)
-            pout['acc'] = acc_p
-            pout['class_acc'] = class_p
-            pout['time'] = time_p
-            results.append(pout)
-            output_csv()

@@ -25,7 +25,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import resnet
 
-from load_data import BandDataset
+# from load_data import BandDataset
 from create_grid import PointGrid
 
 
@@ -242,6 +242,13 @@ for i in cat_names:
 train_df = df.loc[df['type'] == "train"]
 val_df = df.loc[df['type'] == "val"]
 test_df = df.loc[df['type'] == "test"]
+
+
+dataframe_dict = {
+    "train": train_df,
+    "val": val_df,
+    "test": test_df
+}
 
 
 train_class_sizes = [sum(train_df['label'] == i) for i in cat_names]
