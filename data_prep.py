@@ -216,11 +216,11 @@ print("Building datasets")
 # ==========
 
 
-type_names = ["train", "val", "test"]
+type_names = ["train", "val", "test", "predict"]
 
 # ratio for train, val, test data
 # must sum to 1.0
-type_weights = [0.85, 0.149, 0.001]
+type_weights = [0.840, 0.150, 0.005, 0.005]
 
 type_sizes = np.zeros(ncats).astype(int)
 for i in cat_names:
@@ -242,18 +242,21 @@ for i in cat_names:
 train_df = df.loc[df['type'] == "train"]
 val_df = df.loc[df['type'] == "val"]
 test_df = df.loc[df['type'] == "test"]
+predict_df = df.loc[df['type'] == "predict"]
 
 
 dataframe_dict = {
     "train": train_df,
     "val": val_df,
-    "test": test_df
+    "test": test_df,
+    "predict": predict_df
 }
 
 
 train_class_sizes = [sum(train_df['label'] == i) for i in cat_names]
 val_class_sizes = [sum(val_df['label'] == i) for i in cat_names]
 test_class_sizes = [sum(test_df['label'] == i) for i in cat_names]
+predict_class_sizes = [sum(predict_df['label'] == i) for i in cat_names]
 
 
 print("Samples per cat (train):")
@@ -264,5 +267,8 @@ for i in cat_names: print("{0}: {1}".format(i, sum(val_df['label'] == i)))
 
 print("Samples per cat (test):")
 for i in cat_names: print("{0}: {1}".format(i, sum(test_df['label'] == i)))
+
+print("Samples per cat (predict):")
+for i in cat_names: print("{0}: {1}".format(i, sum(predict_df['label'] == i)))
 
 
