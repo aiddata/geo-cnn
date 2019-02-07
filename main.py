@@ -126,21 +126,33 @@ if not batch:
     }
 
     dataloaders = build_dataloaders(dataframe_dict, base_path, data_transform=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"], agg_method=params["agg_method"])
-    model_p, acc_p, class_p, time_p = run(dataloaders, device, mode="train", quiet=quiet, **params)
+
+    # model_p, acc_p, class_p, time_p = run(dataloaders, device, mode="train", quiet=quiet, **params)
+
+    new_cnn = RunCNN(dataloaders, device, cat_names, parallel=False, quiet=False, **params)
+
+    new_cnn.export_to_device()
+    acc_p, class_p, time_p = new_cnn.train()
+    new_cnn.test()
+
     params['acc'] = acc_p
     params['class_acc'] = class_p
     params['time'] = time_p
     results.append(params)
     output_csv()
 
-    print(model_p.children())
-    print("---------------------------")
-    print(model_p.modules())
 
-    new_classifier = nn.Sequential(*list(model_p.children())[:-1])
-    print(new_classifier)
 
-    model_y = resnet.resnet18(pretrained=True, n_input_channels=params["n_input_channels"])
+    # print(model_p.children())
+    # print("---------------------------")
+    # print(model_p.modules())
+
+    # new_classifier = nn.Sequential(*list(model_p.children())[:-1])
+    # print(new_classifier)
+
+
+
+    # model_y = resnet.resnet18(pretrained=True, n_input_channels=params["n_input_channels"])
 
     # torch.save(model_p.state_dict(), "/sciclone/aiddata10/REU/projects/mcc_tanzania/model_dict")
 
@@ -198,8 +210,11 @@ if batch:
     for ix, p in enumerate(dict_product(pranges)):
         print('-' * 10)
         print("\nParameter combination: {}/{}".format(ix+1, pcount))
+
         dataloaders = build_dataloaders(dataframe_dict, base_path, data_transform=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"], agg_method=p["agg_method"])
+
         model_p, acc_p, class_p, time_p = run(dataloaders, device, mode="train", quiet=quiet, **p)
+
         pout = copy.deepcopy(p)
         pout['acc'] = acc_p
         pout['class_acc'] = class_p

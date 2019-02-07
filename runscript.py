@@ -5,8 +5,6 @@ qsub -I -l nodes=1:hima:gpu:ppn=64 -l walltime=8:00:00
 hi06 = p100 x2
 hi07 = v100 x2
 
-mpirun -mca orte_base_help_aggregate 0 --mca mpi_warn_on_fork 0 --map-by node -np 32 python-mpi lsms_imagery_prep.py
-
 
 """
 
@@ -55,9 +53,10 @@ import resnet
 # from data_prep import *
 
 
-class RunCNN()
+class RunCNN():
 
-    def __init__(self, dataloaders, device, cat_names, parallel=False, quiet=False, **kwargs):
+    def __init__(self, dataloaders, device, cat_names,
+                 parallel=False, quiet=False, **kwargs):
 
         self.dataloaders = dataloaders
         self.device = device
@@ -71,6 +70,12 @@ class RunCNN()
 
         print("Initializing with kwargs: \n\t {}".format(kwargs))
 
+        self.model = None
+        self.criterion = None
+        self.optimizer = None
+        self.scheduler = None
+        self.state_dict = None
+
         if kwargs["net"] == "resnet18":
             self.model = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
         elif kwargs["net"] == "resnet34":
@@ -81,12 +86,9 @@ class RunCNN()
             self.model = resnet.resnet101(pretrained=True, n_input_channels=kwargs["n_input_channels"])
         elif kwargs["net"] == "resnet152":
             self.model = resnet.resnet152(pretrained=True, n_input_channels=kwargs["n_input_channels"])
-        else:
-            raise Exception("net not found ({})".format(kwargs["net"]))
 
-        self.criterion = None
-        self.optimzer = None
-        self.exp_lr_scheduler = None
+        if self.model is None:
+            raise Exception("Specified net not found ({})".format(kwargs["net"]))
 
 
     def export_to_device(self):
@@ -100,7 +102,7 @@ class RunCNN()
 
     def train(self, quiet=None):
 
-        if quiet == None
+        if quiet == None:
             quiet = self.quiet
 
         if self.kwargs["run_type"] == 2:
@@ -120,19 +122,23 @@ class RunCNN()
 
         if self.kwargs["optim"] == "sgd":
             # Observe that only parameters of final layer are being optimized as opposed to before.
-            self.optimizer = optim.SGD(self.model.fc.parameters(), lr=self.kwargs["lr"], momentum=self.kwargs["momentum"])
+            self.optimizer = optim.SGD(
+                self.model.fc.parameters(), lr=self.kwargs["lr"], momentum=self.kwargs["momentum"])
 
         # Decay LR by a factor of `gamma` every `step_size` epochs
         # exp lr scheduler
-        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.kwargs["step_size"], gamma=self.kwargs["gamma"])
+        self.scheduler = lr_scheduler.StepLR(
+            self.optimizer, step_size=self.kwargs["step_size"], gamma=self.kwargs["gamma"])
 
         self.export_to_device()
 
-        self.model, acc_x, class_x, time_x = _train(num_epochs=self.kwargs["n_epochs"], quiet)
+        best_acc, best_class_acc, time_elapsed = self._train(
+            self.kwargs["n_epochs"], quiet)
+
+        return best_acc, best_class_acc, time_elapsed
 
 
-
-    def _train(self, num_epochs=25, quiet):
+    def _train(self, num_epochs, quiet):
         since = time.time()
 
         best_model_wts = copy.deepcopy(self.model.state_dict())
@@ -205,7 +211,7 @@ class RunCNN()
                 if phase == 'val' and epoch_acc > best_acc:
                     best_acc = epoch_acc
                     best_class_acc = class_acc
-                    best_model_wts = copy.deepcopy(model.state_dict())
+                    best_model_wts = copy.deepcopy(self.model.state_dict())
 
                 if phase == 'val':
                     for i in range(self.ncats):
@@ -220,50 +226,25 @@ class RunCNN()
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
+        self.state_dict = best_model_wts
 
-        return model, best_acc, best_class_acc, time_elapsed
+        return best_acc, best_class_acc, time_elapsed
 
 
     def test(self):
 
-        if self.kwargs["run_type"] == 2:
-            for param in self.model.parameters():
-                param.requires_grad = False
+        epoch_loss, epoch_acc, class_acc, time_elapsed = self._test()
 
-        # Parameters of newly constructed modules have requires_grad=True by default
-        num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_ftrs, self.ncats)
+        return epoch_loss, epoch_acc, class_acc, time_elapsed
 
 
-        loss_weights = torch.tensor(
-            map(float, self.kwargs["loss_weights"])).cuda()
+    def _test(self):
 
-        criterion = nn.CrossEntropyLoss(weight=loss_weights)
+        phase = "test"
 
-        if self.kwargs["optim"] == "sgd":
-            # Observe that only parameters of final layer are being optimized as opposed to before.
-            self.optimizer = optim.SGD(self.model.fc.parameters(), lr=self.kwargs["lr"], momentum=self.kwargs["momentum"])
-
-        # Decay LR by a factor of `gamma` every `step_size` epochs
-        exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.kwargs["step_size"], gamma=self.kwargs["gamma"])
-
-
-        self.export_to_device()
-
-        self.model, acc_x, class_x, time_x = _train(
-            self.model, criterion, self.optimizer, exp_lr_scheduler,
-            num_epochs=self.kwargs["n_epochs"], quiet=quiet)
-
-
-
-    def predict(self):
-        pass
-
-
-    def _test(model, criterion, self.optimizer):
         since = time.time()
 
-        model.eval()   # Set model to evaluate mode
+        self.model.eval()   # Set model to evaluate mode
 
         running_loss = 0.0
         running_correct = 0
@@ -278,13 +259,10 @@ class RunCNN()
 
             labels = labels.to(self.device)
 
-            # zero the parameter gradients
-            self.optimizer.zero_grad()
-
-            with torch.set_grad_enabled(0):
-                outputs = model(inputs)
+            with torch.set_grad_enabled(False):
+                outputs = self.model(inputs)
                 _, preds = torch.max(outputs, 1)
-                loss = criterion(outputs, labels)
+                loss = self.criterion(outputs, labels)
 
             # statistics
             running_loss += loss.item() * inputs.size(0)
@@ -317,6 +295,9 @@ class RunCNN()
 
         return epoch_loss, epoch_acc, class_acc, time_elapsed
 
+
+    def predict(self):
+        pass
 
 
     def _predict(self):
