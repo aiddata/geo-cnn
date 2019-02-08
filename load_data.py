@@ -18,19 +18,31 @@ def build_dataloaders(df_dict, base_path, data_transform=None, dim=224, batch_si
                                  std=[0.229, 0.224, 0.225]), # imagenet stds
         ])
 
-    train_dset = BandDataset(df_dict["train"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-    val_dset = BandDataset(df_dict["val"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-    test_dset = BandDataset(df_dict["test"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
 
-    train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    dataloaders = {}
 
-    dataloaders = {
-        "train": train_dataloader,
-        "val": val_dataloader,
-        "test": test_dataloader
-    }
+    # where group is train, val, test, predict
+    for group in df_dict:
+        tmp_dset = BandDataset(df_dict[group], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+        dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+
+
+    # train_dset = BandDataset(df_dict["train"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+    # val_dset = BandDataset(df_dict["val"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+    # test_dset = BandDataset(df_dict["test"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+    # predict_dset = BandDataset(df_dict["predict"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+
+    # train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    # val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    # test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    # predict_dataloader = DataLoader(predict_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+
+    # dataloaders = {
+    #     "train": train_dataloader,
+    #     "val": val_dataloader,
+    #     "test": test_dataloader,
+    #     "predict": predict_dataloader
+    # }
 
     return dataloaders
 

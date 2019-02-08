@@ -13,7 +13,6 @@ import pandas as pd
 import numpy as np
 import fiona
 
-
 import torchvision
 from torchvision import utils, datasets, models, transforms
 
@@ -25,7 +24,6 @@ from torch.utils.data import Dataset, DataLoader
 
 import resnet
 
-# from load_data import BandDataset
 from create_grid import PointGrid
 
 
@@ -217,58 +215,77 @@ print("Building datasets")
 
 
 type_names = ["train", "val", "test", "predict"]
+type_cats = range(len(type_names))
 
 # ratio for train, val, test data
 # must sum to 1.0
 type_weights = [0.840, 0.150, 0.005, 0.005]
+type_weights = [0.740, 0.150, 0.105, 0.005]
 
-type_sizes = np.zeros(ncats).astype(int)
-for i in cat_names:
+type_sizes = np.zeros(len(type_names)).astype(int)
+
+# note: sizes are based on nkeep which is for a single NTL class label
+# subsequent steps to label data class (train, val, etc) must be repeated
+# for each NTL class
+for i in type_cats:
     type_sizes[i] = int(np.floor(nkeep * type_weights[i]))
 
-# used floor for all counts, so total will always be short
+# used floor for all counts, so total can be short by one
 for _ in range(nkeep-sum(type_sizes)):
-    type_sizes[np.random.randint(0, ncats)] += 1
+    type_sizes[np.random.randint(0, len(type_names))] += 1
 
-type_list = [[type_names[i]] * type_sizes[i] for i in cat_names]
+
+type_list = [[type_names[i]] * type_sizes[i] for i in type_cats]
 type_list = list(itertools.chain.from_iterable(type_list))
 
 df['type'] = None
+# repeat for each NTL class (cat_names)
 for i in cat_names:
     np.random.shuffle(type_list)
     df.loc[df['label'] == i, 'type'] = type_list
 
 
-train_df = df.loc[df['type'] == "train"]
-val_df = df.loc[df['type'] == "val"]
-test_df = df.loc[df['type'] == "test"]
-predict_df = df.loc[df['type'] == "predict"]
 
 
-dataframe_dict = {
-    "train": train_df,
-    "val": val_df,
-    "test": test_df,
-    "predict": predict_df
-}
+
+dataframe_dict = {}
+
+for i in type_names:
+    dataframe_dict[i] = df.loc[df['type'] == i]
+    print("Samples per cat ({}):".format(i))
+    for j in cat_names: print("{0}: {1}".format(j, sum(dataframe_dict[i]['label'] == j)))
 
 
-train_class_sizes = [sum(train_df['label'] == i) for i in cat_names]
-val_class_sizes = [sum(val_df['label'] == i) for i in cat_names]
-test_class_sizes = [sum(test_df['label'] == i) for i in cat_names]
-predict_class_sizes = [sum(predict_df['label'] == i) for i in cat_names]
+
+# train_df = df.loc[df['type'] == "train"]
+# val_df = df.loc[df['type'] == "val"]
+# test_df = df.loc[df['type'] == "test"]
+# predict_df = df.loc[df['type'] == "predict"]
+
+# dataframe_dict = {
+#     "train": train_df,
+#     "val": val_df,
+#     "test": test_df,
+#     "predict": predict_df
+# }
 
 
-print("Samples per cat (train):")
-for i in cat_names: print("{0}: {1}".format(i, sum(train_df['label'] == i)))
+train_class_sizes = [sum(dataframe_dict["train"]['label'] == i) for i in cat_names]
+val_class_sizes = [sum(dataframe_dict["val"]['label'] == i) for i in cat_names]
+test_class_sizes = [sum(dataframe_dict["test"]['label'] == i) for i in cat_names]
+predict_class_sizes = [sum(dataframe_dict["predict"]['label'] == i) for i in cat_names]
 
-print("Samples per cat (val):")
-for i in cat_names: print("{0}: {1}".format(i, sum(val_df['label'] == i)))
 
-print("Samples per cat (test):")
-for i in cat_names: print("{0}: {1}".format(i, sum(test_df['label'] == i)))
+# print("Samples per cat (train):")
+# for i in cat_names: print("{0}: {1}".format(i, sum(train_df['label'] == i)))
 
-print("Samples per cat (predict):")
-for i in cat_names: print("{0}: {1}".format(i, sum(predict_df['label'] == i)))
+# print("Samples per cat (val):")
+# for i in cat_names: print("{0}: {1}".format(i, sum(val_df['label'] == i)))
+
+# print("Samples per cat (test):")
+# for i in cat_names: print("{0}: {1}".format(i, sum(test_df['label'] == i)))
+
+# print("Samples per cat (predict):")
+# for i in cat_names: print("{0}: {1}".format(i, sum(predict_df['label'] == i)))
 
 
