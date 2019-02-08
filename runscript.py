@@ -1,56 +1,14 @@
-"""
-
-qsub -I -l nodes=1:hima:gpu:ppn=64 -l walltime=8:00:00
-
-hi06 = p100 x2
-hi07 = v100 x2
-
-
-"""
-
-
-# import os
-# import errno
-# from affine import Affine
-
-# def make_dir(path):
-#     try:
-#         os.makedirs(path)
-#     except OSError as exception:
-#         if exception.errno != errno.EEXIST:
-#             raise
-
-
 from __future__ import print_function, division
 
-# import os
 import copy
-# import glob
-# import itertools
-# import datetime
 import time
-# import pprint
-
-# import rasterio
-# import pandas as pd
-# import numpy as np
-# import fiona
-
-
-# import torchvision
-# from torchvision import utils, datasets, models
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-# from torch.utils.data import Dataset
 
 import resnet
-
-# from load_data import build_dataloaders
-
-# from data_prep import *
 
 
 class RunCNN():
@@ -76,20 +34,29 @@ class RunCNN():
         self.scheduler = None
         self.state_dict = None
 
+        resnet_args = {
+            "pretrained":True,
+            "n_input_channels": kwargs["n_input_channels"]
+        }
+
         if kwargs["net"] == "resnet18":
-            self.model = resnet.resnet18(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+            self.model = resnet.resnet18(**resnet_args)
         elif kwargs["net"] == "resnet34":
-            self.model = resnet.resnet34(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+            self.model = resnet.resnet34(**resnet_args)
         elif kwargs["net"] == "resnet50":
-            self.model = resnet.resnet50(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+            self.model = resnet.resnet50(**resnet_args)
         elif kwargs["net"] == "resnet101":
-            self.model = resnet.resnet101(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+            self.model = resnet.resnet101(**resnet_args)
         elif kwargs["net"] == "resnet152":
-            self.model = resnet.resnet152(pretrained=True, n_input_channels=kwargs["n_input_channels"])
+            self.model = resnet.resnet152(**resnet_args)
 
         if self.model is None:
             raise Exception("Specified net not found ({})".format(kwargs["net"]))
 
+
+    def load_model(self, saved_model):
+        # self.model =
+        pass
 
     def export_to_device(self):
 
@@ -121,14 +88,19 @@ class RunCNN():
         self.criterion = nn.CrossEntropyLoss(weight=loss_weights)
 
         if self.kwargs["optim"] == "sgd":
-            # Observe that only parameters of final layer are being optimized as opposed to before.
+            # Observe that only parameters of final layer
+            # are being optimized as opposed to before.
             self.optimizer = optim.SGD(
-                self.model.fc.parameters(), lr=self.kwargs["lr"], momentum=self.kwargs["momentum"])
+                self.model.fc.parameters(),
+                lr=self.kwargs["lr"],
+                momentum=self.kwargs["momentum"])
 
         # Decay LR by a factor of `gamma` every `step_size` epochs
         # exp lr scheduler
         self.scheduler = lr_scheduler.StepLR(
-            self.optimizer, step_size=self.kwargs["step_size"], gamma=self.kwargs["gamma"])
+            self.optimizer,
+            step_size=self.kwargs["step_size"],
+            gamma=self.kwargs["gamma"])
 
         self.export_to_device()
 
@@ -194,7 +166,8 @@ class RunCNN():
 
                     for i in range(self.ncats):
                         label_indexes = (labels == i).nonzero().squeeze()
-                        class_correct[i] += torch.sum(preds[label_indexes] == labels[label_indexes]).item()
+                        class_correct[i] += torch.sum(
+                            preds[label_indexes] == labels[label_indexes]).item()
                         class_count[i] += len(label_indexes)
 
 

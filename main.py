@@ -5,7 +5,6 @@ qsub -I -l nodes=1:hima:gpu:ppn=64 -l walltime=8:00:00
 hi06 = p100 x2
 hi07 = v100 x2
 
-mpirun -mca orte_base_help_aggregate 0 --mca mpi_warn_on_fork 0 --map-by node -np 32 python-mpi lsms_imagery_prep.py
 
 
 """
@@ -27,31 +26,21 @@ from __future__ import print_function, division
 
 import os
 import copy
-# import glob
 import itertools
 import datetime
 import time
 import pprint
 
-# import rasterio
 import pandas as pd
 import numpy as np
 import fiona
 
-
-# import torchvision
-# from torchvision import utils, datasets, models
-
 import torch
 import torch.nn as nn
-# import torch.optim as optim
-# from torch.optim import lr_scheduler
-# from torch.utils.data import Dataset
 
 import resnet
 
 from load_data import build_dataloaders
-
 from data_prep import *
 from runscript import *
 
@@ -60,8 +49,12 @@ quiet = False
 
 results = []
 
-timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y_%m_%d_%H_%M_%S')
-df_output_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/run_data/results_{}.csv".format(timestamp)
+timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+    '%Y_%m_%d_%H_%M_%S')
+
+df_output_path = os.path.join(
+    "/sciclone/aiddata10/REU/projects/mcc_tanzania",
+    "run_data/results_{}.csv".format(timestamp))
 
 
 def output_csv():
@@ -125,14 +118,23 @@ if not batch:
         "agg_method": "mean"
     }
 
-    dataloaders = build_dataloaders(dataframe_dict, base_path, data_transform=None, dim=params["dim"], batch_size=params["batch_size"], num_workers=params["num_workers"], agg_method=params["agg_method"])
+    dataloaders = build_dataloaders(
+        dataframe_dict,
+        base_path,
+        data_transform=None,
+        dim=params["dim"],
+        batch_size=params["batch_size"],
+        num_workers=params["num_workers"],
+        agg_method=params["agg_method"])
 
-    # model_p, acc_p, class_p, time_p = run(dataloaders, device, mode="train", quiet=quiet, **params)
-
-    new_cnn = RunCNN(dataloaders, device, cat_names, parallel=False, quiet=False, **params)
+    new_cnn = RunCNN(
+        dataloaders, device, cat_names,
+        parallel=False, quiet=False, **params)
 
     new_cnn.export_to_device()
     acc_p, class_p, time_p = new_cnn.train()
+
+    model = new_cnn.model
     new_cnn.test()
 
     params['acc'] = acc_p
@@ -152,9 +154,12 @@ if not batch:
 
 
 
-    # model_y = resnet.resnet18(pretrained=True, n_input_channels=params["n_input_channels"])
+    # model_y = resnet.resnet18(
+    #   pretrained=True, n_input_channels=params["n_input_channels"])
 
-    # torch.save(model_p.state_dict(), "/sciclone/aiddata10/REU/projects/mcc_tanzania/model_dict")
+    # torch.save(
+    #     model_p.state_dict(),
+    #     "/sciclone/aiddata10/REU/projects/mcc_tanzania/model_dict")
 
 
 
@@ -211,9 +216,17 @@ if batch:
         print('-' * 10)
         print("\nParameter combination: {}/{}".format(ix+1, pcount))
 
-        dataloaders = build_dataloaders(dataframe_dict, base_path, data_transform=None, dim=p["dim"], batch_size=p["batch_size"], num_workers=p["num_workers"], agg_method=p["agg_method"])
+        dataloaders = build_dataloaders(
+            dataframe_dict,
+            base_path,
+            data_transform=None,
+            dim=p["dim"],
+            batch_size=p["batch_size"],
+            num_workers=p["num_workers"],
+            agg_method=p["agg_method"])
 
-        model_p, acc_p, class_p, time_p = run(dataloaders, device, mode="train", quiet=quiet, **p)
+        model_p, acc_p, class_p, time_p = run(
+            dataloaders, device, mode="train", quiet=quiet, **p)
 
         pout = copy.deepcopy(p)
         pout['acc'] = acc_p
