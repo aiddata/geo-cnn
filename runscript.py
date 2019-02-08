@@ -53,25 +53,6 @@ class RunCNN():
         if self.model is None:
             raise Exception("Specified net not found ({})".format(kwargs["net"]))
 
-
-    def load_model(self, saved_model):
-        # self.model =
-        pass
-
-    def export_to_device(self):
-
-        if self.parallel and torch.cuda.device_count() > 1:
-            print("Using", torch.cuda.device_count(), "GPUs")
-            self.model = nn.DataParallel(self.model)
-
-        self.model = self.model.to(self.device)
-
-
-    def train(self, quiet=None):
-
-        if quiet == None:
-            quiet = self.quiet
-
         if self.kwargs["run_type"] == 2:
             for param in self.model.parameters():
                 param.requires_grad = False
@@ -86,6 +67,31 @@ class RunCNN():
             map(float, self.kwargs["loss_weights"])).cuda()
 
         self.criterion = nn.CrossEntropyLoss(weight=loss_weights)
+
+
+    def save(self, path):
+        torch.save(self.model.state_dict(), path)
+
+
+    def load(self, path):
+        self.state_dict = torch.load(path)
+        self.model.load_state_dict(self.state_dict)
+        self.model.eval()
+
+
+    def export_to_device(self):
+
+        if self.parallel and torch.cuda.device_count() > 1:
+            print("Using", torch.cuda.device_count(), "GPUs")
+            self.model = nn.DataParallel(self.model)
+
+        self.model = self.model.to(self.device)
+
+
+    def train(self, quiet=None):
+
+        if quiet == None:
+            quiet = self.quiet
 
         if self.kwargs["optim"] == "sgd":
             # Observe that only parameters of final layer
@@ -216,6 +222,8 @@ class RunCNN():
         phase = "test"
 
         since = time.time()
+
+        self.export_to_device()
 
         self.model.eval()   # Set model to evaluate mode
 

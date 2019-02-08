@@ -53,7 +53,7 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
 
 df_output_path = os.path.join(
-    "/sciclone/aiddata10/REU/projects/mcc_tanzania",
+    base_path,
     "run_data/results_{}.csv".format(timestamp))
 
 
@@ -127,15 +127,27 @@ if not batch:
         num_workers=params["num_workers"],
         agg_method=params["agg_method"])
 
-    new_cnn = RunCNN(
+
+    train_cnn = RunCNN(
         dataloaders, device, cat_names,
         parallel=False, quiet=False, **params)
 
-    new_cnn.export_to_device()
-    acc_p, class_p, time_p = new_cnn.train()
+    train_cnn.export_to_device()
+    acc_p, class_p, time_p = train_cnn.train()
 
-    model = new_cnn.model
-    new_cnn.test()
+    state_dict_path = os.path.join(base_path, "saved_state_dict.pt")
+
+    train_cnn.save(state_dict_path)
+
+
+    test_cnn = RunCNN(
+        dataloaders, device, cat_names,
+        parallel=False, quiet=False, **params)
+
+    test_cnn.load(state_dict_path)
+
+    test_cnn.test()
+
 
     params['acc'] = acc_p
     params['class_acc'] = class_p
