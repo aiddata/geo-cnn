@@ -26,7 +26,11 @@ class RunCNN():
 
         self.kwargs = kwargs
 
-        print("Initializing with kwargs: \n\t {}".format(kwargs))
+        print('')
+        print('-' * 20)
+        print("RunCNN initializing with kwargs: \n\n{}".format(kwargs))
+        print('-' * 20)
+        print('')
 
         self.model = None
         self.criterion = None
@@ -225,7 +229,7 @@ class RunCNN():
 
         self.export_to_device()
 
-        self.model.eval()   # Set model to evaluate mode
+        self.model.eval()
 
         running_loss = 0.0
         running_correct = 0
@@ -278,13 +282,19 @@ class RunCNN():
 
 
     def predict(self):
-        pass
+        full_preds, time_elapsed = self._predict()
+        return full_preds, time_elapsed
 
 
     def _predict(self):
+
+        phase = "predict"
+
         since = time.time()
 
-        model.eval()   # Set model to evaluate mode
+        self.export_to_device()
+
+        self.model.eval()
 
         full_preds = []
 
@@ -292,10 +302,10 @@ class RunCNN():
         for inputs, _ in self.dataloaders[phase]:
             inputs = inputs.to(self.device)
 
-            with torch.set_grad_enabled(0):
-                outputs = model(inputs)
+            with torch.set_grad_enabled(False):
+                outputs = self.model(inputs)
                 _, preds = torch.max(outputs, 1)
-                full_preds += preds # need to test this
+                full_preds += [i.item() for i in preds] # need to test this
 
         time_elapsed = time.time() - since
         print('\nPrediction completed in {:.0f}m {:.0f}s'.format(

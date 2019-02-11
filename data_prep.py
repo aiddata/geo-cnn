@@ -26,8 +26,9 @@ import resnet
 
 from create_grid import PointGrid
 
+print('-' * 40)
 
-print("Initializing...")
+print("\nInitializing...")
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -102,7 +103,7 @@ class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean(
 
 # -----------------------------------------------------------------------------
 
-print("Preparing grid")
+print("\nPreparing grid..")
 
 # boundary
 tza_adm0_path = os.path.join(base_path, 'run_data/TZA_ADM0_GADM28_simplified.geojson')
@@ -203,7 +204,7 @@ for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 # -----------------------------------------------------------------------------
 
 
-print("Building datasets")
+print("\nBuilding datasets...")
 
 
 # ==========
@@ -246,8 +247,6 @@ for i in cat_names:
 
 
 
-
-
 dataframe_dict = {}
 
 for i in type_names:
@@ -287,5 +286,3 @@ predict_class_sizes = [sum(dataframe_dict["predict"]['label'] == i) for i in cat
 
 # print("Samples per cat (predict):")
 # for i in cat_names: print("{0}: {1}".format(i, sum(predict_df['label'] == i)))
-
-

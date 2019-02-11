@@ -104,7 +104,7 @@ if not batch:
     params = {
         "run_type": 2,
         "n_input_channels": 8,
-        "n_epochs": 1,
+        "n_epochs": 2,
         "optim": "sgd",
         "lr": 0.009,
         "momentum": 0.95,
@@ -128,16 +128,23 @@ if not batch:
         agg_method=params["agg_method"])
 
 
-    train_cnn = RunCNN(
-        dataloaders, device, cat_names,
-        parallel=False, quiet=False, **params)
-
-    train_cnn.export_to_device()
-    acc_p, class_p, time_p = train_cnn.train()
-
     state_dict_path = os.path.join(base_path, "saved_state_dict.pt")
 
-    train_cnn.save(state_dict_path)
+
+    # train_cnn = RunCNN(
+    #     dataloaders, device, cat_names,
+    #     parallel=False, quiet=False, **params)
+
+    # train_cnn.export_to_device()
+    # acc_p, class_p, time_p = train_cnn.train()
+
+    # params['acc'] = acc_p
+    # params['class_acc'] = class_p
+    # params['time'] = time_p
+    # results.append(params)
+    # output_csv()
+
+    # train_cnn.save(state_dict_path)
 
 
     test_cnn = RunCNN(
@@ -146,16 +153,11 @@ if not batch:
 
     test_cnn.load(state_dict_path)
 
-    test_cnn.test()
+    # test_cnn.test()
 
+    full_preds, time_elapsed = test_cnn.predict()
 
-    params['acc'] = acc_p
-    params['class_acc'] = class_p
-    params['time'] = time_p
-    results.append(params)
-    output_csv()
-
-
+    print(full_preds)
 
     # print(model_p.children())
     # print("---------------------------")
@@ -164,14 +166,9 @@ if not batch:
     # new_classifier = nn.Sequential(*list(model_p.children())[:-1])
     # print(new_classifier)
 
-
-
     # model_y = resnet.resnet18(
     #   pretrained=True, n_input_channels=params["n_input_channels"])
 
-    # torch.save(
-    #     model_p.state_dict(),
-    #     "/sciclone/aiddata10/REU/projects/mcc_tanzania/model_dict")
 
 
 
