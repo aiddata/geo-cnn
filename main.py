@@ -99,80 +99,82 @@ batch = False
 
 
 
-if not batch:
+# if not batch:
 
-    params = {
-        "run_type": 2,
-        "n_input_channels": 8,
-        "n_epochs": 2,
-        "optim": "sgd",
-        "lr": 0.009,
-        "momentum": 0.95,
-        "step_size": 15,
-        "gamma": 0.1,
-        "loss_weights": [1.0, 1.0, 1.0],
-        "net": "resnet18",
-        "batch_size": 150,
-        "num_workers": 16,
-        "dim": 224,
-        "agg_method": "mean"
-    }
+params = {
+    "run_type": 2,
+    "n_input_channels": 8,
+    "n_epochs": 2,
+    "optim": "sgd",
+    "lr": 0.009,
+    "momentum": 0.95,
+    "step_size": 15,
+    "gamma": 0.1,
+    "loss_weights": [1.0, 1.0, 1.0],
+    "net": "resnet18",
+    "batch_size": 150,
+    "num_workers": 16,
+    "dim": 224,
+    "agg_method": "mean"
+}
 
-    dataloaders = build_dataloaders(
-        dataframe_dict,
-        base_path,
-        data_transform=None,
-        dim=params["dim"],
-        batch_size=params["batch_size"],
-        num_workers=params["num_workers"],
-        agg_method=params["agg_method"])
-
-
-    state_dict_path = os.path.join(base_path, "saved_state_dict.pt")
+dataloaders = build_dataloaders(
+    dataframe_dict,
+    base_path,
+    data_transform=None,
+    dim=params["dim"],
+    batch_size=params["batch_size"],
+    num_workers=params["num_workers"],
+    agg_method=params["agg_method"])
 
 
-    # train_cnn = RunCNN(
-    #     dataloaders, device, cat_names,
-    #     parallel=False, quiet=False, **params)
+state_dict_path = os.path.join(base_path, "saved_state_dict.pt")
 
-    # train_cnn.export_to_device()
-    # acc_p, class_p, time_p = train_cnn.train()
+# -----------------
 
-    # params['acc'] = acc_p
-    # params['class_acc'] = class_p
-    # params['time'] = time_p
-    # results.append(params)
-    # output_csv()
+train_cnn = RunCNN(
+    dataloaders, device, cat_names,
+    parallel=False, quiet=False, **params)
 
-    # train_cnn.save(state_dict_path)
+acc_p, class_p, time_p = train_cnn.train()
 
+params['acc'] = acc_p
+params['class_acc'] = class_p
+params['time'] = time_p
+results.append(params)
+output_csv()
 
-    test_cnn = RunCNN(
-        dataloaders, device, cat_names,
-        parallel=False, quiet=False, **params)
+train_cnn.save(state_dict_path)
 
-    test_cnn.load(state_dict_path)
+# -----------------
 
-    # test_cnn.test()
+test_cnn = RunCNN(
+    dataloaders, device, cat_names,
+    parallel=False, quiet=False, **params)
 
-    full_preds, time_elapsed = test_cnn.predict()
+test_cnn.load(state_dict_path)
 
-    print(full_preds)
+epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
 
-    # print(model_p.children())
-    # print("---------------------------")
-    # print(model_p.modules())
+# -----------------
 
-    # new_classifier = nn.Sequential(*list(model_p.children())[:-1])
-    # print(new_classifier)
+predict_cnn = RunCNN(
+    dataloaders, device, cat_names,
+    parallel=False, quiet=False, **params)
 
-    # model_y = resnet.resnet18(
-    #   pretrained=True, n_input_channels=params["n_input_channels"])
+predict_cnn.load(state_dict_path)
+
+full_preds, time_elapsed = predict_cnn.predict(features=False)
+full_preds_2, time_elapsed_2 = predict_cnn.predict(features=True)
+
+# -----------------
+
 
 
 
 
 # -----------------------------------------------------------------------------
+
 
 
 
