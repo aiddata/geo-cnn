@@ -221,7 +221,7 @@ type_cats = range(len(type_names))
 # ratio for train, val, test data
 # must sum to 1.0
 type_weights = [0.840, 0.150, 0.005, 0.005]
-type_weights = [0.740, 0.150, 0.105, 0.005]
+type_weights = [0.730, 0.150, 0.105, 0.015]
 
 type_sizes = np.zeros(len(type_names)).astype(int)
 

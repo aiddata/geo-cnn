@@ -297,11 +297,11 @@ class RunCNN():
         else:
             self.pmodel = copy.deepcopy(self.model)
 
-        full_preds, time_elapsed = self._predict()
-        return full_preds, time_elapsed
+        pred_out, time_elapsed = self._predict(features=features)
+        return pred_out, time_elapsed
 
 
-    def _predict(self):
+    def _predict(self, features=False):
 
         phase = "predict"
 
@@ -311,7 +311,7 @@ class RunCNN():
 
         self.pmodel.eval()
 
-        full_preds = []
+        pred_out = []
 
         # iterate over data
         for inputs, _ in self.dataloaders[phase]:
@@ -319,12 +319,15 @@ class RunCNN():
 
             with torch.set_grad_enabled(False):
                 outputs = self.pmodel(inputs)
-                _, preds = torch.max(outputs, 1)
-                full_preds += [i.item() for i in preds] # need to test this
+                if not features:
+                    _, preds = torch.max(outputs, 1)
+                    pred_out += preds.tolist()
+                else:
+                    pred_out += [ [i.item() for i in j] for j in outputs]
 
         time_elapsed = time.time() - since
         print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
 
         # load best model weights
-        return full_preds, time_elapsed
+        return pred_out, time_elapsed
