@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 
-def build_dataloaders(df_dict, base_path, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="max"):
+def build_dataloaders(df_dict, base_path, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="max", shuffle=True):
 
     if data_transform == None:
 
@@ -24,7 +24,7 @@ def build_dataloaders(df_dict, base_path, data_transform=None, dim=224, batch_si
     # where group is train, val, test, predict
     for group in df_dict:
         tmp_dset = BandDataset(df_dict[group], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-        dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+        dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
 
     # train_dset = BandDataset(df_dict["train"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
@@ -87,7 +87,7 @@ class BandDataset(Dataset):
         for bnum, band in enumerate(self.bands):
 
             season_mosaics_path = os.path.join(
-                self.root_dir, "season_mosaics", "all", self.agg_method,
+                self.root_dir, "landsat/season_mosaics/all", self.agg_method,
                 "{}_all_{}.tif".format(self.year, band))
 
             season_mosaics = rasterio.open(season_mosaics_path)
