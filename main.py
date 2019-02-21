@@ -31,6 +31,9 @@ import datetime
 import time
 import pprint
 
+import json
+import hashlib
+
 import pandas as pd
 import numpy as np
 import fiona
@@ -44,17 +47,20 @@ from load_data import build_dataloaders
 from data_prep import *
 from runscript import *
 
+# -----------------------------------------------------------------------------
 
 quiet = False
+
+
+# batch = True
+batch = False
+
+# -----------------------------------------------------------------------------
 
 results = []
 
 timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
-
-df_output_path = os.path.join(
-    base_path,
-    "run_data/results_{}.csv".format(timestamp))
 
 
 def output_csv():
@@ -87,12 +93,19 @@ def output_csv():
     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
     df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
     df_out = df_out[col_order]
-    df_out.to_csv(df_output_path, index=False, encoding='utf-8')
+    df_out_path = os.path.join(base_path, "output/results_{}_{}.csv".format(param_hash, timestamp))
+    df_out.to_csv(df_out_path, index=False, encoding='utf-8')
 
 
-# batch = True
-batch = False
-
+def json_sha1_hash(hash_obj):
+    hash_json = json.dumps(hash_obj,
+                           sort_keys = True,
+                           ensure_ascii = True,
+                           separators=(', ', ': '))
+    hash_builder = hashlib.sha1()
+    hash_builder.update(hash_json)
+    hash_sha1 = hash_builder.hexdigest()
+    return hash_sha1
 
 
 # -----------------------------------------------------------------------------
@@ -101,10 +114,11 @@ batch = False
 
 # if not batch:
 
+
 params = {
     "run_type": 2,
     "n_input_channels": 8,
-    "n_epochs": 2,
+    "n_epochs": 25,
     "optim": "sgd",
     "lr": 0.009,
     "momentum": 0.95,
@@ -118,6 +132,9 @@ params = {
     "agg_method": "mean"
 }
 
+full_param_hash = json_sha1_hash(params)
+param_hash = full_param_hash[:7]
+
 dataloaders = build_dataloaders(
     dataframe_dict,
     base_path,
@@ -128,48 +145,123 @@ dataloaders = build_dataloaders(
     agg_method=params["agg_method"])
 
 
-state_dict_path = os.path.join(base_path, "saved_state_dict.pt")
+state_path = os.path.join(base_path, "output/state_dict_{}.pt".format(param_hash))
+
 
 # -----------------
 
-train_cnn = RunCNN(
-    dataloaders, device, cat_names,
-    parallel=False, quiet=False, **params)
 
-acc_p, class_p, time_p = train_cnn.train()
+# train_cnn = RunCNN(
+#     dataloaders, device, cat_names,
+#     parallel=False, quiet=False, **params)
 
-params['acc'] = acc_p
-params['class_acc'] = class_p
-params['time'] = time_p
-results.append(params)
-output_csv()
+# acc_p, class_p, time_p = train_cnn.train()
 
-train_cnn.save(state_dict_path)
+# params['acc'] = acc_p
+# params['class_acc'] = class_p
+# params['time'] = time_p
+# results.append(params)
+# output_csv()
+
+# train_cnn.save(state_path)
+
+
+# -----------------
+
+
+# test_cnn = RunCNN(
+#     dataloaders, device, cat_names,
+#     parallel=False, quiet=False, **params)
+
+# test_cnn.load(state_path)
+
+# epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
+
 
 # -----------------
 
-test_cnn = RunCNN(
-    dataloaders, device, cat_names,
-    parallel=False, quiet=False, **params)
 
-test_cnn.load(state_dict_path)
+# predict_cnn = RunCNN(
+#     dataloaders, device, cat_names,
+#     parallel=False, quiet=False, **params)
 
-epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
+# predict_cnn.load(state_path)
+
+# pred_data, time_elapsed = predict_cnn.predict(features=True)
+
 
 # -----------------
+
+
+
+
+"""
+lsms locations dataframe for prediction
+- lat lon
+- consumption
+- ntl (for buffer/box)
+"""
+lsms_predict = {
+    "predict": lsms_cluster.copy(deep=True)
+}
+
+lsms_dataloaders = build_dataloaders(
+    lsms_predict,
+    base_path,
+    data_transform=None,
+    dim=params["dim"],
+    batch_size=params["batch_size"],
+    num_workers=params["num_workers"],
+    agg_method=params["agg_method"],
+    shuffle=False)
 
 predict_cnn = RunCNN(
-    dataloaders, device, cat_names,
+    lsms_dataloaders, device, cat_names,
     parallel=False, quiet=False, **params)
 
-predict_cnn.load(state_dict_path)
-
-full_preds, time_elapsed = predict_cnn.predict(features=False)
-full_preds_2, time_elapsed_2 = predict_cnn.predict(features=True)
-
-# -----------------
+predict_cnn.load(state_path)
 
 
+
+"""
+run predict
+512 feats to csv
+
+lin reg - consumption:ntl
+lin reg - consumption:512feats
+
+"""
+
+pred_data, time_elapsed = predict_cnn.predict(features=True)
+
+feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+
+pred_dicts = [dict(zip(feat_labels, i)) for i in pred_data]
+pred_df = pd.DataFrame(pred_dicts)
+
+lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
+
+
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
+
+
+
+
+def quick(x,y):
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=101)
+    lm = LinearRegression()
+    lm.fit(x_train, y_train)
+    lm_preds = lm.predict(x_test)
+    r2 = r2_score(y_test, lm_preds)
+    return r2
+
+
+test_feat_labels = ["feat_{}".format(i) for i in xrange(1,223)]
+
+quick(lsms_out[['ntl_2010']], lsms_out["cons"])
+quick(lsms_out[test_feat_labels], lsms_out["cons"])
 
 
 
