@@ -54,7 +54,7 @@ ncats = len(cat_names)
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
 lsms_clusters_path = os.path.join(
-    base_path, "survey_data/final/tanzania_lsms_cluster.csv")
+    base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
 
 lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
                            na_values='', keep_default_na=False,
@@ -106,23 +106,23 @@ class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean(
 print("\nPreparing grid..")
 
 # boundary
-tza_adm0_path = os.path.join(base_path, 'run_data/TZA_ADM0_GADM28_simplified.geojson')
+tza_adm0_path = os.path.join(base_path, 'data/TZA_ADM0_GADM28_simplified.geojson')
 tza_adm0 = fiona.open(tza_adm0_path)
 
 
 # define, build, and save sample grid
 pixel_size = 0.008
 
-csv_path = os.path.join(base_path, "run_data/sample_grid.csv")
+csv_path = os.path.join(base_path, "data/sample_grid.csv")
 
 if os.path.isfile(csv_path):
     df = pd.read_csv(csv_path, sep=",", encoding='utf-8')
 else:
     grid = PointGrid(tza_adm0)
     grid.grid(pixel_size)
-    # geo_path = os.path.join(base_path, "run_data/sample_grid.geojson")
+    # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
     # grid.to_geojson(geo_path)
-    # csv_path = os.path.join(base_path, "run_data/sample_grid.csv")
+    # csv_path = os.path.join(base_path, "data/sample_grid.csv")
     # grid.to_csv(csv_path)
     grid.df = grid.to_dataframe()
     # look up ntl values for each grid cell
