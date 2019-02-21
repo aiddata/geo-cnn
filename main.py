@@ -227,11 +227,8 @@ predict_cnn.load(state_path)
 run predict
 512 feats to csv
 
-lin reg - consumption:ntl
-lin reg - consumption:512feats
-
+append to lsms data for linear regressions
 """
-
 pred_data, time_elapsed = predict_cnn.predict(features=True)
 
 feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
@@ -242,26 +239,10 @@ pred_df = pd.DataFrame(pred_dicts)
 lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
 
 
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score
+lsms_out_path = os.path.join(base_path, "output/predict_{}_{}.csv".format(param_hash, timestamp))
 
+lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
 
-
-
-def quick(x,y):
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=101)
-    lm = LinearRegression()
-    lm.fit(x_train, y_train)
-    lm_preds = lm.predict(x_test)
-    r2 = r2_score(y_test, lm_preds)
-    return r2
-
-
-test_feat_labels = ["feat_{}".format(i) for i in xrange(1,223)]
-
-quick(lsms_out[['ntl_2010']], lsms_out["cons"])
-quick(lsms_out[test_feat_labels], lsms_out["cons"])
 
 
 
