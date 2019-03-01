@@ -81,33 +81,49 @@ lm_list = [
     # "BayesianRidge",
     # "ElasticNet",
     # "ElasticNetCV",
-    "HuberRegressor",
-    "Lars",
-    "LarsCV",
-    "Lasso",
-    # "LassoCV",
-    "LassoLars",
-    "LassoLarsCV",
-    "LassoLarsIC",
-    "LinearRegression",
     # "LogisticRegression",
     # "LogisticRegressionCV",
     # "MultiTaskLasso",
     # "MultiTaskElasticNet",
     # "MultiTaskLassoCV",
     # "MultiTaskElasticNetCV",
-    "OrthogonalMatchingPursuit",
     # "OrthogonalMatchingPursuitCV",
     # "PassiveAggressiveClassifier",
-    "PassiveAggressiveRegressor",
     # "Perceptron",
-    "RANSACRegressor",
-    "Ridge",
     # "RidgeClassifier",
     # "RidgeClassifierCV",
-    "RidgeCV",
     # "SGDClassifier",
-    "SGDRegressor"
+
+    {
+        "name": "ridge",
+        "model": "Ridge",
+        "args": {}
+    },{
+        "name": "ridge_cv",
+        "model": "RidgeCV",
+        "args": {}
+    },{
+        "name": "ridge_cv5",
+        "model": "RidgeCV",
+        "args": {"cv": 5}
+    },{
+        "name": "ridge_cv10",
+        "model": "RidgeCV",
+        "args": {"cv": 10}
+    },
+    "Lars",
+    "LarsCV",
+    "LassoLars",
+    "LassoLarsCV",
+    "LinearRegression",
+    "Lasso",
+    # # "LassoCV",
+    # "LassoLarsIC",
+    # "HuberRegressor",
+    # "OrthogonalMatchingPursuit",
+    # "PassiveAggressiveRegressor",
+    # "RANSACRegressor",
+    # "SGDRegressor"
 ]
 
 # https://scikit-learn.org/stable/modules/classes.html#regression-metrics
@@ -118,20 +134,29 @@ lm_list = [
 metric_list = ["explained_variance_score", "mean_absolute_error", "median_absolute_error", "mean_squared_error", "r2_score"]
 metric_abrv = ["evs", "mae", "mae2", "mse", "r2"]
 
-keys = ["model", "input"] + metric_abrv
+keys = ["name", "model", "input"] + metric_abrv
 
 results = []
 
 print "Running models:"
 
-for lm in lm_list:
-    print "\t{}...".format(lm)
+for lm_dict in lm_list:
+
+    if isinstance(lm_dict, str):
+        name = model = lm_dict
+        args = {}
+    else:
+        name = lm_dict["name"]
+        lm = lm_dict["model"]
+        args = lm_dict["args"]
+
+    print "\t{}...".format(name)
     # get function corresponding to specified linear model
     lm_func = getattr(linear_model, lm)
 
     try:
         # run using NTL
-        ntl_model = lm_func()
+        ntl_model = lm_func(**args)
         ntl_model.fit(x_train_ntl, y_train)
         ntl_preds = ntl_model.predict(x_train_ntl)
     except Exception as e:
@@ -142,7 +167,7 @@ for lm in lm_list:
 
     try:
         # run using CNN features
-        cnn_model = lm_func()
+        cnn_model = lm_func(**args)
         cnn_model.fit(x_train_feat, y_train)
         cnn_preds = cnn_model.predict(x_train_feat)
     except Exception as e:
@@ -152,8 +177,8 @@ for lm in lm_list:
         cnn_metric_vals = [getattr(metrics, i)(y_train, cnn_preds) for i in metric_list]
 
 
-    results.append(dict(zip(keys, [lm, "ntl"] + ntl_metric_vals)))
-    results.append(dict(zip(keys, [lm, "cnn"] + cnn_metric_vals)))
+    results.append(dict(zip(keys, [name, lm, "ntl"] + ntl_metric_vals)))
+    results.append(dict(zip(keys, [name, lm, "cnn"] + cnn_metric_vals)))
 
 
 df = pd.DataFrame(results)
