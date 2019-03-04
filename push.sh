@@ -10,3 +10,4 @@ cp $src/resnet.py $dst
 cp $src/load_data.py $dst
 cp $src/data_prep.py $dst
 cp $src/main.py $dst
+cp $src/second_stage_model.py $dst
