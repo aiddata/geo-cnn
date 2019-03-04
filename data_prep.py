@@ -113,9 +113,16 @@ tza_adm0 = fiona.open(tza_adm0_path)
 # define, build, and save sample grid
 pixel_size = 0.008
 
-csv_path = os.path.join(base_path, "data/sample_grid.csv")
+overwrite_grid = False
+# pixel_size = 0.06
+# print(pixel_size)
 
-if os.path.isfile(csv_path):
+csv_path = os.path.join(
+    base_path,
+    "data/sample_grid_{}.csv".format(str(pixel_size).split(".")[1])
+)
+
+if os.path.isfile(csv_path) and not overwrite_grid:
     df = pd.read_csv(csv_path, sep=",", encoding='utf-8')
 else:
     grid = PointGrid(tza_adm0)
@@ -200,7 +207,6 @@ print("Samples per cat (reduced):")
 for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 
 
-
 # -----------------------------------------------------------------------------
 
 
@@ -222,6 +228,7 @@ type_cats = range(len(type_names))
 # must sum to 1.0
 type_weights = [0.840, 0.150, 0.005, 0.005]
 type_weights = [0.730, 0.150, 0.105, 0.015]
+type_weights = [0.850, 0.150, 0.0, 0.0]
 
 type_sizes = np.zeros(len(type_names)).astype(int)
 
