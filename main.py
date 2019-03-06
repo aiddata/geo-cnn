@@ -151,19 +151,19 @@ state_path = os.path.join(base_path, "output/state_dict_{}.pt".format(param_hash
 # -----------------
 
 
-train_cnn = RunCNN(
-    dataloaders, device, cat_names,
-    parallel=False, quiet=False, **params)
+# train_cnn = RunCNN(
+#     dataloaders, device, cat_names,
+#     parallel=False, quiet=False, **params)
 
-acc_p, class_p, time_p = train_cnn.train()
+# acc_p, class_p, time_p = train_cnn.train()
 
-params['acc'] = acc_p
-params['class_acc'] = class_p
-params['time'] = time_p
-results.append(params)
-output_csv()
+# params['acc'] = acc_p
+# params['class_acc'] = class_p
+# params['time'] = time_p
+# results.append(params)
+# output_csv()
 
-train_cnn.save(state_path)
+# train_cnn.save(state_path)
 
 
 # -----------------
@@ -238,6 +238,8 @@ pred_df = pd.DataFrame(pred_dicts)
 
 lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
 
+col_order = list(lsms_predict["predict"].columns) + feat_labels
+lsms_out = lsms_out[col_order]
 
 lsms_out_path = os.path.join(base_path, "output/predict_{}_{}.csv".format(param_hash, timestamp))
 
