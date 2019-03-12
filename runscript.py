@@ -57,8 +57,10 @@ class RunCNN():
             raise Exception("Specified net not found ({})".format(kwargs["net"]))
 
         if self.kwargs["run_type"] == 2:
-            for param in self.model.parameters():
-                param.requires_grad = False
+            layer_count = len(self.model.parameters())
+            for layer, param in enumerate(self.model.parameters()):
+                if layer <= layer_count - 5:
+                    param.requires_grad = False
 
         # Parameters of newly constructed modules have requires_grad=True by default
         # get existing number for input features
