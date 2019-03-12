@@ -50,121 +50,123 @@ model_results_path = os.path.join(base_path, "output/models_{}.csv".format(id_st
 
 # -------------------------------------
 
-'''
-This script is to illustrate a solid cross validation process for this competition.
-We use 10 fold out-of-bag overall cross validation instead of averaging over folds.
-The entire process is repeated 5 times and then averaged.
 
-You would notice that the CV value obtained by this method would be lower than the
-usual procedure of averaging over folds. It also tends to have very low deviation.
+# def cross_validate(model, x, y, folds=10, repeats=5):
+#     '''
+#     Function to do the cross validation - using stacked Out of Bag method instead of averaging across folds.
+#     model = algorithm to validate. Must be scikit learn or scikit-learn like API (Example xgboost XGBRegressor)
+#     x = training data, numpy array
+#     y = training labels, numpy array
+#     folds = K, the number of folds to divide the data into
+#     repeats = Number of times to repeat validation process for more confidence
+#     '''
+#     ypred = np.zeros((len(y), repeats))
+#     score = np.zeros(repeats)
+#     x = np.array(x)
+#     for r in range(repeats):
+#         i = 0
+#         # print('Cross Validating - Run', str(r + 1), 'out of', str(repeats))
+#         x, y = shuffle(x,y,random_state=r) #shuffle data before each repeat
 
-Any scikit learn model can be validated using this.
-'''
+#         kf = KFold(n_splits=folds, random_state=i+1000) #random split, different each time
+#         kf_split = kf.split(y)
+#         for train_ind, test_ind in kf_split:
+#             # print('Fold', i+1, 'out of',folds)
+#             xtrain, ytrain = x[train_ind,:], y[train_ind]
+#             xtest, ytest = x[test_ind,:], y[test_ind]
+#             model.fit(xtrain, ytrain)
+#             ypred[test_ind, r] = model.predict(xtest)
 
-
-def R2(ypred, ytrue):
-    y_avg = np.mean(ytrue)
-    SS_tot = np.sum((ytrue - y_avg)**2)
-    SS_res = np.sum((ytrue - ypred)**2)
-    r2 = 1 - (SS_res/SS_tot)
-    return r2
-
-def cross_validate(model, x, y, folds=10, repeats=5):
-    '''
-    Function to do the cross validation - using stacked Out of Bag method instead of averaging across folds.
-    model = algorithm to validate. Must be scikit learn or scikit-learn like API (Example xgboost XGBRegressor)
-    x = training data, numpy array
-    y = training labels, numpy array
-    folds = K, the number of folds to divide the data into
-    repeats = Number of times to repeat validation process for more confidence
-    '''
-    ypred = np.zeros((len(y), repeats))
-    score = np.zeros(repeats)
-    x = np.array(x)
-    for r in range(repeats):
-        i = 0
-        # print('Cross Validating - Run', str(r + 1), 'out of', str(repeats))
-        x, y = shuffle(x,y,random_state=r) #shuffle data before each repeat
-        kf = KFold(n_splits=folds, random_state=i+1000) #random split, different each time
-        for train_ind,test_ind in kf.split(x):
-            # print('Fold', i+1, 'out of',folds)
-            xtrain, ytrain = x[train_ind,:], y[train_ind]
-            xtest, ytest = x[test_ind,:], y[test_ind]
-            model.fit(xtrain, ytrain)
-            ypred[test_ind, r] = model.predict(xtest)
-            i += 1
-        score[r] = R2(ypred[:, r], y)
-    print 'Overall R2: {}'.format(score)
-    print 'Mean: {}'.format(np.mean(score))
-    print 'Deviation: {}'.format(np.std(score))
-    return score
-
-# -------------------------------------
+#             i += 1
+#         score[r] = stats.pearsonr(ypred[:, r], y)[0] ** 2
+#     print 'Overall R2: {}'.format(score)
+#     print 'Mean: {}'.format(np.mean(score))
+#     print 'Deviation: {}'.format(np.std(score))
+#     return score
 
 
+def pearson_r2(true, predict):
+    return stats.pearsonr(true, predict)[0] ** 2
 
-def run_cv(X, y, k, k_inner, points, alpha_low, alpha_high, randomize=False):
+
+def run_cv(X, y, model, k, k_inner=5, alphas=None, metric=None, randomize=False):
     """
     Runs nested cross-validation to make predictions and compute r-squared.
+
+    k_inner, alphas, metric only needed when determining ideal alpha param within folds
+
+    (could add repeats to this, similar to demo cross_validate function above)
+
     """
-    alphas = np.logspace(alpha_low, alpha_high, points)
-    r2s = np.zeros((k,))
-    y_hat = np.zeros_like(y)
-    kf = KFold(n_splits=y.size, shuffle=True).split(y_train)
-    fold = 0
-    for train_idx, test_idx in kf:
-        r2s, y_hat, fold = evaluate_fold(
-            X, y, train_idx, test_idx, k_inner, alphas, r2s, y_hat, fold,
-            randomize)
-    return y_hat, r2s.mean()
+    best_alpha = None
+    y_true = []
+    y_predict = []
+    # score = np.zeros((k,))
+    kf = KFold(n_splits=k, shuffle=True)
+    kf_split = kf.split(y)
+    for fold, (train_idx, test_idx) in enumerate(kf_split):
+        # score, y_predict, fold = evaluate_fold(model, X, y, train_idx, test_idx, k_inner, alphas, score, y_predict, fold, randomize)
+        X_train, X_test = X[train_idx], X[test_idx]
+        y_train, y_test = y[train_idx], y[test_idx]
+        if randomize:
+            random.shuffle(y_train)
+        if alphas is not None:
+            best_alpha = find_best_alpha(X_train, y_train, k_inner, model, metric, alphas)
+        X_train, X_test = scale_features(X_train, X_test)
+        y_test_predict = train_and_predict(X_train, y_train, X_test, model, best_alpha)
+        y_true.append(y_test)
+        y_predict.append(y_test_predict)
+        # score[fold] = metric(y_test, y_test_predict)
+    # return score.mean(), y_true, y_predict
+    return y_true, y_predict
 
 
-def evaluate_fold(
-    X, y, train_idx, test_idx, k_inner, alphas, r2s, y_hat, fold,
-        randomize):
-    """
-    Evaluates one fold of outer CV.
-    """
-    X_train, X_test = X[train_idx], X[test_idx]
-    y_train, y_test = y[train_idx], y[test_idx]
-    if randomize:
-        random.shuffle(y_train)
-    best_alpha = find_best_alpha(X_train, y_train, k_inner, alphas)
-    X_train, X_test = scale_features(X_train, X_test)
-    y_test_hat = train_and_predict_ridge(best_alpha, X_train, y_train, X_test)
-    r2 = stats.pearsonr(y_test, y_test_hat)[0] ** 2
-    r2s[fold] = r2
-    y_hat[test_idx] = y_test_hat
-    return r2s, y_hat, fold + 1
+# def evaluate_fold(
+#     model, X, y, train_idx, test_idx, k_inner, alphas, r2s, y_hat, fold, randomize):
+#     """
+#     Evaluates one fold of outer CV.
+#     """
+#     X_train, X_test = X[train_idx], X[test_idx]
+#     y_train, y_test = y[train_idx], y[test_idx]
+#     if randomize:
+#         random.shuffle(y_train)
+
+#     best_alpha = find_best_alpha(X_train, y_train, k_inner, model, alphas)
+#     X_train, X_test = scale_features(X_train, X_test)
+#     y_test_predict = train_and_predict(X_train, y_train, X_test, model, best_alpha)
+
+#     r2 = stats.pearsonr(y_test, y_test_predict)[0] ** 2
+#     r2s[fold] = r2
+#     y_hat[test_idx] = y_test_predict
+#     return r2s, y_hat, fold + 1
 
 
-def find_best_alpha(X, y, k_inner, alphas):
+def find_best_alpha(X, y, k_inner, model, metric, alphas):
     """
     Finds the best alpha in an inner CV loop.
     """
     kf = KFold(n_splits=k_inner, shuffle=True).split(y)
     best_alpha = 0
-    best_r2 = 0
+    best_score = 0
     for idx, alpha in enumerate(alphas):
         y_hat = np.zeros_like(y)
         for train_idx, test_idx in kf:
-            y_hat = predict_inner_test_fold(
-                X, y, y_hat, train_idx, test_idx, alpha)
-        r2 = stats.pearsonr(y, y_hat)[0] ** 2
-        if r2 > best_r2:
+            y_hat = predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, alpha)
+        score = metric(y, y_hat)
+        if score > best_score:
             best_alpha = alpha
-            best_r2 = r2
+            best_score = score
     return best_alpha
 
 
-def predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, alpha):
+def predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, alpha=None):
     """
     Predicts inner test fold.
     """
     X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
     X_train, X_test = scale_features(X_train, X_test)
-    y_hat[test_idx] = train_and_predict_ridge(alpha, X_train, y_train, X_test)
+    y_hat[test_idx] = train_and_predict(X_train, y_train, X_test, model, alpha)
     return y_hat
 
 
@@ -178,81 +180,64 @@ def scale_features(X_train, X_test):
     return X_train, X_test
 
 
-def train_and_predict_ridge(alpha, X_train, y_train, X_test):
+def train_and_predict(X_train, y_train, X_test, model, alpha=None):
     """
-    Trains ridge model and predicts test set.
+    Trains model and predicts test set.
     """
-    ridge = linear_model.Ridge(alpha)
-    ridge.fit(X_train, y_train)
-    y_hat = ridge.predict(X_test)
-    return y_hat
+    if alpha:
+        lm = model(alpha)
+    else:
+        lm = model()
+    lm.fit(X_train, y_train)
+    y_predict = lm.predict(X_test)
+    return y_predict
 
 
-def reduce_dimension(X, dimension):
-    """
-    Uses PCA to reduce dimensionality of features.
-    """
-    if dimension is not None:
-        pca = PCA(n_components=dimension)
-        X = pca.fit_transform(X)
-    return X
+# -------------------------------------
 
 
-y_train = lsms_out["cons"]
-x_train_ntl = lsms_out[['ntl_2010']]
-x_train_feat_all = lsms_out[test_feat_labels]
+y_train = lsms_out["cons"].values
+x_train_ntl = lsms_out[['ntl_2010']].values
+x_train_cnn_all = lsms_out[test_feat_labels].values
 
-dimension = 100
-x_train_feat = reduce_dimension(x_train_feat_all, dimension=dimension)
-
-run_cv(x_train_ntl, y_train, k=5, k_inner=5, points=10, alpha_low=1, alpha_high=5, randomize=False)
-run_cv(x_train_feat, y_train, k=5, k_inner=5, points=10, alpha_low=1, alpha_high=5, randomize=False)
+# reduce feature dimensions using PCA
+pca_dimension = 15
+pca = PCA(n_components=pca_dimension)
+x_train_cnn = pca.fit_transform(x_train_cnn_all)
 
 
 # https://scikit-learn.org/stable/modules/classes.html#module-sklearn.linear_model
 lm_list = [
-    # "ARDRegression",
-    # "TheilSenRegressor",
-    # "BayesianRidge",
-    # "ElasticNet",
-    # "ElasticNetCV",
-    # "LogisticRegression",
-    # "LogisticRegressionCV",
-    # "MultiTaskLasso",
-    # "MultiTaskElasticNet",
-    # "MultiTaskLassoCV",
-    # "MultiTaskElasticNetCV",
-    # "OrthogonalMatchingPursuitCV",
-    # "PassiveAggressiveClassifier",
-    # "Perceptron",
-    # "RidgeClassifier",
-    # "RidgeClassifierCV",
-    # "SGDClassifier",
-
     {
-        "name": "ridge",
-        "model": "Ridge",
-        "args": {}
-    },{
-        "name": "ridge_cv",
-        "model": "RidgeCV",
-        "args": {}
-    },{
-        "name": "ridge_cv5",
-        "model": "RidgeCV",
-        "args": {"cv": 5}
-    },{
         "name": "ridge_cv10",
-        "model": "RidgeCV",
-        "args": {"cv": 10}
-    },
-    "Lars",
-    "LarsCV",
-    "LassoLars",
-    "LassoLarsCV",
-    "LinearRegression",
-    "Lasso",
-    # # "LassoCV",
+        "model": linear_model.Ridge,
+        "k": 10,
+        "k_inner": 5,
+        "alphas": np.logspace(0.5, 10, 10),
+        "metric": pearson_r2
+    },{
+        "name": "lasso_cv10",
+        "model": linear_model.Lasso,
+        "k": 10,
+        "k_inner": 5,
+        "alphas": np.logspace(0.5, 10, 10),
+        "metric": pearson_r2
+    },{
+        "name": "lassolars_cv10",
+        "model": linear_model.LassoLars,
+        "k": 10,
+        "k_inner": 5,
+        "alphas": np.logspace(0.5, 10, 10),
+        "metric": pearson_r2
+    },{
+        "name": "lars_cv10",
+        "model": linear_model.Lars,
+        "k": 10
+    },{
+        "name": "linear_cv10",
+        "model": linear_model.LinearRegression,
+        "k": 10
+    }
     # "LassoLarsIC",
     # "HuberRegressor",
     # "OrthogonalMatchingPursuit",
@@ -262,14 +247,16 @@ lm_list = [
 ]
 
 # https://scikit-learn.org/stable/modules/classes.html#regression-metrics
+metric_list = {
+    "pr2": pearson_r2,
+    "evs": metrics.explained_variance_score,
+    "mae": metrics.mean_absolute_error,
+    "mae2": metrics.median_absolute_error,
+    "mse": metrics.mean_squared_error,
+    "r2": metrics.r2_score
+}
 
-# metric_list = ["explained_variance_score", "mean_absolute_error", "median_absolute_error", "mean_squared_error", "mean_squared_log_error", "r2_score"]
-# metric_abrv = ["evs", "mae", "mae2", "mse", "msle", "r2"]
-
-metric_list = ["explained_variance_score", "mean_absolute_error", "median_absolute_error", "mean_squared_error", "r2_score"]
-metric_abrv = ["evs", "mae", "mae2", "mse", "r2"]
-
-keys = ["name", "model", "input"] + metric_abrv
+keys = ["name", "model", "input"] + metric_list.keys()
 
 results = []
 
@@ -278,60 +265,51 @@ print "Running models:"
 
 # ==============================
 
-metrics.r2_score(y_train, cross_val_predict(linear_model.Ridge(alpha=0.5), x_train_ntl, y_train, cv=2))
-metrics.r2_score(y_train, cross_val_predict(linear_model.Ridge(alpha=0.5), x_train_feat, y_train, cv=2))
 
-metrics.r2_score(y_train, linear_model.RidgeCV(cv=2, alphas=[0.5]).fit(x_train_ntl, y_train).predict(x_train_ntl))
-metrics.r2_score(y_train, linear_model.RidgeCV(cv=2, alphas=[0.5]).fit(x_train_feat, y_train).predict(x_train_feat))
+# model = linear_model.Ridge
+# metric = metric_list["pr2"]
+# k = 10
+# k_inner = 10
+# alphas = np.logspace(0.5, 10, 10)
 
-cross_validate(linear_model.Ridge(alpha=0.5), x_train_ntl, y_train, folds=2, repeats=1)
-cross_validate(linear_model.Ridge(alpha=0.5), x_train_feat, y_train, folds=2, repeats=1)
+# score, y_true, y_predict = run_cv(model, x_train_ntl, y_train, k=k, k_inner=k_inner, alphas=alphas, metric=metric)
+# print score
+# print np.array([metric(y_true[i], y_predict[i]) for i in range(k)]).mean()
+# score, y_true, y_predict = run_cv(model, x_train_cnn, y_train, k=k, k_inner=k_inner, alphas=alphas, metric=metric)
+# print score
+# print np.array([metric(y_true[i], y_predict[i]) for i in range(k)]).mean()
+
+# raise
+
 
 # ==============================
 
 
 for lm_dict in lm_list:
 
-    if isinstance(lm_dict, str):
-        name = model = lm_dict
-        args = {}
-    else:
-        name = lm_dict["name"]
-        lm = lm_dict["model"]
-        args = lm_dict["args"]
-
+    name = lm_dict.pop("name")
     print "\t{}...".format(name)
-    # get function corresponding to specified linear model
-    lm_func = getattr(linear_model, lm)
 
+    # run using NTL
     try:
-        # run using NTL
-        ntl_model = lm_func(**args)
-        ntl_model.fit(x_train_ntl, y_train)
-        ntl_preds = ntl_model.predict(x_train_ntl)
+        ntl_y_true, ntl_y_predict = run_cv(x_train_ntl, y_train, **lm_dict)
     except Exception as e:
-        print (e)
+        print(e)
         ntl_metric_vals = ["Error" for i in metric_list]
     else:
-        ntl_metric_vals = [getattr(metrics, i)(y_train, ntl_preds) for i in metric_list]
+        ntl_metric_vals = [np.array([metric_list[j](ntl_y_true[i], ntl_y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
 
+    # run using CNN features
     try:
-        # run using CNN features
-        cnn_model = lm_func(**args)
-        cnn_model.fit(x_train_feat, y_train)
-        cnn_preds = cnn_model.predict(x_train_feat)
+        cnn_y_true, cnn_y_predict = run_cv(x_train_cnn, y_train, **lm_dict)
     except Exception as e:
-        print (e)
+        print(e)
         cnn_metric_vals = ["Error" for i in metric_list]
     else:
-        cnn_metric_vals = [getattr(metrics, i)(y_train, cnn_preds) for i in metric_list]
+        cnn_metric_vals = [np.array([metric_list[j](cnn_y_true[i], cnn_y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
 
-
-    results.append(dict(zip(keys, [name, lm, "ntl"] + ntl_metric_vals)))
-    results.append(dict(zip(keys, [name, lm, "cnn"] + cnn_metric_vals)))
-
-
-
+    results.append(dict(zip(keys, [name, lm_dict["model"].__name__, "ntl"] + ntl_metric_vals)))
+    results.append(dict(zip(keys, [name, lm_dict["model"].__name__, "cnn"] + cnn_metric_vals)))
 
 
 
