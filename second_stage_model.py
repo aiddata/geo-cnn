@@ -69,8 +69,7 @@ model_results_path = os.path.join(base_path, "output/models_{}.csv".format(id_st
 #         x, y = shuffle(x,y,random_state=r) #shuffle data before each repeat
 
 #         kf = KFold(n_splits=folds, random_state=i+1000) #random split, different each time
-#         kf_split = kf.split(y)
-#         for train_ind, test_ind in kf_split:
+#         for train_ind, test_ind in kf.split(y):
 #             # print('Fold', i+1, 'out of',folds)
 #             xtrain, ytrain = x[train_ind,:], y[train_ind]
 #             xtest, ytest = x[test_ind,:], y[test_ind]
@@ -103,8 +102,7 @@ def run_cv(X, y, model, k, k_inner=5, alphas=None, metric=None, randomize=False)
     y_predict = []
     # score = np.zeros((k,))
     kf = KFold(n_splits=k, shuffle=True)
-    kf_split = kf.split(y)
-    for fold, (train_idx, test_idx) in enumerate(kf_split):
+    for fold, (train_idx, test_idx) in enumerate(kf.split(y)):
         # score, y_predict, fold = evaluate_fold(model, X, y, train_idx, test_idx, k_inner, alphas, score, y_predict, fold, randomize)
         X_train, X_test = X[train_idx], X[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
@@ -145,13 +143,13 @@ def find_best_alpha(X, y, k_inner, model, metric, alphas):
     """
     Finds the best alpha in an inner CV loop.
     """
-    kf = KFold(n_splits=k_inner, shuffle=True).split(y)
+    kfa = KFold(n_splits=k_inner, shuffle=True)
     best_alpha = 0
     best_score = 0
     for idx, alpha in enumerate(alphas):
         y_hat = np.zeros_like(y)
-        for train_idx, test_idx in kf:
-            y_hat = predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, alpha)
+        for train_idx, test_idx in kfa.split(y):
+            y_hat = predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, alpha=alpha)
         score = metric(y, y_hat)
         if score > best_score:
             best_alpha = alpha
@@ -166,7 +164,7 @@ def predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, alpha=None)
     X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
     X_train, X_test = scale_features(X_train, X_test)
-    y_hat[test_idx] = train_and_predict(X_train, y_train, X_test, model, alpha)
+    y_hat[test_idx] = train_and_predict(X_train, y_train, X_test, model, alpha=alpha)
     return y_hat
 
 
@@ -212,7 +210,9 @@ lm_list = [
         "name": "ridge_cv10",
         "model": linear_model.Ridge,
         "k": 10,
-        "k_inner": 5,
+        "k_inner": 10,
+        # "alphas": [0.01, 0.1, 1, 5, 10],
+        # "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3,1e-2, 1, 5, 10, 20],
         "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
     },{
@@ -261,25 +261,6 @@ keys = ["name", "model", "input"] + metric_list.keys()
 results = []
 
 print "Running models:"
-
-
-# ==============================
-
-
-# model = linear_model.Ridge
-# metric = metric_list["pr2"]
-# k = 10
-# k_inner = 10
-# alphas = np.logspace(0.5, 10, 10)
-
-# score, y_true, y_predict = run_cv(model, x_train_ntl, y_train, k=k, k_inner=k_inner, alphas=alphas, metric=metric)
-# print score
-# print np.array([metric(y_true[i], y_predict[i]) for i in range(k)]).mean()
-# score, y_true, y_predict = run_cv(model, x_train_cnn, y_train, k=k, k_inner=k_inner, alphas=alphas, metric=metric)
-# print score
-# print np.array([metric(y_true[i], y_predict[i]) for i in range(k)]).mean()
-
-# raise
 
 
 # ==============================
