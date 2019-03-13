@@ -125,8 +125,8 @@ params = {
     "step_size": 15,
     "gamma": 0.1,
     "loss_weights": [1.0, 1.0, 1.0],
-    "net": "resnet18",
-    "batch_size": 150,
+    "net": "resnet152",
+    "batch_size": 64,
     "num_workers": 16,
     "dim": 224,
     "agg_method": "mean"

@@ -21,7 +21,11 @@ import matplotlib.pyplot as plot
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
-id_string = "9a38491_2019_03_13_09_15_56"
+id_string = "9a38491_2019_03_13_09_15_56" # resnet18 full fine tune batch 150
+id_string = "baf2c1e_2019_03_13_11_46_24" # resnet50 full fine tune batch 150
+id_string = "e310b22_2019_03_13_13_51_41" # resnet50 full fine tune batch 64
+id_string = "4d91606_2019_03_13_15_09_48" # resnet152 full fine tune batch 64
+
 lsms_out_path = os.path.join(base_path, "output/predict_{}.csv".format(id_string))
 
 lsms_out = pd.read_csv(lsms_out_path, quotechar='\"',

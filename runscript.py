@@ -187,8 +187,10 @@ class RunCNN():
                         label_indexes = (labels == i).nonzero().squeeze()
                         class_correct[i] += torch.sum(
                             preds[label_indexes] == labels[label_indexes]).item()
-                        class_count[i] += len(label_indexes)
-
+                        try:
+                            class_count[i] += len(label_indexes)
+                        except:
+                            pass
 
                 epoch_loss = running_loss / running_count
                 epoch_acc = running_correct.item() / running_count
