@@ -21,7 +21,7 @@ import matplotlib.pyplot as plot
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
-id_string = "485c0e2_2019_03_04_14_53_13"
+id_string = "9a38491_2019_03_13_09_15_56"
 lsms_out_path = os.path.join(base_path, "output/predict_{}.csv".format(id_string))
 
 lsms_out = pd.read_csv(lsms_out_path, quotechar='\"',
