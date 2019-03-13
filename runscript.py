@@ -57,7 +57,7 @@ class RunCNN():
             raise Exception("Specified net not found ({})".format(kwargs["net"]))
 
         if self.kwargs["run_type"] == 2:
-            layer_count = len(self.model.parameters())
+            layer_count = len(list(self.model.parameters()))
             for layer, param in enumerate(self.model.parameters()):
                 if layer <= layer_count - 5:
                     param.requires_grad = False
