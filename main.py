@@ -118,7 +118,7 @@ def json_sha1_hash(hash_obj):
 params = {
     "run_type": 1,
     "n_input_channels": 8,
-    "n_epochs": 50,
+    "n_epochs": 60,
     "optim": "sgd",
     "lr": 0.009,
     "momentum": 0.95,

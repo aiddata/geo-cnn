@@ -197,22 +197,30 @@ def train_and_predict(X_train, y_train, X_test, model, alpha=None):
 
 # -------------------------------------
 
-
-y_train = lsms_out["cons"].values
-x_train_ntl = lsms_out[['ntl_2010']].values
-x_train_cnn_all = lsms_out[test_feat_labels+['ntl_2010']].values
-
 # reduce feature dimensions using PCA
 pca_dimension = 15
 pca = PCA(n_components=pca_dimension)
-x_train_cnn = pca.fit_transform(x_train_cnn_all)
+
+y_train = lsms_out["cons"].values
+
+
+x_train = {}
+x_train["ntl"] = lsms_out[['ntl_2010']].values
+x_train["cnn"] = lsms_out[test_feat_labels].values
+
+x_train["all"] = x_train["ntl"] + x_train["cnn"]
+x_train["all_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["ntl"] + x_train["cnn"])
+
+x_train["cnn_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
+x_train["cnn_pca{}_ntl".format(pca_dimension)] = x_train["cnn_pca{}".format(pca_dimension)] + x_train["ntl"]
+
 
 
 # https://scikit-learn.org/stable/modules/classes.html#module-sklearn.linear_model
 lm_list = [
     {
         "name": "ridge",
-        "model": linear_model.Ridge
+        "model": linear_model.RidgeCV
     },{
         "name": "lasso",
         "model": linear_model.Lasso
@@ -231,8 +239,8 @@ lm_list = [
         "k": 10,
         "k_inner": 10,
         # "alphas": [0.01, 0.1, 1, 5, 10],
-        # "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3,1e-2, 1, 5, 10, 20],
-        "alphas": np.logspace(0.5, 10, 10),
+        "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3,1e-2, 1, 5, 10, 20],
+        # "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
     },{
         "name": "lasso_cv10",
@@ -286,58 +294,39 @@ print "Running models:"
 
 
 for lm_dict in lm_list:
+    name = lm_dict["name"]
+    del lm_dict["name"]
 
-    if "k" in lm_dict:
+    for x_name, x_data in x_train.iteritems():
 
-        name = lm_dict.pop("name")
-        print "\t{}...".format(name)
+        if "k" in lm_dict:
 
-        # run using NTL values
-        try:
-            ntl_y_true, ntl_y_predict = run_cv(x_train_ntl, y_train, **lm_dict)
-        except Exception as e:
-            print(e)
-            ntl_metric_vals = ["Error" for i in metric_list]
+            print "\t{}({})...".format(name, x_name)
+
+            # run using NTL values
+            try:
+                y_true, y_predict = run_cv(x_data, y_train, **lm_dict)
+            except Exception as e:
+                print(e)
+                metric_vals = ["Error" for i in metric_list]
+            else:
+                metric_vals = [np.array([metric_list[j](y_true[i], y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
+
         else:
-            ntl_metric_vals = [np.array([metric_list[j](ntl_y_true[i], ntl_y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
 
-        # run using CNN features
-        try:
-            cnn_y_true, cnn_y_predict = run_cv(x_train_cnn, y_train, **lm_dict)
-        except Exception as e:
-            print(e)
-            cnn_metric_vals = ["Error" for i in metric_list]
-        else:
-            cnn_metric_vals = [np.array([metric_list[j](cnn_y_true[i], cnn_y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
+            print "\t{}()...".format(name, x_name)
+            lm_func = lm_dict["model"]
 
-    else:
+            # run using NTL values
+            try:
+                y_predict = train_and_predict(x_data, y_train, x_data, lm_func)
+            except Exception as e:
+                print (e)
+                metric_vals = ["Error" for i in metric_list]
+            else:
+                metric_vals = [metric_list[i](y_train, y_predict) for i in metric_list]
 
-        name = lm_dict["name"]
-        print "\t{}...".format(name)
-        lm_func = lm_dict["model"]
-
-        # run using NTL values
-        try:
-            ntl_y_predict = train_and_predict(x_train_ntl, y_train, x_train_ntl, lm_func)
-        except Exception as e:
-            print (e)
-            ntl_metric_vals = ["Error" for i in metric_list]
-        else:
-            ntl_metric_vals = [metric_list[i](y_train, ntl_y_predict) for i in metric_list]
-
-        # run using CNN features
-        try:
-            cnn_y_predict = train_and_predict(x_train_cnn, y_train, x_train_cnn, lm_func)
-        except Exception as e:
-            print (e)
-            cnn_metric_vals = ["Error" for i in metric_list]
-        else:
-            cnn_metric_vals = [metric_list[i](y_train, cnn_y_predict) for i in metric_list]
-
-
-    results.append(dict(zip(keys, [name, lm_dict["model"].__name__, "ntl"] + ntl_metric_vals)))
-    results.append(dict(zip(keys, [name, lm_dict["model"].__name__, "cnn"] + cnn_metric_vals)))
-
+        results.append(dict(zip(keys, [name, lm_dict["model"].__name__, x_name] + metric_vals)))
 
 
 df = pd.DataFrame(results)
