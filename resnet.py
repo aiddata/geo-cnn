@@ -157,7 +157,12 @@ class ResNet(nn.Module):
         return x
 
 
-def prepare_weights(model_weights, n_input_channels=3):
+def prepare_weights(model_weights, **kwargs):
+    n_input_channels = 3
+    if "n_input_channels" in kwargs:
+        n_input_channels = kwargs["n_input_channels"]
+    if n_input_channels < 3:
+        raise ValueError("Invalid number of input channels. Must be at least 3.")
     if n_input_channels > 3:
         trained_kernel = model_weights['conv1.weight']
         dims = list(trained_kernel.shape)
