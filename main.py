@@ -53,7 +53,14 @@ quiet = False
 
 
 # batch = True
-batch = False
+batch = True
+
+run = {
+    "train": True,
+    "test": False,
+    "predict": False,
+    "predict_lsms": True
+}
 
 # -----------------------------------------------------------------------------
 
@@ -63,8 +70,9 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
 
 
-def output_csv():
+def output_csv(param_hash):
     col_order = [
+        "hash",
         "acc",
         "time",
         "run_type",
@@ -88,6 +96,7 @@ def output_csv():
         "agg_method"
     ]
     df_out = pd.DataFrame(results)
+    df_out['hash'] = param_hash
     df_out['pixel_size'] = pixel_size
     df_out['ncats'] = ncats
     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
@@ -111,145 +120,141 @@ def json_sha1_hash(hash_obj):
 # -----------------------------------------------------------------------------
 
 
+if not batch:
 
-# if not batch:
+    params = {
+        "run_type": 1,
+        "n_input_channels": 8,
+        "n_epochs": 60,
+        "optim": "sgd",
+        "lr": 0.009,
+        "momentum": 0.95,
+        "step_size": 15,
+        "gamma": 0.1,
+        "loss_weights": [1.0, 1.0, 1.0],
+        "net": "resnet152",
+        "batch_size": 64,
+        "num_workers": 16,
+        "dim": 224,
+        "agg_method": "min"
+    }
 
+    full_param_hash = json_sha1_hash(params)
+    param_hash = full_param_hash[:7]
 
-params = {
-    "run_type": 1,
-    "n_input_channels": 8,
-    "n_epochs": 60,
-    "optim": "sgd",
-    "lr": 0.009,
-    "momentum": 0.95,
-    "step_size": 15,
-    "gamma": 0.1,
-    "loss_weights": [1.0, 1.0, 1.0],
-    "net": "resnet152",
-    "batch_size": 64,
-    "num_workers": 16,
-    "dim": 224,
-    "agg_method": "mean"
-}
+    print("\nParam hash: {}\n".format(param_hash))
 
-full_param_hash = json_sha1_hash(params)
-param_hash = full_param_hash[:7]
+    state_path = os.path.join(base_path, "output/state_dict_{}.pt".format(param_hash))
 
-dataloaders = build_dataloaders(
-    dataframe_dict,
-    base_path,
-    data_transform=None,
-    dim=params["dim"],
-    batch_size=params["batch_size"],
-    num_workers=params["num_workers"],
-    agg_method=params["agg_method"])
-
-
-state_path = os.path.join(base_path, "output/state_dict_{}.pt".format(param_hash))
-
-
-# -----------------
+    dataloaders = build_dataloaders(
+        dataframe_dict,
+        base_path,
+        data_transform=None,
+        dim=params["dim"],
+        batch_size=params["batch_size"],
+        num_workers=params["num_workers"],
+        agg_method=params["agg_method"])
 
 
-train_cnn = RunCNN(
-    dataloaders, device, cat_names,
-    parallel=False, quiet=False, **params)
+    # -----------------
 
-acc_p, class_p, time_p = train_cnn.train()
+    if run["train"]:
 
-params['acc'] = acc_p
-params['class_acc'] = class_p
-params['time'] = time_p
-results.append(params)
-output_csv()
+        train_cnn = RunCNN(
+            dataloaders, device, cat_names,
+            parallel=False, quiet=False, **params)
 
-train_cnn.save(state_path)
+        acc_p, class_p, time_p = train_cnn.train()
 
+        params['acc'] = acc_p
+        params['class_acc'] = class_p
+        params['time'] = time_p
+        results.append(params)
+        output_csv(param_hash)
 
-# -----------------
+        train_cnn.save(state_path)
 
+    # -----------------
 
-# test_cnn = RunCNN(
-#     dataloaders, device, cat_names,
-#     parallel=False, quiet=False, **params)
+    if run["test"]:
 
-# test_cnn.load(state_path)
+        test_cnn = RunCNN(
+            dataloaders, device, cat_names,
+            parallel=False, quiet=False, **params)
 
-# epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
+        test_cnn.load(state_path)
 
+        epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
 
-# -----------------
+    # -----------------
 
+    if run["predict"]:
 
-# predict_cnn = RunCNN(
-#     dataloaders, device, cat_names,
-#     parallel=False, quiet=False, **params)
+        predict_cnn = RunCNN(
+            dataloaders, device, cat_names,
+            parallel=False, quiet=False, **params)
 
-# predict_cnn.load(state_path)
+        predict_cnn.load(state_path)
 
-# pred_data, time_elapsed = predict_cnn.predict(features=True)
+        pred_data, time_elapsed = predict_cnn.predict(features=True)
 
+    # -----------------
 
-# -----------------
+    if run["predict_lsms"]:
 
+        """
+        lsms locations dataframe for prediction
+        - lat lon
+        - consumption
+        - ntl (for buffer/box)
+        """
+        lsms_predict = {
+            "predict": lsms_cluster.copy(deep=True)
+        }
 
+        lsms_dataloaders = build_dataloaders(
+            lsms_predict,
+            base_path,
+            data_transform=None,
+            dim=params["dim"],
+            batch_size=params["batch_size"],
+            num_workers=params["num_workers"],
+            agg_method=params["agg_method"],
+            shuffle=False)
 
+        predict_cnn = RunCNN(
+            lsms_dataloaders, device, cat_names,
+            parallel=False, quiet=False, **params)
 
-"""
-lsms locations dataframe for prediction
-- lat lon
-- consumption
-- ntl (for buffer/box)
-"""
-lsms_predict = {
-    "predict": lsms_cluster.copy(deep=True)
-}
-
-lsms_dataloaders = build_dataloaders(
-    lsms_predict,
-    base_path,
-    data_transform=None,
-    dim=params["dim"],
-    batch_size=params["batch_size"],
-    num_workers=params["num_workers"],
-    agg_method=params["agg_method"],
-    shuffle=False)
-
-predict_cnn = RunCNN(
-    lsms_dataloaders, device, cat_names,
-    parallel=False, quiet=False, **params)
-
-predict_cnn.load(state_path)
+        predict_cnn.load(state_path)
 
 
 
-"""
-run predict
-512 feats to csv
+        """
+        run predict
+        512 feats to csv
 
-append to lsms data for linear regressions
-"""
-pred_data, time_elapsed = predict_cnn.predict(features=True)
+        append to lsms data for linear regressions
+        """
+        pred_data, time_elapsed = predict_cnn.predict(features=True)
 
-feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+        feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
-pred_dicts = [dict(zip(feat_labels, i)) for i in pred_data]
-pred_df = pd.DataFrame(pred_dicts)
+        pred_dicts = [dict(zip(feat_labels, i)) for i in pred_data]
+        pred_df = pd.DataFrame(pred_dicts)
 
-lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
+        lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
 
-col_order = list(lsms_predict["predict"].columns) + feat_labels
-lsms_out = lsms_out[col_order]
+        col_order = list(lsms_predict["predict"].columns) + feat_labels
+        lsms_out = lsms_out[col_order]
 
-lsms_out_path = os.path.join(base_path, "output/predict_{}_{}.csv".format(param_hash, timestamp))
+        lsms_out_path = os.path.join(base_path, "output/predict_{}_{}.csv".format(param_hash, timestamp))
 
-lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
-
+        lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
 
 
 
 # -----------------------------------------------------------------------------
-
 
 
 
@@ -266,13 +271,13 @@ if batch:
     # }
 
     pranges = {
-        "run_type": [2],
+        "run_type": [1],
         "n_input_channels": [8],
         "n_epochs": [30],
         "optim": ["sgd"],
         "lr": [0.008, 0.009, 0.010],
         "momentum": [0.95],
-        "step_size": [15, 30],
+        "step_size": [5, 15],
         "gamma": [0.1, 0.01],
         "loss_weights": [
             # [0.1, 0.4, 1.0],
@@ -280,8 +285,8 @@ if batch:
             # [0.8, 0.4, 1.0]
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet50", "resnet152"],
-        "batch_size": [128],
+        "net": ["resnet152"],
+        "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
         "agg_method": ["mean", "max", "min"]
@@ -299,24 +304,119 @@ if batch:
     pcount = np.prod([len(i) for i in pranges.values()])
 
     for ix, p in enumerate(dict_product(pranges)):
+
+        params = copy.deepcopy(p)
+
         print('-' * 10)
         print("\nParameter combination: {}/{}".format(ix+1, pcount))
+
+        full_param_hash = json_sha1_hash(params)
+        param_hash = full_param_hash[:7]
+
+        print("\nParam hash: {}\n".format(param_hash))
+
+        state_path = os.path.join(base_path, "output/state_dict_{}.pt".format(param_hash))
 
         dataloaders = build_dataloaders(
             dataframe_dict,
             base_path,
             data_transform=None,
-            dim=p["dim"],
-            batch_size=p["batch_size"],
-            num_workers=p["num_workers"],
-            agg_method=p["agg_method"])
+            dim=params["dim"],
+            batch_size=params["batch_size"],
+            num_workers=params["num_workers"],
+            agg_method=params["agg_method"])
 
-        model_p, acc_p, class_p, time_p = run(
-            dataloaders, device, mode="train", quiet=quiet, **p)
 
-        pout = copy.deepcopy(p)
-        pout['acc'] = acc_p
-        pout['class_acc'] = class_p
-        pout['time'] = time_p
-        results.append(pout)
-        output_csv()
+
+        if run["train"]:
+
+            train_cnn = RunCNN(
+                dataloaders, device, cat_names,
+                parallel=False, quiet=False, **params)
+
+            acc_p, class_p, time_p = train_cnn.train()
+
+            params['acc'] = acc_p
+            params['class_acc'] = class_p
+            params['time'] = time_p
+            results.append(params)
+            output_csv()
+
+            train_cnn.save(state_path)
+
+        # -----------------
+
+        if run["test"]:
+
+            test_cnn = RunCNN(
+                dataloaders, device, cat_names,
+                parallel=False, quiet=False, **params)
+
+            test_cnn.load(state_path)
+
+            epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
+
+        # -----------------
+
+        if run["predict"]:
+
+            predict_cnn = RunCNN(
+                dataloaders, device, cat_names,
+                parallel=False, quiet=False, **params)
+
+            predict_cnn.load(state_path)
+
+            pred_data, time_elapsed = predict_cnn.predict(features=True)
+
+        # -----------------
+
+        if run["predict_lsms"]:
+
+            """
+            lsms locations dataframe for prediction
+            - lat lon
+            - consumption
+            - ntl (for buffer/box)
+            """
+            lsms_predict = {
+                "predict": lsms_cluster.copy(deep=True)
+            }
+
+            lsms_dataloaders = build_dataloaders(
+                lsms_predict,
+                base_path,
+                data_transform=None,
+                dim=params["dim"],
+                batch_size=params["batch_size"],
+                num_workers=params["num_workers"],
+                agg_method=params["agg_method"],
+                shuffle=False)
+
+            predict_cnn = RunCNN(
+                lsms_dataloaders, device, cat_names,
+                parallel=False, quiet=False, **params)
+
+            predict_cnn.load(state_path)
+
+
+            """
+            run predict
+            512 feats to csv
+
+            append to lsms data for linear regressions
+            """
+            pred_data, time_elapsed = predict_cnn.predict(features=True)
+
+            feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+
+            pred_dicts = [dict(zip(feat_labels, i)) for i in pred_data]
+            pred_df = pd.DataFrame(pred_dicts)
+
+            lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
+
+            col_order = list(lsms_predict["predict"].columns) + feat_labels
+            lsms_out = lsms_out[col_order]
+
+            lsms_out_path = os.path.join(base_path, "output/predict_{}_{}.csv".format(param_hash, timestamp))
+
+            lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
