@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 import resnet
-
+import vgg
 
 class RunCNN():
 
@@ -37,24 +37,41 @@ class RunCNN():
         self.state_dict = None
         self.pmodel = None
 
-        resnet_args = {
+        net_args = {
             "pretrained":True,
             "n_input_channels": kwargs["n_input_channels"]
         }
 
         if kwargs["net"] == "resnet18":
-            self.model = resnet.resnet18(**resnet_args)
+            self.model = resnet.resnet18(**net_args)
         elif kwargs["net"] == "resnet34":
-            self.model = resnet.resnet34(**resnet_args)
+            self.model = resnet.resnet34(**net_args)
         elif kwargs["net"] == "resnet50":
-            self.model = resnet.resnet50(**resnet_args)
+            self.model = resnet.resnet50(**net_args)
         elif kwargs["net"] == "resnet101":
-            self.model = resnet.resnet101(**resnet_args)
+            self.model = resnet.resnet101(**net_args)
         elif kwargs["net"] == "resnet152":
-            self.model = resnet.resnet152(**resnet_args)
+            self.model = resnet.resnet152(**net_args)
+        elif kwargs["net"] == "vgg11":
+            self.model = vgg.vgg11(**net_args)
+        elif kwargs["net"] == "vgg11_bn":
+            self.model = vgg.vgg11_bn(**net_args)
+        elif kwargs["net"] == "vgg13":
+            self.model = vgg.vgg13(**net_args)
+        elif kwargs["net"] == "vgg13_bn":
+            self.model = vgg.vgg13_bn(**net_args)
+        elif kwargs["net"] == "vgg16":
+            self.model = vgg.vgg16(**net_args)
+        elif kwargs["net"] == "vgg16_bn":
+            self.model = vgg.vgg16_bn(**net_args)
+        elif kwargs["net"] == "vgg19":
+            self.model = vgg.vgg19(**net_args)
+        elif kwargs["net"] == "vgg19_bn":
+            self.model = vgg.vgg19_bn(**net_args)
 
-        if self.model is None:
-            raise Exception("Specified net not found ({})".format(kwargs["net"]))
+        else:
+            raise ValueError("Invalid network specified: {}".format(kwargs["net"]))
+
 
         if self.kwargs["run_type"] == 2:
             layer_count = len(list(self.model.parameters()))
@@ -65,8 +82,12 @@ class RunCNN():
         # Parameters of newly constructed modules have requires_grad=True by default
         # get existing number for input features
         # set new number for output features to number of categories being classified
-        num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_ftrs, self.ncats)
+        if "resnet" in kwargs["net"]:
+            num_ftrs = self.model.fc.in_features
+            self.model.fc = nn.Linear(num_ftrs, self.ncats)
+        elif "vgg" in kwargs["net"]:
+            num_ftrs = self.model.classifier[6].in_features
+            self.model.fc = nn.Linear(num_ftrs, self.ncats)
 
         loss_weights = torch.tensor(
             map(float, self.kwargs["loss_weights"])).cuda()
@@ -107,10 +128,9 @@ class RunCNN():
             quiet = self.quiet
 
         if self.kwargs["optim"] == "sgd":
-            # Observe that only parameters of final layer
-            # are being optimized as opposed to before.
             self.optimizer = torch.optim.SGD(
-                self.model.fc.parameters(),
+                # self.model.fc.parameters(), # only final layer
+                self.model.parameters(), # all layers
                 lr=self.kwargs["lr"],
                 momentum=self.kwargs["momentum"])
 
