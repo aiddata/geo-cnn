@@ -42,6 +42,7 @@ class RunCNN():
             "n_input_channels": kwargs["n_input_channels"]
         }
 
+        # https://pytorch.org/docs/stable/torchvision/models.html
         if kwargs["net"] == "resnet18":
             self.model = resnet.resnet18(**net_args)
         elif kwargs["net"] == "resnet34":
@@ -82,12 +83,13 @@ class RunCNN():
         # Parameters of newly constructed modules have requires_grad=True by default
         # get existing number for input features
         # set new number for output features to number of categories being classified
+        # see: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
         if "resnet" in kwargs["net"]:
             num_ftrs = self.model.fc.in_features
             self.model.fc = nn.Linear(num_ftrs, self.ncats)
         elif "vgg" in kwargs["net"]:
             num_ftrs = self.model.classifier[6].in_features
-            self.model.fc = nn.Linear(num_ftrs, self.ncats)
+            self.model.classifier[6] = nn.Linear(num_ftrs, self.ncats)
 
         loss_weights = torch.tensor(
             map(float, self.kwargs["loss_weights"])).cuda()
