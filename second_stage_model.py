@@ -28,7 +28,7 @@ id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual 
 
 
 
-lsms_out_path = os.path.join(base_path, "output/predict_{}.csv".format(id_string))
+lsms_out_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
 lsms_out = pd.read_csv(lsms_out_path, quotechar='\"',
                        na_values='', keep_default_na=False,
@@ -36,7 +36,7 @@ lsms_out = pd.read_csv(lsms_out_path, quotechar='\"',
 
 test_feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
-model_results_path = os.path.join(base_path, "output/models_{}.csv".format(id_string))
+model_results_path = os.path.join(base_path, "output/s2_models/models_{}.csv".format(id_string))
 
 
 # plot.hist(lsms_out['ntl_2010'], bins=max(lsms_out['ntl_2010']), alpha=0.5, histtype='bar', ec='black')

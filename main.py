@@ -52,8 +52,8 @@ from runscript import *
 quiet = False
 
 
+batch = False
 # batch = True
-batch = True
 
 run = {
     "train": True,
@@ -125,7 +125,7 @@ if not batch:
     params = {
         "run_type": 1,
         "n_input_channels": 8,
-        "n_epochs": 60,
+        "n_epochs": 1,
         "optim": "sgd",
         "lr": 0.009,
         "momentum": 0.95,
@@ -144,7 +144,7 @@ if not batch:
 
     print("\nParam hash: {}\n".format(param_hash))
 
-    state_path = os.path.join(base_path, "output/state_dict_{}.pt".format(param_hash))
+    state_path = os.path.join(base_path, "output/s1_state_dict/state_dict_{}.pt".format(param_hash))
 
     dataloaders = build_dataloaders(
         dataframe_dict,
@@ -248,7 +248,7 @@ if not batch:
         col_order = list(lsms_predict["predict"].columns) + feat_labels
         lsms_out = lsms_out[col_order]
 
-        lsms_out_path = os.path.join(base_path, "output/predict_{}_{}.csv".format(param_hash, timestamp))
+        lsms_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
 
         lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
 
@@ -315,7 +315,7 @@ if batch:
 
         print("\nParam hash: {}\n".format(param_hash))
 
-        state_path = os.path.join(base_path, "output/state_dict_{}.pt".format(param_hash))
+        state_path = os.path.join(base_path, "output/s1_state_dict/state_dict_{}.pt".format(param_hash))
 
         dataloaders = build_dataloaders(
             dataframe_dict,
@@ -417,6 +417,6 @@ if batch:
             col_order = list(lsms_predict["predict"].columns) + feat_labels
             lsms_out = lsms_out[col_order]
 
-            lsms_out_path = os.path.join(base_path, "output/predict_{}_{}.csv".format(param_hash, timestamp))
+            lsms_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
 
             lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
