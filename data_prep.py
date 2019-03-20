@@ -47,33 +47,7 @@ cat_names = [0, 1, 2]
 
 ncats = len(cat_names)
 
-
-# -----------------------------------------------------------------------------
-
-
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
-
-lsms_clusters_path = os.path.join(
-    base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
-
-lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
-                           na_values='', keep_default_na=False,
-                           encoding='utf-8')
-
-
-consumption_list = list(lsms_cluster['cons'])
-cat_vals = [np.percentile(consumption_list, x*100/ncats) for x in range(1, ncats+1)]
-
-
-def classify(val):
-    for cix, cval in enumerate(cat_vals):
-        if val <= cval:
-            return cat_names[cix]
-    print(val)
-    raise Exception("Could not classify")
-
-lsms_cluster['label'] = lsms_cluster.apply(
-    lambda z: classify(z['cons']), axis=1)
 
 
 # -----------------------------------------------------------------------------
@@ -94,11 +68,18 @@ def get_ntl(lon, lat, ntl_dim=7):
     return ntl_mean
 
 
+# -----------------------------------------------------------------------------
+
+
+lsms_clusters_path = os.path.join(
+    base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
+
+lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
+                           na_values='', keep_default_na=False,
+                           encoding='utf-8')
+
 lsms_cluster['ntl'] = lsms_cluster.apply(
     lambda z: get_ntl(z['lon'], z['lat']), axis=1)
-
-
-class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean()))
 
 
 # -----------------------------------------------------------------------------
@@ -137,23 +118,64 @@ else:
     grid.to_csv(csv_path)
     df = grid.df.copy(deep=True)
 
+# -----------------------------------------------------------------------------
 
-# find nearest neighbor for each grid cell using class_ntl_means
+# =============================================================================
 
-# set all where ntl <  lowest class automatically to lowest class
-df['label'] = None
-df.loc[df['ntl'] <= class_ntl_means[min(cat_names)], 'label'] = min(cat_names)
+# consumption_list = list(lsms_cluster['cons'])
+# cat_vals = [np.percentile(consumption_list, x*100/ncats) for x in range(1, ncats+1)]
+
+# def classify(val):
+#     for cix, cval in enumerate(cat_vals):
+#         if val <= cval:
+#             return cat_names[cix]
+#     print(val)
+#     raise Exception("Could not classify")
+
+# lsms_cluster['label'] = lsms_cluster.apply(
+#     lambda z: classify(z['cons']), axis=1)
+
+# class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean()))
+
+# class_ntl_means = {
+#     0: 2.0,
+#     1: 5.0,
+#     2: 12.0
+# }
+
+# # find nearest neighbor for each grid cell using class_ntl_means
+
+# # set all where ntl <  lowest class automatically to lowest class
+# df['label'] = None
+# df.loc[df['ntl'] <= class_ntl_means[min(cat_names)], 'label'] = min(cat_names)
 
 
-def find_nn(val):
-    nn_options = [(k, abs(val - v)) for k, v in class_ntl_means.iteritems()]
-    nn_class = sorted(nn_options, key=lambda x: x[1])[0][0]
-    return nn_class
+# def find_nn(val):
+#     nn_options = [(k, abs(val - v)) for k, v in class_ntl_means.iteritems()]
+#     nn_class = sorted(nn_options, key=lambda x: x[1])[0][0]
+#     return nn_class
 
-# run nearest neigbor class label for remaining
-to_label = df['ntl'] > class_ntl_means[min(cat_names)]
-df.loc[to_label, 'label'] = df.loc[to_label].apply(lambda z: find_nn(z['ntl']), axis=1)
+# # run nearest neigbor class label for remaining
+# to_label = df['ntl'] > class_ntl_means[min(cat_names)]
+# df.loc[to_label, 'label'] = df.loc[to_label].apply(lambda z: find_nn(z['ntl']), axis=1)
 
+# -------
+
+# bin labeling
+
+class_bins = {
+    0: [0, 3],
+    1: [3, 10],
+    2: [9, 63]
+}
+
+df["label"] = None
+for c, b in class_bins.iteritems():
+    df.loc[df['ntl'] >= b[0], 'label'] = int(c)
+
+
+# =============================================================================
+# -----------------------------------------------------------------------------
 
 
 # drop out some of the extra from low category
