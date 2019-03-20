@@ -75,7 +75,8 @@ class BandDataset(Dataset):
 
         row = self.dataframe.iloc[idx]
 
-        label = None
+        # label = None
+        label = -1
         if 'label' in row:
             label = row['label']
 
