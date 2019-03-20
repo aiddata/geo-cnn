@@ -53,7 +53,7 @@ quiet = False
 
 
 batch = False
-# batch = True
+batch = True
 
 run = {
     "train": True,
@@ -70,7 +70,7 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
 
 
-def output_csv(param_hash):
+def output_csv():
     col_order = [
         "hash",
         "acc",
@@ -96,7 +96,6 @@ def output_csv(param_hash):
         "agg_method"
     ]
     df_out = pd.DataFrame(results)
-    df_out['hash'] = param_hash
     df_out['pixel_size'] = pixel_size
     df_out['ncats'] = ncats
     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
@@ -166,11 +165,12 @@ if not batch:
 
         acc_p, class_p, time_p = train_cnn.train()
 
+        params['hash'] = param_hash
         params['acc'] = acc_p
         params['class_acc'] = class_p
         params['time'] = time_p
         results.append(params)
-        output_csv(param_hash)
+        output_csv()
 
         train_cnn.save(state_path)
 
@@ -208,6 +208,8 @@ if not batch:
         - consumption
         - ntl (for buffer/box)
         """
+        # lsms_cluster['label'] = 1
+
         lsms_predict = {
             "predict": lsms_cluster.copy(deep=True)
         }
@@ -275,17 +277,17 @@ if batch:
         "n_input_channels": [8],
         "n_epochs": [30],
         "optim": ["sgd"],
-        "lr": [0.008, 0.009, 0.010],
+        "lr": [0.005, 0.010, 0.015],
         "momentum": [0.95],
-        "step_size": [5, 15],
-        "gamma": [0.1, 0.01],
+        "step_size": [5],
+        "gamma": [0.1, 0.001],
         "loss_weights": [
             # [0.1, 0.4, 1.0],
             # [0.4, 0.4, 1.0],
             # [0.8, 0.4, 1.0]
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet152"],
+        "net": ["resnet101"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -326,7 +328,7 @@ if batch:
             num_workers=params["num_workers"],
             agg_method=params["agg_method"])
 
-
+        # -----------------
 
         if run["train"]:
 
@@ -336,6 +338,7 @@ if batch:
 
             acc_p, class_p, time_p = train_cnn.train()
 
+            params['hash'] = param_hash
             params['acc'] = acc_p
             params['class_acc'] = class_p
             params['time'] = time_p
