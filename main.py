@@ -63,10 +63,11 @@ run = {
     "predict_new": True
 }
 
-new_predict_source_data = dhs_cluster.copy(deep=True)
-# new_predict_source_data = lsms_cluster.copy(deep=True)
+# new_predict_source_data = dhs2010_cluster.copy(deep=True)
+new_predict_source_data = lsms2010_cluster.copy(deep=True)
+# new_predict_source_data = lsms2012_cluster.copy(deep=True)
 
-tags = ["dhs"]
+tags = ["lsms2010"]
 
 # -----------------------------------------------------------------------------
 

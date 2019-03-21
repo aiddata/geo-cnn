@@ -26,7 +26,7 @@ id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual 
 # id_string = "c5e054d_2019_03_18_16_46_53" # 60 epoch - max - resnet152 - actual full fine tune - batch 64
 
 id_string = "174f06a_2019_03_21_13_41_16"
-
+id_string = "31b84fa_2019_03_21_17_10_29"
 
 pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
