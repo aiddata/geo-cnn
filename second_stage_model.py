@@ -25,12 +25,12 @@ id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual 
 # id_string = "0718ecc_2019_03_18_15_46_27" # 60 epoch - mean - resnet152 - actual full fine tune - batch 64
 # id_string = "c5e054d_2019_03_18_16_46_53" # 60 epoch - max - resnet152 - actual full fine tune - batch 64
 
+id_string = "174f06a_2019_03_21_13_41_16"
 
 
+pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
-lsms_out_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
-
-lsms_out = pd.read_csv(lsms_out_path, quotechar='\"',
+pred_data = pd.read_csv(pred_data_path, quotechar='\"',
                        na_values='', keep_default_na=False,
                        encoding='utf-8')
 
@@ -39,14 +39,14 @@ test_feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 model_results_path = os.path.join(base_path, "output/s2_models/models_{}.csv".format(id_string))
 
 
-# plot.hist(lsms_out['ntl_2010'], bins=max(lsms_out['ntl_2010']), alpha=0.5, histtype='bar', ec='black')
+# plot.hist(pred_data['ntl_2010'], bins=max(pred_data['ntl_2010']), alpha=0.5, histtype='bar', ec='black')
 # plot.xlabel('NTL')
 # plot.ylabel('Frequency')
 # plot.title('Histogram of NTL Values')
 # plot.show()
 
 
-# plot.hist(np.array([lsms_out[i] for i in test_feat_labels]).flatten())
+# plot.hist(np.array([pred_data[i] for i in test_feat_labels]).flatten())
 # # plot.yscale("log")
 # plot.xlabel('Features')
 # plot.ylabel('Frequency')
@@ -203,12 +203,12 @@ def train_and_predict(X_train, y_train, X_test, model, alpha=None):
 pca_dimension = 15
 pca = PCA(n_components=pca_dimension)
 
-y_train = lsms_out["cons"].values
+y_train = pred_data["pred_yval"].values
 
 
 x_train = {}
-x_train["ntl"] = lsms_out[['ntl_2010']].values
-x_train["cnn"] = lsms_out[test_feat_labels].values
+x_train["ntl"] = pred_data[['ntl_2010']].values
+x_train["cnn"] = pred_data[test_feat_labels].values
 
 x_train["all"] = x_train["ntl"] + x_train["cnn"]
 x_train["all_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["ntl"] + x_train["cnn"])
