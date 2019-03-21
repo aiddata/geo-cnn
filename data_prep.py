@@ -31,7 +31,9 @@ print('-' * 40)
 print("\nInitializing...")
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+cuda_device_id = 0
+
+device = torch.device("cuda:{}".format(cuda_device_id) if torch.cuda.is_available() else "cpu")
 
 print("Running on:", device)
 
@@ -71,15 +73,15 @@ def get_ntl(lon, lat, ntl_dim=7):
 # -----------------------------------------------------------------------------
 
 
-lsms_clusters_path = os.path.join(
-    base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
+# lsms_clusters_path = os.path.join(
+#     base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
 
-lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
-                           na_values='', keep_default_na=False,
-                           encoding='utf-8')
+# lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
+#                            na_values='', keep_default_na=False,
+#                            encoding='utf-8')
 
-lsms_cluster['ntl'] = lsms_cluster.apply(
-    lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+# lsms_cluster['ntl'] = lsms_cluster.apply(
+#     lambda z: get_ntl(z['lon'], z['lat']), axis=1)
 
 
 # -----------------------------------------------------------------------------
