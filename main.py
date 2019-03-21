@@ -101,7 +101,7 @@ def output_csv():
     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
     df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
     df_out = df_out[col_order]
-    df_out_path = os.path.join(base_path, "output/results_{}_{}.csv".format(param_hash, timestamp))
+    df_out_path = os.path.join(base_path, "output/results_{}.csv".format(timestamp))
     df_out.to_csv(df_out_path, index=False, encoding='utf-8')
 
 
