@@ -53,21 +53,21 @@ from load_survey_data import *
 quiet = False
 
 
-batch = False
-# batch = True
+# batch = False
+batch = True
 
 run = {
     "train": True,
     "test": False,
     "predict": False,
-    "predict_new": True
+    "predict_new": False
 }
 
 # new_predict_source_data = dhs2010_cluster.copy(deep=True)
 new_predict_source_data = lsms2010_cluster.copy(deep=True)
 # new_predict_source_data = lsms2012_cluster.copy(deep=True)
 
-tags = ["lsms2010"]
+tags = ["20190321"]
 
 # -----------------------------------------------------------------------------
 
@@ -279,19 +279,19 @@ if batch:
         "tags": [tags],
         "run_type": [1],
         "n_input_channels": [8],
-        "n_epochs": [30],
+        "n_epochs": [60],
         "optim": ["sgd"],
-        "lr": [0.005, 0.010, 0.015],
+        "lr": [0.000001, 0.0001, 0.01],
         "momentum": [0.95],
         "step_size": [5],
-        "gamma": [0.1, 0.001],
+        "gamma": [0.01, 0.0001],
         "loss_weights": [
             # [0.1, 0.4, 1.0],
             # [0.4, 0.4, 1.0],
             # [0.8, 0.4, 1.0]
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet101"],
+        "net": ["resnet152"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
