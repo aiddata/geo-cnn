@@ -46,6 +46,7 @@ import resnet
 from load_data import build_dataloaders
 from data_prep import *
 from runscript import *
+from load_survey_data import *
 
 # -----------------------------------------------------------------------------
 
@@ -53,14 +54,19 @@ quiet = False
 
 
 batch = False
-batch = True
+# batch = True
 
 run = {
     "train": True,
     "test": False,
     "predict": False,
-    "predict_lsms": True
+    "predict_new": True
 }
+
+new_predict_source_data = dhs_cluster.copy(deep=True)
+# new_predict_source_data = lsms_cluster.copy(deep=True)
+
+tags = ["dhs"]
 
 # -----------------------------------------------------------------------------
 
@@ -73,6 +79,7 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 def output_csv():
     col_order = [
         "hash",
+        "tags",
         "acc",
         "time",
         "run_type",
@@ -122,9 +129,10 @@ def json_sha1_hash(hash_obj):
 if not batch:
 
     params = {
+        "tags": tags,
         "run_type": 1,
         "n_input_channels": 8,
-        "n_epochs": 1,
+        "n_epochs": 5,
         "optim": "sgd",
         "lr": 0.009,
         "momentum": 0.95,
@@ -196,26 +204,26 @@ if not batch:
 
         predict_cnn.load(state_path)
 
-        pred_data, time_elapsed = predict_cnn.predict(features=True)
+        pred_data, _ = predict_cnn.predict(features=True)
 
     # -----------------
 
-    if run["predict_lsms"]:
+    if run["predict_new"]:
 
         """
-        lsms locations dataframe for prediction
-        - lat lon
-        - consumption
-        - ntl (for buffer/box)
+        - load data
+        - load trained cnn state
+        - run predict
+        - append cnn features to original data
+        - output to csv for second stage models
         """
-        # lsms_cluster['label'] = 1
 
-        lsms_predict = {
-            "predict": lsms_cluster.copy(deep=True)
+        new_data = {
+            "predict": new_predict_source_data
         }
 
-        lsms_dataloaders = build_dataloaders(
-            lsms_predict,
+        new_dataloaders = build_dataloaders(
+            new_data,
             base_path,
             data_transform=None,
             dim=params["dim"],
@@ -224,35 +232,29 @@ if not batch:
             agg_method=params["agg_method"],
             shuffle=False)
 
-        predict_cnn = RunCNN(
-            lsms_dataloaders, device, cat_names,
+        new_cnn = RunCNN(
+            new_dataloaders, device, cat_names,
             parallel=False, quiet=False, **params)
 
-        predict_cnn.load(state_path)
+        new_cnn.load(state_path)
 
+        # --------
 
-
-        """
-        run predict
-        512 feats to csv
-
-        append to lsms data for linear regressions
-        """
-        pred_data, time_elapsed = predict_cnn.predict(features=True)
+        new_pred_data, _ = new_cnn.predict(features=True)
 
         feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
-        pred_dicts = [dict(zip(feat_labels, i)) for i in pred_data]
+        pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
         pred_df = pd.DataFrame(pred_dicts)
 
-        lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
+        new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
 
-        col_order = list(lsms_predict["predict"].columns) + feat_labels
-        lsms_out = lsms_out[col_order]
+        col_order = list(new_data["predict"].columns) + feat_labels
+        new_out = new_out[col_order]
 
-        lsms_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
+        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
 
-        lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
+        new_out.to_csv(new_out_path, index=False, encoding='utf-8')
 
 
 
@@ -273,6 +275,7 @@ if batch:
     # }
 
     pranges = {
+        "tags": [tags],
         "run_type": [1],
         "n_input_channels": [8],
         "n_epochs": [30],
@@ -369,24 +372,26 @@ if batch:
 
             predict_cnn.load(state_path)
 
-            pred_data, time_elapsed = predict_cnn.predict(features=True)
+            pred_data, _ = predict_cnn.predict(features=True)
 
         # -----------------
 
-        if run["predict_lsms"]:
+        if run["predict_new"]:
 
             """
-            lsms locations dataframe for prediction
-            - lat lon
-            - consumption
-            - ntl (for buffer/box)
+            - load data
+            - load trained cnn state
+            - run predict
+            - append cnn features to original data
+            - output to csv for second stage models
             """
-            lsms_predict = {
-                "predict": lsms_cluster.copy(deep=True)
+
+            new_data = {
+                "predict": new_predict_source_data
             }
 
-            lsms_dataloaders = build_dataloaders(
-                lsms_predict,
+            new_dataloaders = build_dataloaders(
+                new_data,
                 base_path,
                 data_transform=None,
                 dim=params["dim"],
@@ -395,31 +400,26 @@ if batch:
                 agg_method=params["agg_method"],
                 shuffle=False)
 
-            predict_cnn = RunCNN(
-                lsms_dataloaders, device, cat_names,
+            new_cnn = RunCNN(
+                new_dataloaders, device, cat_names,
                 parallel=False, quiet=False, **params)
 
-            predict_cnn.load(state_path)
+            new_cnn.load(state_path)
 
+            # ---------
 
-            """
-            run predict
-            512 feats to csv
-
-            append to lsms data for linear regressions
-            """
-            pred_data, time_elapsed = predict_cnn.predict(features=True)
+            new_pred_data, _ = new_cnn.predict(features=True)
 
             feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
-            pred_dicts = [dict(zip(feat_labels, i)) for i in pred_data]
+            pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
             pred_df = pd.DataFrame(pred_dicts)
 
-            lsms_out = lsms_predict["predict"].merge(pred_df, left_index=True, right_index=True)
+            new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
 
-            col_order = list(lsms_predict["predict"].columns) + feat_labels
-            lsms_out = lsms_out[col_order]
+            col_order = list(new_data["predict"].columns) + feat_labels
+            new_out = new_out[col_order]
 
-            lsms_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
+            new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
 
-            lsms_out.to_csv(lsms_out_path, index=False, encoding='utf-8')
+            new_out.to_csv(new_out_path, index=False, encoding='utf-8')
