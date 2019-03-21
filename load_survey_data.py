@@ -32,35 +32,53 @@ def get_ntl(lon, lat, ntl_dim=7):
 
 # -----------------------------------------------------------------------------
 
+lsms2010_field = 'cons'
 
-lsms_field = 'cons'
+lsms2010_clusters_path = os.path.join(
+    base_path, "data/surveys/final/tanzania_2010_lsms_cluster.csv")
 
-lsms_clusters_path = os.path.join(
-    base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
-
-lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
+lsms2010_cluster = pd.read_csv(lsms2010_clusters_path, quotechar='\"',
                            na_values='', keep_default_na=False,
                            encoding='utf-8')
 
-lsms_cluster['ntl'] = lsms_cluster.apply(
+lsms2010_cluster['ntl'] = lsms2010_cluster.apply(
     lambda z: get_ntl(z['lon'], z['lat']), axis=1)
 
-lsms_cluster["pred_yval"] = lsms_cluster[lsms_field]
+lsms2010_cluster["pred_yval"] = lsms2010_cluster[lsms2010_field]
+
 
 
 # -----------------------------------------------------------------------------
 
 
-dhs_field = 'wealthscore'
+lsms2012_field = 'cons'
 
-dhs_clusters_path = os.path.join(
-    base_path, "data/surveys/final/tanzania_dhs_cluster.csv")
+lsms2012_clusters_path = os.path.join(
+    base_path, "data/surveys/final/tanzania_2012_lsms_cluster.csv")
 
-dhs_cluster = pd.read_csv(dhs_clusters_path, quotechar='\"',
+lsms2012_cluster = pd.read_csv(lsms2012_clusters_path, quotechar='\"',
+                           na_values='', keep_default_na=False,
+                           encoding='utf-8')
+
+lsms2012_cluster['ntl'] = lsms2012_cluster.apply(
+    lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+
+lsms2012_cluster["pred_yval"] = lsms2012_cluster[lsms2012_field]
+
+
+# -----------------------------------------------------------------------------
+
+
+dhs2010_field = 'wealthscore'
+
+dhs2010_clusters_path = os.path.join(
+    base_path, "data/surveys/final/tanzania_2010_dhs_cluster.csv")
+
+dhs2010_cluster = pd.read_csv(dhs2010_clusters_path, quotechar='\"',
                           na_values='', keep_default_na=False,
                           encoding='utf-8')
 
-dhs_cluster['ntl'] = dhs_cluster.apply(
+dhs2010_cluster['ntl'] = dhs2010_cluster.apply(
     lambda z: get_ntl(z['lon'], z['lat']), axis=1)
 
-dhs_cluster["pred_yval"] = dhs_cluster[dhs_field]
+dhs2010_cluster["pred_yval"] = dhs2010_cluster[dhs2010_field]

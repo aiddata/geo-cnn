@@ -74,7 +74,7 @@ def get_ntl(lon, lat, ntl_dim=7):
 
 
 # lsms_clusters_path = os.path.join(
-#     base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
+#     base_path, "data/surveys/final/tanzania_2012_lsms_cluster.csv")
 
 # lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
 #                            na_values='', keep_default_na=False,

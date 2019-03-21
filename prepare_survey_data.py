@@ -14,9 +14,10 @@ from shapely.geometry import Point
 base = "/sciclone/aiddata10/REU/projects"
 project = "mcc_tanzania"
 
-survey_data = os.path.join(base, project, "data/survey")
+survey_data = os.path.join(base, project, "data/surveys")
 
 
+# --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 
 
@@ -113,6 +114,7 @@ dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
 
 
 
+# --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 
 
@@ -220,32 +222,145 @@ lsms_cluster = lsms_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
 
 
 # output cluster
-lsms_cluster_path = os.path.join(survey_data, "final/tanzania_lsms_cluster.csv")
+lsms_cluster_path = os.path.join(survey_data, "final/tanzania_2012_lsms_cluster.csv")
+lsms_cluster.to_csv(lsms_cluster_path, index=False, encoding='utf-8')
+
+
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+
+
+lsms_base = [
+    i for i in glob.glob(
+        os.path.join(survey_data, "LSMS", "TZA_2010_*"))
+    if os.path.isdir(i)
+][0]
+
+lsms_data_1_path = os.path.join(lsms_base, "TZY2.HH.Consumption.dta")
+lsms_data_2_path = os.path.join(lsms_base, "HH.Geovariables_Y2.dta")
+lsms_data_3_path = os.path.join(lsms_base, "HH_SEC_A.dta")
+lsms_data_4_path = os.path.join(lsms_base, "HH_SEC_J1.dta")
+
+lsms_data_1 = pd.read_stata(lsms_data_1_path)
+lsms_data_2 = pd.read_stata(lsms_data_2_path)
+lsms_data_3 = pd.read_stata(lsms_data_3_path)
+lsms_data_4 = pd.read_stata(lsms_data_4_path)
+
+
+
+lsms_data_1["cons"] = lsms_data_1["expmR"] / (365 * lsms_data_1["adulteq"])
+lsms_data_1["cons"] = lsms_data_1["cons"] * 112.69 / (585.52 * np.mean([130.72, 141.01]))
+lsms_data_1 = lsms_data_1[["y2_hhid", "cons"]]
+lsms_data_1.columns = ["hhid", "cons"]
+
+
+lsms_data_2 = lsms_data_2[["y2_hhid", "lat_modified", "lon_modified"]]
+lsms_data_2.columns = ["hhid", "lat", "lon"]
+
+
+lsms_data_3 = lsms_data_3[["y2_hhid", "y2_rural", "y2_weight"]]
+lsms_data_3.columns = ["hhid", "rururb", "weight"]
+
+
+lsms_data_4a = lsms_data_4[["y2_hhid", "hh_j04_1"]]
+lsms_data_4a.columns = ["hhid", "room"]
+# drop NA rows
+lsms_data_4a = lsms_data_4a.loc[~lsms_data_4a["hhid"].isnull() & ~lsms_data_4a["room"].isnull()]
+
+
+lsms_data_4b = lsms_data_4[["y2_hhid", "hh_j06"]]
+lsms_data_4b.columns = ["hhid", "metal"]
+lsms_data_4b = lsms_data_4b.loc[lsms_data_4b["metal"] == "METAL SHEETS (GCI)"]
+
+
+# merge
+lsms_merge_list = [lsms_data_1, lsms_data_2, lsms_data_3, lsms_data_4a, lsms_data_4b]
+lsms_merge = functools.reduce(lambda l,r: pd.merge(l, r, on="hhid"), lsms_merge_list)
+
+
+
+lsms_geo = lsms_merge.copy(deep=True)
+lsms_geo = lsms_geo.loc[~lsms_geo["lat"].isnull() | ~lsms_geo["lon"].isnull()]
+lsms_geo = lsms_geo.loc[(lsms_geo["lat"] != 0) & (lsms_geo["lon"] != 0)]
+lsms_buffer = 5000/111123.0
+lsms_geo['geometry'] = lsms_geo.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
+lsms_geo['geometry'] = lsms_geo.apply(lambda z: z['geometry'].buffer(lsms_buffer), axis=1)
+lsms_geo = gpd.GeoDataFrame(lsms_geo)
+
+ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+
+ntl_years = [2010]
+
+lsms_final = 0
+for y in ntl_years:
+    ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(y)))[0]
+    extract_geojson = rs.zonal_stats(lsms_geo, ntl_path, stats="mean", geojson_out=True)
+    extract_list = [i['properties'] for i in extract_geojson]
+    lsms_extract = pd.DataFrame(extract_list)
+    lsms_extract.columns = ["ntl_{0}".format(y) if i == "mean" else i for i in lsms_extract.columns]
+    if not lsms_final:
+        lsms_final = lsms_extract.copy(deep=True)
+    else:
+        lsms_extract = lsms_extract[["cluster", "ntl_{0}".format(y)]]
+        lsms_final = lsms_final.merge(lsms_extract, on="cluster")
+
+
+# output household
+lsms_household = lsms_final.copy(deep=True)
+lsms_household_path = os.path.join(survey_data, "final/tanzania_2010_lsms_household.csv")
+lsms_household.to_csv(lsms_household_path, index=False, encoding='utf-8')
+
+
+
+# cluster
+# group by lat/lon
+# mean wealthscore, mean ntl, number of households n in group
+
+lsms_precluster = lsms_final.copy(deep=True)
+lsms_precluster["lonlat"] = lsms_precluster.apply(
+    lambda z: "{0}_{1}".format(z["lon"], z["lat"]), axis=1)
+lsms_precluster["n"] = 1
+
+agg_fields = {
+    "lon": "last",
+    "lat": "last",
+    "cons": "mean",
+    "n": "sum"
+}
+
+for y in ntl_years: agg_fields["ntl_{0}".format(y)] = "mean"
+
+lsms_cluster = lsms_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
+
+
+# output cluster
+lsms_cluster_path = os.path.join(survey_data, "final/tanzania_2010_lsms_cluster.csv")
 lsms_cluster.to_csv(lsms_cluster_path, index=False, encoding='utf-8')
 
 
 
 
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 
 
-def retrieve_and_save(df, fns, out_dir, names, keys):
-    df = df[(df.lat!=0) & (df.lon!=0)]
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-    for name, key in zip(names, keys):
-        np.save(os.path.join(out_dir, name), df[key])
+# def retrieve_and_save(df, fns, out_dir, names, keys):
+#     df = df[(df.lat!=0) & (df.lon!=0)]
+#     if not os.path.exists(out_dir):
+#         os.makedirs(out_dir)
+#     for name, key in zip(names, keys):
+#         np.save(os.path.join(out_dir, name), df[key])
 
 
-# dhs
-out_dir = os.path.join(survey_data, "final/dhs")
-names = ['lats', 'lons', 'assets', 'nightlights', 'households']
-keys = ['lat', 'lon', 'wealthscore', 'ntl_2010', 'n']
-retrieve_and_save(dhs_cluster, dhs_cluster_path, out_dir, names, keys)
+# # dhs
+# out_dir = os.path.join(survey_data, "final/dhs")
+# names = ['lats', 'lons', 'assets', 'nightlights', 'households']
+# keys = ['lat', 'lon', 'wealthscore', 'ntl_2010', 'n']
+# retrieve_and_save(dhs_cluster, dhs_cluster_path, out_dir, names, keys)
 
-# lsms
-out_dir = os.path.join(survey_data, "final/lsms")
-names = ['lats', 'lons', 'consumptions', 'nightlights', 'households']
-keys = ['lat', 'lon', 'cons', 'ntl_2010', 'n']
-retrieve_and_save(lsms_cluster, lsms_cluster_path, out_dir, names, keys)
+# # lsms
+# out_dir = os.path.join(survey_data, "final/lsms")
+# names = ['lats', 'lons', 'consumptions', 'nightlights', 'households']
+# keys = ['lat', 'lon', 'cons', 'ntl_2010', 'n']
+# retrieve_and_save(lsms_cluster, lsms_cluster_path, out_dir, names, keys)
