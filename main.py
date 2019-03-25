@@ -67,7 +67,9 @@ run = {
 new_predict_source_data = lsms2010_cluster.copy(deep=True)
 # new_predict_source_data = lsms2012_cluster.copy(deep=True)
 
-tags = ["20190321"]
+date_str = datetime.datetime.now().strftime("%Y%m%d")
+
+tags = [date_str, "2010"]
 
 # -----------------------------------------------------------------------------
 
@@ -279,23 +281,24 @@ if batch:
         "tags": [tags],
         "run_type": [1],
         "n_input_channels": [8],
-        "n_epochs": [60],
+        "n_epochs": [30],
         "optim": ["sgd"],
-        "lr": [0.000001, 0.0001, 0.01],
-        "momentum": [0.95],
+        "lr": [0.009, 0.01, 0.02],
+        "momentum": [0.9, 0.99],
         "step_size": [5],
-        "gamma": [0.01, 0.0001],
+        "gamma": [0.1, 0.5],
         "loss_weights": [
             # [0.1, 0.4, 1.0],
             # [0.4, 0.4, 1.0],
             # [0.8, 0.4, 1.0]
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet152"],
+        "net": ["resnet18"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
-        "agg_method": ["mean", "max", "min"]
+        "agg_method": ["mean"]
+        # "agg_method": ["mean", "max", "min"]
     }
 
     print("\nPreparing following parameter set:\n")
