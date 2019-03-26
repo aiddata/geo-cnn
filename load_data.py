@@ -88,7 +88,7 @@ class BandDataset(Dataset):
         for bnum, band in enumerate(self.bands):
 
             season_mosaics_path = os.path.join(
-                self.root_dir, "landsat/data/mosaics/{0}_all", self.agg_method,
+                self.root_dir, "landsat/data/mosaics/{0}_all".format(self.year), self.agg_method,
                 "{0}_all_{1}.tif".format(self.year, band))
 
             season_mosaics = rasterio.open(season_mosaics_path)
