@@ -48,35 +48,51 @@ from data_prep import *
 from runscript import *
 from load_survey_data import *
 
+
 # -----------------------------------------------------------------------------
+
+
+cuda_device_id = 0
+
+device = torch.device("cuda:{}".format(cuda_device_id) if torch.cuda.is_available() else "cpu")
+
+print("Running on:", device)
+
+# run_types = {
+#     1: 'fine tuning',
+#     2: 'fixed feature extractor'
+# }
+
 
 quiet = False
 
 
-# batch = False
-batch = True
+mode = "hash"
+# mode = "batch"
+# mode = "other"
 
 run = {
-    "train": True,
+    "train": False,
     "test": False,
     "predict": False,
-    "predict_new": False
+    "predict_new": True
 }
 
 # new_predict_source_data = dhs2010_cluster.copy(deep=True)
 new_predict_source_data = lsms2010_cluster.copy(deep=True)
 # new_predict_source_data = lsms2012_cluster.copy(deep=True)
 
+
+
+timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+    '%Y_%m_%d_%H_%M_%S')
+
 date_str = datetime.datetime.now().strftime("%Y%m%d")
 
 tags = [date_str, "2010"]
 
+
 # -----------------------------------------------------------------------------
-
-results = []
-
-timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
-    '%Y_%m_%d_%H_%M_%S')
 
 
 def output_csv():
@@ -128,10 +144,60 @@ def json_sha1_hash(hash_obj):
 
 # -----------------------------------------------------------------------------
 
+if mode == "hash":
 
-if not batch:
+    # hash_list = []
+    hash_list = pd.read_csv("/home/userz/Desktop/cnn_results_merge.csv")["hash"]
 
-    params = {
+    param_dicts = []
+
+    for param_hash in hash_list:
+        param_json_path = os.path.join(base_path, "output/s1_param_json/params_{}.json".format(param_hash))
+        with open(param_json_path) as j:
+            param_dicts.append(json.load(j))
+
+
+elif mode == "batch":
+
+    pranges = {
+        "tags": [tags],
+        "run_type": [1],
+        "n_input_channels": [8],
+        "n_epochs": [30],
+        "optim": ["sgd"],
+        "lr": [0.01],
+        "momentum": [0.9],
+        "step_size": [5],
+        "gamma": [0.9, 0.5],
+        "loss_weights": [
+            # [0.1, 0.4, 1.0],
+            # [0.4, 0.4, 1.0],
+            # [0.8, 0.4, 1.0]
+            [1.0, 1.0, 1.0]
+        ],
+        "net": ["resnet18"],
+        "batch_size": [64],
+        "num_workers": [16],
+        "dim": [224],
+        # "agg_method": ["mean"]
+        "agg_method": ["max", "min"]
+        # "agg_method": ["mean", "max", "min"]
+    }
+
+    print("\nPreparing following parameter set:\n")
+    pprint.pprint(pranges, indent=4)
+    print('-' * 20)
+
+    def dict_product(d):
+        keys = d.keys()
+        for element in itertools.product(*d.values()):
+            yield dict(zip(keys, element))
+
+    param_dicts = dict_product(pranges)
+
+else:
+
+    param_dicts = [{
         "tags": tags,
         "run_type": 1,
         "n_input_channels": 8,
@@ -147,67 +213,75 @@ if not batch:
         "num_workers": 16,
         "dim": 224,
         "agg_method": "min"
-    }
+    }]
+
+
+
+# pcount = np.prod([len(i) for i in pranges.values()])
+pcount = len(param_dicts)
+
+
+# -----------------------------------------------------------------------------
+
+
+results = []
+
+for ix, p in enumerate(param_dicts):
+
+    params = copy.deepcopy(p)
+
+    print('-' * 10)
+    print("\nParameter combination: {}/{}".format(ix+1, pcount))
 
     full_param_hash = json_sha1_hash(params)
     param_hash = full_param_hash[:7]
 
     print("\nParam hash: {}\n".format(param_hash))
 
+    param_json_path = os.path.join(base_path, "output/s1_param_json/params_{}.json".format(param_hash))
+
+    with open(param_json_path, "w", 0) as param_json:
+        json.dump(params, param_json)
+
     state_path = os.path.join(base_path, "output/s1_state_dict/state_dict_{}.pt".format(param_hash))
-
-    dataloaders = build_dataloaders(
-        dataframe_dict,
-        base_path,
-        data_transform=None,
-        dim=params["dim"],
-        batch_size=params["batch_size"],
-        num_workers=params["num_workers"],
-        agg_method=params["agg_method"])
-
 
     # -----------------
 
-    if run["train"]:
+    if run["train"] or run["test"] or run["predict"]:
+
+        dataloaders = build_dataloaders(
+            dataframe_dict,
+            base_path,
+            data_transform=None,
+            dim=params["dim"],
+            batch_size=params["batch_size"],
+            num_workers=params["num_workers"],
+            agg_method=params["agg_method"])
 
         train_cnn = RunCNN(
             dataloaders, device, cat_names,
             parallel=False, quiet=False, **params)
 
-        acc_p, class_p, time_p = train_cnn.train()
+        if run["train"]:
+            acc_p, class_p, time_p = train_cnn.train()
 
-        params['hash'] = param_hash
-        params['acc'] = acc_p
-        params['class_acc'] = class_p
-        params['time'] = time_p
-        results.append(params)
-        output_csv()
+            params['hash'] = param_hash
+            params['acc'] = acc_p
+            params['class_acc'] = class_p
+            params['time'] = time_p
+            results.append(params)
+            output_csv()
 
-        train_cnn.save(state_path)
+            train_cnn.save(state_path)
+        else:
+            train_cnn.load(state_path)
 
-    # -----------------
 
-    if run["test"]:
+        if run["test"]:
+            epoch_loss, epoch_acc, class_acc, time_elapsed = train_cnn.test()
 
-        test_cnn = RunCNN(
-            dataloaders, device, cat_names,
-            parallel=False, quiet=False, **params)
-
-        test_cnn.load(state_path)
-
-        epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
-
-    # -----------------
-
-    if run["predict"]:
-
-        predict_cnn = RunCNN(
-            dataloaders, device, cat_names,
-            parallel=False, quiet=False, **params)
-
-        predict_cnn.load(state_path)
-
-        pred_data, _ = predict_cnn.predict(features=True)
+        if run["predict"]:
+            pred_data, _ = train_cnn.predict(features=True)
 
     # -----------------
 
@@ -241,7 +315,7 @@ if not batch:
 
         new_cnn.load(state_path)
 
-        # --------
+        # ---------
 
         new_pred_data, _ = new_cnn.predict(features=True)
 
@@ -258,172 +332,3 @@ if not batch:
         new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
 
         new_out.to_csv(new_out_path, index=False, encoding='utf-8')
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-if batch:
-
-    # pranges = {
-    #     "run_type": [1,2],
-    #     "n_input_channels": [8],
-    #     "n_epochs": [60],
-    #     "lr": [ 0.0005, 0.001, 0.005, 0.01, 0.05],
-    #     "momentum": [0.5, 0.7, 0.9, 1.1, 1.3],
-    #     "step_size": [5, 10, 15],
-    #     "gamma": [0.01, 0.05]
-    # }
-
-    pranges = {
-        "tags": [tags],
-        "run_type": [1],
-        "n_input_channels": [8],
-        "n_epochs": [30],
-        "optim": ["sgd"],
-        "lr": [0.009, 0.01, 0.02],
-        "momentum": [0.9, 0.99],
-        "step_size": [5],
-        "gamma": [0.1, 0.5],
-        "loss_weights": [
-            # [0.1, 0.4, 1.0],
-            # [0.4, 0.4, 1.0],
-            # [0.8, 0.4, 1.0]
-            [1.0, 1.0, 1.0]
-        ],
-        "net": ["resnet18"],
-        "batch_size": [64],
-        "num_workers": [16],
-        "dim": [224],
-        "agg_method": ["mean"]
-        # "agg_method": ["mean", "max", "min"]
-    }
-
-    print("\nPreparing following parameter set:\n")
-    pprint.pprint(pranges, indent=4)
-    print('-' * 20)
-
-    def dict_product(d):
-        keys = d.keys()
-        for element in itertools.product(*d.values()):
-            yield dict(zip(keys, element))
-
-    pcount = np.prod([len(i) for i in pranges.values()])
-
-    for ix, p in enumerate(dict_product(pranges)):
-
-        params = copy.deepcopy(p)
-
-        print('-' * 10)
-        print("\nParameter combination: {}/{}".format(ix+1, pcount))
-
-        full_param_hash = json_sha1_hash(params)
-        param_hash = full_param_hash[:7]
-
-        print("\nParam hash: {}\n".format(param_hash))
-
-        state_path = os.path.join(base_path, "output/s1_state_dict/state_dict_{}.pt".format(param_hash))
-
-        dataloaders = build_dataloaders(
-            dataframe_dict,
-            base_path,
-            data_transform=None,
-            dim=params["dim"],
-            batch_size=params["batch_size"],
-            num_workers=params["num_workers"],
-            agg_method=params["agg_method"])
-
-        # -----------------
-
-        if run["train"]:
-
-            train_cnn = RunCNN(
-                dataloaders, device, cat_names,
-                parallel=False, quiet=False, **params)
-
-            acc_p, class_p, time_p = train_cnn.train()
-
-            params['hash'] = param_hash
-            params['acc'] = acc_p
-            params['class_acc'] = class_p
-            params['time'] = time_p
-            results.append(params)
-            output_csv()
-
-            train_cnn.save(state_path)
-
-        # -----------------
-
-        if run["test"]:
-
-            test_cnn = RunCNN(
-                dataloaders, device, cat_names,
-                parallel=False, quiet=False, **params)
-
-            test_cnn.load(state_path)
-
-            epoch_loss, epoch_acc, class_acc, time_elapsed = test_cnn.test()
-
-        # -----------------
-
-        if run["predict"]:
-
-            predict_cnn = RunCNN(
-                dataloaders, device, cat_names,
-                parallel=False, quiet=False, **params)
-
-            predict_cnn.load(state_path)
-
-            pred_data, _ = predict_cnn.predict(features=True)
-
-        # -----------------
-
-        if run["predict_new"]:
-
-            """
-            - load data
-            - load trained cnn state
-            - run predict
-            - append cnn features to original data
-            - output to csv for second stage models
-            """
-
-            new_data = {
-                "predict": new_predict_source_data
-            }
-
-            new_dataloaders = build_dataloaders(
-                new_data,
-                base_path,
-                data_transform=None,
-                dim=params["dim"],
-                batch_size=params["batch_size"],
-                num_workers=params["num_workers"],
-                agg_method=params["agg_method"],
-                shuffle=False)
-
-            new_cnn = RunCNN(
-                new_dataloaders, device, cat_names,
-                parallel=False, quiet=False, **params)
-
-            new_cnn.load(state_path)
-
-            # ---------
-
-            new_pred_data, _ = new_cnn.predict(features=True)
-
-            feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
-
-            pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
-            pred_df = pd.DataFrame(pred_dicts)
-
-            new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
-
-            col_order = list(new_data["predict"].columns) + feat_labels
-            new_out = new_out[col_order]
-
-            new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
-
-            new_out.to_csv(new_out_path, index=False, encoding='utf-8')
