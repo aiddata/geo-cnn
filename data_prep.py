@@ -31,19 +31,6 @@ print('-' * 40)
 print("\nInitializing...")
 
 
-cuda_device_id = 0
-
-device = torch.device("cuda:{}".format(cuda_device_id) if torch.cuda.is_available() else "cpu")
-
-print("Running on:", device)
-
-
-run_types = {
-    1: 'fine tuning',
-    2: 'fixed feature extractor'
-}
-
-
 # cat_names = ['low', 'med', 'high']
 cat_names = [0, 1, 2]
 
