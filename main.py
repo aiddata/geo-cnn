@@ -91,6 +91,7 @@ date_str = datetime.datetime.now().strftime("%Y%m%d")
 
 tags = [date_str, "2010"]
 
+pred_tags = [date_str, "2010"]
 
 # -----------------------------------------------------------------------------
 
@@ -147,7 +148,7 @@ def json_sha1_hash(hash_obj):
 if mode == "hash":
 
     # hash_list = []
-    hash_list = pd.read_csv("/home/userz/Desktop/cnn_results_merge.csv")["hash"]
+    hash_list = pd.read_csv(os.path.join(base_path, "cnn_results_merge.csv"))["hash"]
 
     param_dicts = []
 
@@ -170,9 +171,6 @@ elif mode == "batch":
         "step_size": [5],
         "gamma": [0.9, 0.5],
         "loss_weights": [
-            # [0.1, 0.4, 1.0],
-            # [0.4, 0.4, 1.0],
-            # [0.8, 0.4, 1.0]
             [1.0, 1.0, 1.0]
         ],
         "net": ["resnet18"],
@@ -326,7 +324,9 @@ for ix, p in enumerate(param_dicts):
 
         new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
 
-        col_order = list(new_data["predict"].columns) + feat_labels
+        new_out["pred_tags"] = [pred_tags] * len(new_out)
+
+        col_order = ["pred_tags"] + list(new_data["predict"].columns) + feat_labels
         new_out = new_out[col_order]
 
         new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
