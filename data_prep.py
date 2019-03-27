@@ -42,20 +42,29 @@ base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 # -----------------------------------------------------------------------------
 
 
-ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+
+class NTL():
+    def __init__(self):
+        self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+
+    def set_year(self, year):
+        self.year = year
+        self.path = glob.glob(os.path.join(self.base, "*{0}*.tif".format(self.year)))[0]
+        self.file = rasterio.open(self.path)
+
+    def value(self, lon, lat, ntl_dim=7):
+        """Get nighttime lights average value for grid around point
+        """
+        r, c = ntl_file.index(lon, lat)
+        ntl_win = ((r-ntl_dim/2+1, r+ntl_dim/2+1), (c-ntl_dim/2+1, c+ntl_dim/2+1))
+        ntl_data = self.file.read(1, window=ntl_win)
+        ntl_mean = ntl_data.mean()
+        return ntl_mean
+
+
 ntl_year = 2010
-ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(ntl_year)))[0]
-ntl_file = rasterio.open(ntl_path)
-
-def get_ntl(lon, lat, ntl_dim=7):
-    """Get nighttime lights average value for grid around point
-    """
-    r, c = ntl_file.index(lon, lat)
-    ntl_win = ((r-ntl_dim/2+1, r+ntl_dim/2+1), (c-ntl_dim/2+1, c+ntl_dim/2+1))
-    ntl_data = ntl_file.read(1, window=ntl_win)
-    ntl_mean = ntl_data.mean()
-    return ntl_mean
-
+ntl = NTL()
+ntl.set_year(ntl_year)
 
 # -----------------------------------------------------------------------------
 
@@ -68,7 +77,7 @@ def get_ntl(lon, lat, ntl_dim=7):
 #                            encoding='utf-8')
 
 # lsms_cluster['ntl'] = lsms_cluster.apply(
-#     lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+#     lambda z: ntl.value(z['lon'], z['lat']), axis=1)
 
 
 # -----------------------------------------------------------------------------
@@ -103,7 +112,7 @@ else:
     # grid.to_csv(csv_path)
     grid.df = grid.to_dataframe()
     # look up ntl values for each grid cell
-    grid.df['ntl'] = grid.df.apply(lambda z: get_ntl(z['lon'], z['lat'], ntl_dim=7), axis=1)
+    grid.df['ntl'] = grid.df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=7), axis=1)
     grid.to_csv(csv_path)
     df = grid.df.copy(deep=True)
 
