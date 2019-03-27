@@ -64,7 +64,7 @@ class PointGrid():
         self.prop_list = list(self.gen_grid(pixel_size, **kwargs))
 
 
-    def size(self):
+    def grid_size(self):
         if self.prop_list is None:
             raise Exception("Generate grid before running `size`")
         self.size = len(self.prop_list)
@@ -124,5 +124,3 @@ class PointGrid():
         df['geometry'] = df.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
         self.gdf = gpd.GeoDataFrame(df)
         return self.gdf
-
-
