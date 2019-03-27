@@ -1,8 +1,12 @@
 
 
 import os
+import glob
 import itertools
 import random
+import time
+import datetime
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -19,43 +23,128 @@ from scipy import stats
 import matplotlib.pyplot as plot
 
 
+# -------------------------------------
+
+
+# mode = "serial"
+mode = "parallel"
+
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
-id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual full fine tune - batch 64
+
+
+timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+    '%Y_%m_%d_%H_%M_%S')
+
+merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(timestamp))
+
+
+regex_str = os.path.join(base_path, "output/s1_predict/predict_*_2019_03_26_*.csv")
+regex_search = glob.glob(regex_str)
+qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
+
+
+# id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual full fine tune - batch 64
 # id_string = "0718ecc_2019_03_18_15_46_27" # 60 epoch - mean - resnet152 - actual full fine tune - batch 64
 # id_string = "c5e054d_2019_03_18_16_46_53" # 60 epoch - max - resnet152 - actual full fine tune - batch 64
-
-id_string = "174f06a_2019_03_21_13_41_16"
-id_string = "31b84fa_2019_03_21_17_10_29"
-
-pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
-
-pred_data = pd.read_csv(pred_data_path, quotechar='\"',
-                       na_values='', keep_default_na=False,
-                       encoding='utf-8')
-
-test_feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
-
-model_results_path = os.path.join(base_path, "output/s2_models/models_{}.csv".format(id_string))
+# id_string = "174f06a_2019_03_21_13_41_16"
+# qlist = ["31b84fa_2019_03_21_17_10_29"]
 
 
-# plot.hist(pred_data['ntl_2010'], bins=max(pred_data['ntl_2010']), alpha=0.5, histtype='bar', ec='black')
-# plot.xlabel('NTL')
-# plot.ylabel('Frequency')
-# plot.title('Histogram of NTL Values')
-# plot.show()
+def pearson_r2(true, predict):
+    return stats.pearsonr(true, predict)[0] ** 2
 
 
-# plot.hist(np.array([pred_data[i] for i in test_feat_labels]).flatten())
-# # plot.yscale("log")
-# plot.xlabel('Features')
-# plot.ylabel('Frequency')
-# plot.title('Histogram of All Features Values')
-# plot.show()
+# https://scikit-learn.org/stable/modules/classes.html#module-sklearn.linear_model
+lm_list = [
+    {
+        "name": "ridge",
+        "model": linear_model.RidgeCV
+    },{
+        "name": "lasso",
+        "model": linear_model.Lasso
+    },{
+        "name": "lassolars",
+        "model": linear_model.LassoLars
+    },{
+        "name": "lars",
+        "model": linear_model.Lars
+    },{
+        "name": "linear",
+        "model": linear_model.LinearRegression
+    },{
+        "name": "ridge_cv10",
+        "model": linear_model.Ridge,
+        "k": 10,
+        "k_inner": 10,
+        # "alphas": [0.01, 0.1, 1, 5, 10],
+        "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3,1e-2, 1, 5, 10, 20],
+        # "alphas": np.logspace(0.5, 10, 10),
+        "metric": pearson_r2
+    },{
+        "name": "lasso_cv10",
+        "model": linear_model.Lasso,
+        "k": 10,
+        "k_inner": 5,
+        "alphas": np.logspace(0.5, 10, 10),
+        "metric": pearson_r2
+    },{
+        "name": "lassolars_cv10",
+        "model": linear_model.LassoLars,
+        "k": 10,
+        "k_inner": 5,
+        "alphas": np.logspace(0.5, 10, 10),
+        "metric": pearson_r2
+    },{
+        "name": "lars_cv10",
+        "model": linear_model.Lars,
+        "k": 10
+    },{
+        "name": "linear_cv10",
+        "model": linear_model.LinearRegression,
+        "k": 10
+    }
+    # "LassoLarsIC",
+    # "HuberRegressor",
+    # "OrthogonalMatchingPursuit",
+    # "PassiveAggressiveRegressor",
+    # "RANSACRegressor",
+    # "SGDRegressor"
+]
+
+
+# https://scikit-learn.org/stable/modules/classes.html#regression-metrics
+metric_list = {
+    "pr2": pearson_r2,
+    "evs": metrics.explained_variance_score,
+    "mae": metrics.mean_absolute_error,
+    "mae2": metrics.median_absolute_error,
+    "mse": metrics.mean_squared_error,
+    "r2": metrics.r2_score
+}
+
+keys = ["hash", "id", "name", "model", "input"] + metric_list.keys()
 
 
 # -------------------------------------
 
+def plot_ntl(ntl_data):
+    plot.hist(ntl_data, bins=max(ntl_data), alpha=0.5, histtype='bar', ec='black')
+    plot.xlabel('NTL')
+    plot.ylabel('Frequency')
+    plot.title('Histogram of NTL Values')
+    plot.show()
+
+
+def plot_cnn_feats(feat_data, feat_labels):
+    plot.hist(np.array([feat_data[i] for i in feat_labels]).flatten())
+    # plot.yscale("log")
+    plot.xlabel('Features')
+    plot.ylabel('Frequency')
+    plot.title('Histogram of All Features Values')
+    plot.show()
+
+# -------------------------------------
 
 # def cross_validate(model, x, y, folds=10, repeats=5):
 #     '''
@@ -88,10 +177,6 @@ model_results_path = os.path.join(base_path, "output/s2_models/models_{}.csv".fo
 #     print 'Mean: {}'.format(np.mean(score))
 #     print 'Deviation: {}'.format(np.std(score))
 #     return score
-
-
-def pearson_r2(true, predict):
-    return stats.pearsonr(true, predict)[0] ** 2
 
 
 def run_cv(X, y, model, k, k_inner=5, alphas=None, metric=None, randomize=False):
@@ -199,138 +284,131 @@ def train_and_predict(X_train, y_train, X_test, model, alpha=None):
 
 # -------------------------------------
 
-# reduce feature dimensions using PCA
-pca_dimension = 15
-pca = PCA(n_components=pca_dimension)
 
-y_train = pred_data["pred_yval"].values
+def run(id_string):
 
+    task_hash = id_string.split("_")[0]
 
-x_train = {}
-x_train["ntl"] = pred_data[['ntl_2010']].values
-x_train["cnn"] = pred_data[test_feat_labels].values
-
-x_train["all"] = x_train["ntl"] + x_train["cnn"]
-x_train["all_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["ntl"] + x_train["cnn"])
-
-x_train["cnn_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
-x_train["cnn_pca{}_ntl".format(pca_dimension)] = x_train["cnn_pca{}".format(pca_dimension)] + x_train["ntl"]
+    # id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual full fine tune - batch 64
+    # id_string = "0718ecc_2019_03_18_15_46_27" # 60 epoch - mean - resnet152 - actual full fine tune - batch 64
+    # id_string = "c5e054d_2019_03_18_16_46_53" # 60 epoch - max - resnet152 - actual full fine tune - batch 64
+    # id_string = "174f06a_2019_03_21_13_41_16"
+    # id_string = "31b84fa_2019_03_21_17_10_29"
 
 
+    pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
-# https://scikit-learn.org/stable/modules/classes.html#module-sklearn.linear_model
-lm_list = [
-    {
-        "name": "ridge",
-        "model": linear_model.RidgeCV
-    },{
-        "name": "lasso",
-        "model": linear_model.Lasso
-    },{
-        "name": "lassolars",
-        "model": linear_model.LassoLars
-    },{
-        "name": "lars",
-        "model": linear_model.Lars
-    },{
-        "name": "linear",
-        "model": linear_model.LinearRegression
-    },{
-        "name": "ridge_cv10",
-        "model": linear_model.Ridge,
-        "k": 10,
-        "k_inner": 10,
-        # "alphas": [0.01, 0.1, 1, 5, 10],
-        "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3,1e-2, 1, 5, 10, 20],
-        # "alphas": np.logspace(0.5, 10, 10),
-        "metric": pearson_r2
-    },{
-        "name": "lasso_cv10",
-        "model": linear_model.Lasso,
-        "k": 10,
-        "k_inner": 5,
-        "alphas": np.logspace(0.5, 10, 10),
-        "metric": pearson_r2
-    },{
-        "name": "lassolars_cv10",
-        "model": linear_model.LassoLars,
-        "k": 10,
-        "k_inner": 5,
-        "alphas": np.logspace(0.5, 10, 10),
-        "metric": pearson_r2
-    },{
-        "name": "lars_cv10",
-        "model": linear_model.Lars,
-        "k": 10
-    },{
-        "name": "linear_cv10",
-        "model": linear_model.LinearRegression,
-        "k": 10
-    }
-    # "LassoLarsIC",
-    # "HuberRegressor",
-    # "OrthogonalMatchingPursuit",
-    # "PassiveAggressiveRegressor",
-    # "RANSACRegressor",
-    # "SGDRegressor"
-]
+    pred_data = pd.read_csv(pred_data_path, quotechar='\"',
+                        na_values='', keep_default_na=False,
+                        encoding='utf-8')
 
-# https://scikit-learn.org/stable/modules/classes.html#regression-metrics
-metric_list = {
-    "pr2": pearson_r2,
-    "evs": metrics.explained_variance_score,
-    "mae": metrics.mean_absolute_error,
-    "mae2": metrics.median_absolute_error,
-    "mse": metrics.mean_squared_error,
-    "r2": metrics.r2_score
-}
+    test_feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
-keys = ["name", "model", "input"] + metric_list.keys()
-
-results = []
-
-print "Running models:"
+    model_results_path = os.path.join(base_path, "output/s2_models/models_{}.csv".format(id_string))
 
 
-# ==============================
+    # reduce feature dimensions using PCA
+    pca_dimension = 15
+    pca = PCA(n_components=pca_dimension)
+
+    y_train = pred_data["pred_yval"].values
+
+    x_train = {}
+    x_train["ntl"] = pred_data[['ntl_2010']].values
+    x_train["cnn"] = pred_data[test_feat_labels].values
+
+    x_train["all"] = x_train["ntl"] + x_train["cnn"]
+    x_train["all_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["ntl"] + x_train["cnn"])
+
+    x_train["cnn_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
+    x_train["cnn_pca{}_ntl".format(pca_dimension)] = x_train["cnn_pca{}".format(pca_dimension)] + x_train["ntl"]
 
 
-for lm_dict in lm_list:
-    name = lm_dict["name"]
-    del lm_dict["name"]
+    print "Running models:"
 
-    for x_name, x_data in x_train.iteritems():
+    results = []
 
-        if "k" in lm_dict:
+    for lm_dict_orig in lm_list:
+        lm_dict = deepcopy(lm_dict_orig)
+        name = lm_dict["name"]
+        del lm_dict["name"]
 
-            print "\t{}({})...".format(name, x_name)
+        for x_name, x_data in x_train.iteritems():
 
-            # run using NTL values
-            try:
-                y_true, y_predict = run_cv(x_data, y_train, **lm_dict)
-            except Exception as e:
-                print(e)
-                metric_vals = ["Error" for i in metric_list]
+            # run with or without cross validation
+            if "k" in lm_dict:
+
+                print "\t{}({})...".format(name, x_name)
+
+                try:
+                    y_true, y_predict = run_cv(x_data, y_train, **lm_dict)
+                except Exception as e:
+                    print(e)
+                    metric_vals = ["Error" for i in metric_list]
+                else:
+                    metric_vals = [np.array([metric_list[j](y_true[i], y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
+
             else:
-                metric_vals = [np.array([metric_list[j](y_true[i], y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
 
-        else:
+                print "\t{}()...".format(name, x_name)
+                lm_func = lm_dict["model"]
 
-            print "\t{}()...".format(name, x_name)
-            lm_func = lm_dict["model"]
+                try:
+                    y_predict = train_and_predict(x_data, y_train, x_data, lm_func)
+                except Exception as e:
+                    print(e)
+                    metric_vals = ["Error" for i in metric_list]
+                else:
+                    metric_vals = [metric_list[i](y_train, y_predict) for i in metric_list]
 
-            # run using NTL values
-            try:
-                y_predict = train_and_predict(x_data, y_train, x_data, lm_func)
-            except Exception as e:
-                print (e)
-                metric_vals = ["Error" for i in metric_list]
-            else:
-                metric_vals = [metric_list[i](y_train, y_predict) for i in metric_list]
+            results.append(dict(zip(keys, [task_hash, id_string, name, lm_dict["model"].__name__, x_name] + metric_vals)))
 
-        results.append(dict(zip(keys, [name, lm_dict["model"].__name__, x_name] + metric_vals)))
+    df = pd.DataFrame(results)
+    df = df[keys]
+    df.to_csv(model_results_path, index=False, encoding='utf-8')
 
 
-df = pd.DataFrame(results)
-df = df[keys]
-df.to_csv(model_results_path, index=False, encoding='utf-8')
+# -----------------------------------------------------------------------------
+
+rank = 0
+if mode == "parallel":
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+    rank = comm.Get_rank()
+
+
+if mode == "parallel":
+    c = rank
+    while c < len(qlist):
+        try:
+            run(qlist[c])
+        except Exception as e:
+            print "Error processing task: {} ({})".format(c, qlist[c])
+            raise
+            print e
+            # raise Exception("Error processing task: {0}".format(qlist[c]))
+        c += size
+    comm.Barrier()
+elif mode == "serial":
+    for c in range(len(qlist)):
+            run(qlist[c])
+else:
+    raise ValueError("Invalid `mode` value for script ({}).".format(mode))
+
+
+if rank == 0:
+    print "Merging..."
+
+    merge_df_list = []
+
+    merge_file_list = [os.path.join(base_path, "output/s2_models/models_{}.csv".format(i)) for i in qlist]
+
+    for merge_file in merge_file_list:
+        df = pd.read_csv(merge_file, quotechar='\"',
+                            na_values='', keep_default_na=False,
+                            encoding='utf-8')
+        merge_df_list.append(df)
+
+    merge_df = pd.concat(merge_df_list, axis=0, ignore_index=True)
+    merge_df.to_csv(merge_out_path, index=False, encoding='utf-8')
