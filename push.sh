@@ -4,7 +4,7 @@ src=/home/userz/git/geo-cnn
 dst="/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
 cp $src/prepare_survey_data.py $dst
-cp $src/jobscript $dst
+cp $src/s1_jobscript $dst
 cp $src/data_prep.py $dst
 cp $src/create_grid.py $dst
 cp $src/runscript.py $dst
@@ -13,4 +13,5 @@ cp $src/vgg.py $dst
 cp $src/load_data.py $dst
 cp $src/load_survey_data.py $dst
 cp $src/main.py $dst
+cp $src/s2_jobscript $dst
 cp $src/second_stage_model.py $dst
