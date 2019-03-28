@@ -31,13 +31,54 @@ print('-' * 40)
 print("\nInitializing...")
 
 
+base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
+
 # cat_names = ['low', 'med', 'high']
 cat_names = [0, 1, 2]
 
 ncats = len(cat_names)
 
-base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
+# ntl classes
+ntl_class_bins = {
+    0: [0, 3],
+    1: [3, 10],
+    2: [9, 63]
+}
 
+# ntl year
+ntl_year = 2010
+
+
+# data types to subset
+type_names = ["train", "val", "test", "predict"]
+
+# ratio for data types (must sum to 1.0)
+type_weights = [0.850, 0.150, 0.0, 0.0]
+
+
+# grid settings
+overwrite_grid = False
+pixel_size = 0.12
+nfill = 400
+
+
+# overwrtie class/type definitions
+overwrite_full = False
+
+# boundary path definiing grid area
+tza_adm0_path = os.path.join(base_path, 'data/TZA_ADM0_GADM28_simplified.geojson')
+
+# raw grid
+grid_path = os.path.join(
+    base_path,
+    "data/sample_grid_{}.csv".format(str(pixel_size).split(".")[1])
+)
+
+# full set of data (before trimming)
+full_path = os.path.join(
+    base_path,
+    "data/sample_grid_{}_full.csv".format(str(pixel_size).split(".")[1])
+)
 
 # -----------------------------------------------------------------------------
 
@@ -59,88 +100,10 @@ class NTL():
         return ntl_mean
 
 
-ntl_year = 2010
-ntl = NTL()
-ntl.set_year(ntl_year)
-
-
-# -----------------------------------------------------------------------------
-
-
-print("\nPreparing grid..")
-
-# boundary
-tza_adm0_path = os.path.join(base_path, 'data/TZA_ADM0_GADM28_simplified.geojson')
-tza_adm0 = fiona.open(tza_adm0_path)
-
-
-# define, build, and save sample grid
-pixel_size = 0.008
-
-overwrite_grid = False
-# pixel_size = 0.06
-# print(pixel_size)
-
-csv_path = os.path.join(
-    base_path,
-    "data/sample_grid_{}.csv".format(str(pixel_size).split(".")[1])
-)
-
-if os.path.isfile(csv_path) and not overwrite_grid:
-    df = pd.read_csv(csv_path, sep=",", encoding='utf-8')
-else:
-    grid = PointGrid(tza_adm0)
-    grid.grid(pixel_size)
-    # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
-    # grid.to_geojson(geo_path)
-    # csv_path = os.path.join(base_path, "data/sample_grid.csv")
-    # grid.to_csv(csv_path)
-    grid.df = grid.to_dataframe()
-    # look up ntl values for each grid cell
-    grid.df['ntl'] = grid.df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=7), axis=1)
-    grid.to_csv(csv_path)
-    df = grid.df.copy(deep=True)
-
-# ==============================
-# copy of full df
-
-original_df = df.copy(deep=True)
-
-# for use in debugging
-# df = original_df.copy(deep=True)
-
-
-# -----------------------------------------------------------------------------
-
-
-print("\nBuilding datasets...")
-
-
-# label each point based on ntl value for point and class bins
-
-class_bins = {
-    0: [0, 3],
-    1: [3, 10],
-    2: [9, 63]
-}
-
-df["label"] = None
-for c, b in class_bins.iteritems():
-    df.loc[df['ntl'] >= b[0], 'label'] = int(c)
-
-
-# ==============================
-
-# determine size of each data type (train, val, etc)
-
-type_names = ["train", "val", "test", "predict"]
-
-# ratio for train, val, test data
-# must sum to 1.0
-type_weights = [0.850, 0.150, 0.0, 0.0]
-
-
 def gen_sample_size(count, weights):
+    """Given a `count` of total samples and list of weights,
+    determine the number of samples associated with each weight
+    """
     type_sizes = np.zeros(len(weights)).astype(int)
     # note: sizes are based on nkeep which is for a single NTL class label
     # subsequent steps to label data class (train, val, etc) must be repeated
@@ -155,62 +118,128 @@ def gen_sample_size(count, weights):
     return type_sizes
 
 
-# ==============================
+def apply_types(data, classes, names, weights):
+    """For each subset of data based on class,
+    assign data type names based on given weights.
+    Weight values must sum to one and all names must
+    be assigned a weight.
+    """
+    for c in classes:
+        cat_size = len(data.loc[data['label'] == c])
+        # example of alternative method (simpler, but does no ensure consistent class sizes)
+        # data.loc[data['label'] == c, 'type'] = np.random.choice(type_names, size=(cat_size,), p=type_weights)
+        type_sizes = gen_sample_size(cat_size, weights)
+        type_list = [[x] * type_sizes[i] for i,x in enumerate(names)]
+        type_list = list(itertools.chain.from_iterable(type_list))
+        np.random.shuffle(type_list)
+        data.loc[data['label'] == c, 'type'] = type_list
+    return data
 
 
-df['type'] = None
+def normalize(data, type_field, type_values, class_field, class_values):
+    """
+    create equal class sizes based on smallest class size
+        - randomizes which extras from larger classes are dropped
+    """
+    for j in type_values:
+        tmp_data = data.loc[data[type_field] == j].copy(deep=True)
+        raw_class_sizes = [sum(tmp_data[class_field] == i) for i in class_values]
+        nkeep = min(raw_class_sizes)
+        tmp_data['drop'] = 'drop'
+        for i in class_values:
+            class_index = tmp_data.loc[tmp_data[class_field] == i].index
+            keepers = np.random.permutation(class_index)[:nkeep]
+            data.loc[keepers, 'drop'] = 'keep'
+    data = data.loc[data['drop'] == 'keep'].copy(deep=True)
+    return data
 
-# repeat for each NTL class (cat_names)
-for c in cat_names:
-    cat_size = len(df.loc[df['label'] == c])
-    # example of alternative method (simpler, but does no ensure consistent class sizes)
-    # df.loc[df['label'] == c, 'type'] = np.random.choice(type_names, size=(cat_size,), p=type_weights)
-    type_sizes = gen_sample_size(cat_size, type_weights)
-    type_list = [[x] * type_sizes[i] for i,x in enumerate(type_names)]
-    type_list = list(itertools.chain.from_iterable(type_list))
-    np.random.shuffle(type_list)
-    df.loc[df['label'] == c, 'type'] = type_list
+
+# -----------------------------------------------------------------------------
 
 
+print("\nPreparing grid..")
+
+# ntl data
+ntl = NTL()
+ntl.set_year(ntl_year)
+
+# boundary
+tza_adm0 = fiona.open(tza_adm0_path)
+
+# define, build, and save sample grid
+if not os.path.isfile(grid_path) or overwrite_grid:
+    grid = PointGrid(tza_adm0)
+    grid.grid(pixel_size)
+    # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
+    # grid.to_geojson(geo_path)
+    # grid_path = os.path.join(base_path, "data/sample_grid.csv")
+    # grid.to_csv(grid_path)
+    grid.df = grid.to_dataframe()
+    grid.gfill(nfill)
+    grid.to_csv(grid_path)
+
+df = pd.read_csv(grid_path, sep=",", encoding='utf-8')
+
+# -----------------------------------------------------------------------------
+
+print("\nBuilding datasets...")
+
+# copy of full df
+
+original_df = df.copy(deep=True)
+
+# for use in debugging
+# df = original_df.copy(deep=True)
 
 
+# =====================================
 
+
+if not os.path.isfile(full_path) or overwrite_full:
+    # get ntl values
+    df['ntl'] = df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=7), axis=1)
+    # label each point based on ntl value for point and class bins
+    df["label"] = None
+    for c, b in ntl_class_bins.iteritems():
+        df.loc[df['ntl'] >= b[0], 'label'] = int(c)
+    # ----------------------------------------
+    # determine size of each data type (train, val, etc)
+    df['type'] = None
+    # subset to original grid (no spatial overlap)
+    tmp_df = df.loc[df["group"] == "orig"].copy(deep=True)
+    # define data group type
+    data = apply_types(tmp_df, cat_names, type_names, type_weights)
+    # based on classes for original grid subset, apply classes to
+    # all associated subgrid points
+    for i, row in tmp_df.iterrows():
+        cell_id = row["cell_id"]
+        df.loc[df["cell_id"] == cell_id, 'type'] = row['type']
+    # save full set of data
+    df.to_csv(full_path, index=False, encoding='utf-8')
+
+
+# -----------------------------------------------------------------------------
+
+
+df = pd.read_csv(full_path, sep=",", encoding='utf-8')
+
+# print resulting split of classes for each data type
+print("Full data:")
 for i in type_names:
     tmp_df = df.loc[df['type'] == i]
     print("Samples per cat ({}):".format(i))
     for j in cat_names: print("{0}: {1}".format(j, sum(tmp_df['label'] == j)))
 
 
-
-# -----------------------------------------------------------------------------
-
 print("\nNormalizing class sizes...")
 
-# create equal class sizes based on smallest class size
-#   - randomizes which extras from larger classes are dropped
+ndf = normalize(df, 'type', type_names, 'label', cat_names)
 
-raw_class_sizes = [sum(df['label'] == i) for i in cat_names]
-
-nkeep = min(raw_class_sizes)
-
-df['drop'] = 'drop'
-
-for i in cat_names:
-    class_index = df.loc[df['label'] == i].index
-    n_keep = min(raw_class_sizes)
-    keepers = np.random.permutation(class_index)[:nkeep]
-    df.loc[keepers, 'drop'] = 'keep'
-
-df = df.loc[df['drop'] == 'keep'].copy(deep=True)
-
-
-
-print("Samples per cat (raw):")
-for i in cat_names: print("{0}: {1}".format(i, sum(original_df['label'] == i)))
-
-print("Samples per cat (reduced):")
-for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
-
+print("Normalized data:")
+for i in type_names:
+    tmp_df = ndf.loc[ndf['type'] == i]
+    print("Samples per cat ({}):".format(i))
+    for j in cat_names: print("{0}: {1}".format(j, sum(tmp_df['label'] == j)))
 
 
 # -----------------------------------------------------------------------------
@@ -218,8 +247,9 @@ for i in cat_names: print("{0}: {1}".format(i, sum(df['label'] == i)))
 
 dataframe_dict = {}
 
+print("Final data:")
 for i in type_names:
-    dataframe_dict[i] = df.loc[df['type'] == i]
+    dataframe_dict[i] = ndf.loc[ndf['type'] == i]
     print("Samples per cat ({}):".format(i))
     for j in cat_names: print("{0}: {1}".format(j, sum(dataframe_dict[i]['label'] == j)))
 
