@@ -67,12 +67,12 @@ print("Running on:", device)
 quiet = False
 
 
-mode = "hash"
-# mode = "batch"
+# mode = "hash"
+mode = "batch"
 # mode = "other"
 
 run = {
-    "train": False,
+    "train": True,
     "test": False,
     "predict": False,
     "predict_new": True
@@ -169,17 +169,17 @@ elif mode == "batch":
         "lr": [0.01],
         "momentum": [0.9],
         "step_size": [5],
-        "gamma": [0.9, 0.5],
+        "gamma": [0.5],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet18"],
+        "net": ["resnet152"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
         # "agg_method": ["mean"]
-        "agg_method": ["max", "min"]
-        # "agg_method": ["mean", "max", "min"]
+        # "agg_method": ["max", "min"]
+        "agg_method": ["mean", "max", "min"]
     }
 
     print("\nPreparing following parameter set:\n")
@@ -214,9 +214,10 @@ else:
     }]
 
 
-
-# pcount = np.prod([len(i) for i in pranges.values()])
-pcount = len(param_dicts)
+if mode == "batch":
+    pcount = np.prod([len(i) for i in pranges.values()])
+else:
+    pcount = len(param_dicts)
 
 
 # -----------------------------------------------------------------------------

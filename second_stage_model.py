@@ -26,8 +26,8 @@ import matplotlib.pyplot as plot
 # -------------------------------------
 
 
-# mode = "serial"
-mode = "parallel"
+mode = "serial"
+# mode = "parallel"
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
@@ -49,6 +49,9 @@ qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search
 # id_string = "c5e054d_2019_03_18_16_46_53" # 60 epoch - max - resnet152 - actual full fine tune - batch 64
 # id_string = "174f06a_2019_03_21_13_41_16"
 # qlist = ["31b84fa_2019_03_21_17_10_29"]
+
+qlist = ["7a118a3_2019_03_28_12_48_37"]
+
 
 
 def pearson_r2(true, predict):
