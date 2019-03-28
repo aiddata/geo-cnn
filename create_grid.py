@@ -4,12 +4,14 @@ import os
 import json
 import time
 import copy
+import warnings
 
 import fiona
 from shapely.geometry import shape, Point
 from shapely.prepared import prep
 from shapely.ops import cascaded_union
 
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 
@@ -24,10 +26,15 @@ class PointGrid():
         (self.minx, self.miny, self.maxx, self.maxy) = bnds
         self.prep_shape = prep(cascaded_union([shape(f['geometry']) for f in boundary_geom]))
         self.prop_list = None
+        self.pixel_size = None
+        self.size = None
+        self.df = None
+        self.gdf = None
 
 
     def gen_grid(self, pixel_size, quiet=False):
 
+        self.pixel_size = pixel_size
         xsize = pixel_size
         ysize = pixel_size
 
@@ -62,6 +69,35 @@ class PointGrid():
 
     def grid(self, pixel_size, **kwargs):
         self.prop_list = list(self.gen_grid(pixel_size, **kwargs))
+
+
+    def gfill(self, nfill, distance=None):
+        """
+        nfill (int)
+            number of additional points to add within given bounds for each
+            grid point
+        distance (float)
+            maximum decimal degree distance from original grid point (lon, lat)
+            allowed in each direction
+        """
+        if self.df is None:
+            warnings.warn("Grid dataframe does not exist and will be created.")
+            self.to_dataframe()
+        if distance is None:
+            distance = self.pixel_size / 2
+        self.df["group"] = "orig"
+        fill_list = []
+        for i, parent in self.df.iterrows():
+            tmp_fill_list = []
+            for j in range(nfill):
+                child = parent.to_dict()
+                child["group"] = "fill"
+                child["lon"] = child["lon"] + np.random.uniform(-distance, distance)
+                child["lat"] = child["lat"] + np.random.uniform(-distance, distance)
+                tmp_fill_list.append(child)
+            fill_list.extend(tmp_fill_list)
+        tmp_df = pd.DataFrame(fill_list)
+        self.df = pd.concat([self.df, tmp_df], ignore_index=True ,sort=False)
 
 
     def grid_size(self):
