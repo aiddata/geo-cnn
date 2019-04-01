@@ -41,8 +41,8 @@ ncats = len(cat_names)
 # ntl classes
 ntl_class_bins = {
     0: [0, 3],
-    1: [3, 10],
-    2: [9, 63]
+    1: [3, 8],
+    2: [8, 63]
 }
 
 # ntl year
@@ -84,8 +84,10 @@ full_path = os.path.join(
 
 
 class NTL():
-    def __init__(self):
-        self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+    def __init__(self, calibrated=False):
+        self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites"
+        if calibrated:
+            self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
     def set_year(self, year):
         self.year = year
         self.path = glob.glob(os.path.join(self.base, "*{0}*.tif".format(self.year)))[0]
@@ -160,7 +162,7 @@ def normalize(data, type_field, type_values, class_field, class_values):
 print("\nPreparing grid..")
 
 # ntl data
-ntl = NTL()
+ntl = NTL(calibrated=False)
 ntl.set_year(ntl_year)
 
 # boundary
