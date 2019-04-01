@@ -4,4 +4,4 @@
 #PBS -l walltime=24:00:00
 #PBS -j oe
 
-mpirun --mca mpi_warn_on_fork 0 --map-by node -np 80 python-mpi /sciclone/aiddata10/REU/projects/mcc_tanzania/second_stage_model.py
+# mpirun --mca mpi_warn_on_fork 0 --map-by node -np 80 python-mpi /sciclone/aiddata10/REU/projects/mcc_tanzania/second_stage_model.py
