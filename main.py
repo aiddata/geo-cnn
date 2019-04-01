@@ -89,9 +89,9 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 
 date_str = datetime.datetime.now().strftime("%Y%m%d")
 
-tags = [date_str, "2010"]
+tags = [date_str, "2010", "raw_ntl"]
 
-pred_tags = [date_str, "2010"]
+pred_tags = [date_str, "2010", "raw_ntl"]
 
 # -----------------------------------------------------------------------------
 
@@ -99,6 +99,7 @@ pred_tags = [date_str, "2010"]
 def output_csv():
     col_order = [
         "hash",
+        "id_string",
         "tags",
         "acc",
         "time",
@@ -164,22 +165,22 @@ elif mode == "batch":
         "tags": [tags],
         "run_type": [1],
         "n_input_channels": [8],
-        "n_epochs": [30],
+        "n_epochs": [60],
         "optim": ["sgd"],
-        "lr": [0.01],
-        "momentum": [0.9],
-        "step_size": [5],
-        "gamma": [0.5],
+        "lr": [0.001, 0.01, 0.5],
+        "momentum": [0.95],
+        "step_size": [5, 15],
+        "gamma": [0.5, 0.1],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet152"],
+        "net": ["resnet101"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
-        # "agg_method": ["mean"]
+        "agg_method": ["mean"]
         # "agg_method": ["max", "min"]
-        "agg_method": ["mean", "max", "min"]
+        # "agg_method": ["mean", "max", "min"]
     }
 
     print("\nPreparing following parameter set:\n")
@@ -265,6 +266,7 @@ for ix, p in enumerate(param_dicts):
             acc_p, class_p, time_p = train_cnn.train()
 
             params['hash'] = param_hash
+            params['id_string'] = "{}_{}.csv".format(param_hash, timestamp)
             params['acc'] = acc_p
             params['class_acc'] = class_p
             params['time'] = time_p

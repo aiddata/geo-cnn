@@ -26,8 +26,8 @@ import matplotlib.pyplot as plot
 # -------------------------------------
 
 
-mode = "serial"
-# mode = "parallel"
+# mode = "serial"
+mode = "parallel"
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
@@ -39,7 +39,7 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(timestamp))
 
 
-regex_str = os.path.join(base_path, "output/s1_predict/predict_*_2019_03_26_*.csv")
+regex_str = os.path.join(base_path, "output/s1_predict/predict_*_2019_03_28_18_20_28.csv")
 regex_search = glob.glob(regex_str)
 qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
 
@@ -50,7 +50,11 @@ qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search
 # id_string = "174f06a_2019_03_21_13_41_16"
 # qlist = ["31b84fa_2019_03_21_17_10_29"]
 
-qlist = ["7a118a3_2019_03_28_12_48_37"]
+
+# qlist = ["7a118a3_2019_03_28_12_48_37"]
+
+
+# qlist = pd.read_csv(os.path.join(base_path, "cnn_results_merge_1.csv"))["id_string"].tolist()
 
 
 
