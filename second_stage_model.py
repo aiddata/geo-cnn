@@ -39,7 +39,7 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(timestamp))
 
 
-regex_str = os.path.join(base_path, "output/s1_predict/predict_*_2019_03_28_18_20_28.csv")
+regex_str = os.path.join(base_path, "output/s1_predict/predict_*_2019_04_*.csv")
 regex_search = glob.glob(regex_str)
 qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
 
@@ -65,21 +65,21 @@ def pearson_r2(true, predict):
 # https://scikit-learn.org/stable/modules/classes.html#module-sklearn.linear_model
 lm_list = [
     {
-        "name": "ridge",
-        "model": linear_model.RidgeCV
-    },{
-        "name": "lasso",
-        "model": linear_model.Lasso
-    },{
-        "name": "lassolars",
-        "model": linear_model.LassoLars
-    },{
-        "name": "lars",
-        "model": linear_model.Lars
-    },{
-        "name": "linear",
-        "model": linear_model.LinearRegression
-    },{
+    #     "name": "ridge",
+    #     "model": linear_model.RidgeCV
+    # },{
+    #     "name": "lasso",
+    #     "model": linear_model.Lasso
+    # },{
+    #     "name": "lassolars",
+    #     "model": linear_model.LassoLars
+    # },{
+    #     "name": "lars",
+    #     "model": linear_model.Lars
+    # },{
+    #     "name": "linear",
+    #     "model": linear_model.LinearRegression
+    # },{
         "name": "ridge_cv10",
         "model": linear_model.Ridge,
         "k": 10,
@@ -95,17 +95,17 @@ lm_list = [
         "k_inner": 5,
         "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
-    },{
-        "name": "lassolars_cv10",
-        "model": linear_model.LassoLars,
-        "k": 10,
-        "k_inner": 5,
-        "alphas": np.logspace(0.5, 10, 10),
-        "metric": pearson_r2
-    },{
-        "name": "lars_cv10",
-        "model": linear_model.Lars,
-        "k": 10
+    # },{
+    #     "name": "lassolars_cv10",
+    #     "model": linear_model.LassoLars,
+    #     "k": 10,
+    #     "k_inner": 5,
+    #     "alphas": np.logspace(0.5, 10, 10),
+    #     "metric": pearson_r2
+    # },{
+    #     "name": "lars_cv10",
+    #     "model": linear_model.Lars,
+    #     "k": 10
     },{
         "name": "linear_cv10",
         "model": linear_model.LinearRegression,

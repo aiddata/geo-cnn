@@ -51,6 +51,8 @@ from load_survey_data import *
 
 # -----------------------------------------------------------------------------
 
+quiet = False
+
 
 cuda_device_id = 0
 
@@ -62,9 +64,6 @@ print("Running on:", device)
 #     1: 'fine tuning',
 #     2: 'fixed feature extractor'
 # }
-
-
-quiet = False
 
 
 # mode = "hash"
@@ -83,15 +82,14 @@ new_predict_source_data = lsms2010_cluster.copy(deep=True)
 # new_predict_source_data = lsms2012_cluster.copy(deep=True)
 
 
-
 timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
 
 date_str = datetime.datetime.now().strftime("%Y%m%d")
 
-tags = [date_str, "2010", "raw_ntl"]
+tags = [date_str, "2010", "true_raw_ntl"]
 
-pred_tags = [date_str, "2010", "raw_ntl"]
+pred_tags = [date_str, "2010", "true_raw_ntl"]
 
 # -----------------------------------------------------------------------------
 
@@ -167,13 +165,14 @@ elif mode == "batch":
         "n_input_channels": [8],
         "n_epochs": [60],
         "optim": ["sgd"],
-        "lr": [0.001, 0.01, 0.5],
-        "momentum": [0.95],
+        "lr": [0.001, 0.005, 0.01],
+        "momentum": [0.97],
         "step_size": [5, 15],
-        "gamma": [0.5, 0.1],
+        "gamma": [0.75, 0.25],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
+        "net": ["resnet18"],
         "net": ["resnet101"],
         "batch_size": [64],
         "num_workers": [16],
@@ -260,7 +259,7 @@ for ix, p in enumerate(param_dicts):
 
         train_cnn = RunCNN(
             dataloaders, device, cat_names,
-            parallel=False, quiet=False, **params)
+            parallel=False, quiet=quiet, **params)
 
         if run["train"]:
             acc_p, class_p, time_p = train_cnn.train()
@@ -312,7 +311,7 @@ for ix, p in enumerate(param_dicts):
 
         new_cnn = RunCNN(
             new_dataloaders, device, cat_names,
-            parallel=False, quiet=False, **params)
+            parallel=False, quiet=quiet, **params)
 
         new_cnn.load(state_path)
 
