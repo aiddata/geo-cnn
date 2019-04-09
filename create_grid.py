@@ -5,6 +5,7 @@ import json
 import time
 import copy
 import warnings
+import itertools
 
 import fiona
 from shapely.geometry import shape, Point
@@ -71,7 +72,28 @@ class PointGrid():
         self.prop_list = list(self.gen_grid(pixel_size, **kwargs))
 
 
-    def gfill(self, nfill, distance=None):
+    def gfill(self, nfill, distance=None, mode="fixed"):
+
+        if self.df is None:
+            warnings.warn("Grid dataframe does not exist and will be created.")
+            self.to_dataframe()
+
+        if distance is None:
+            distance = self.pixel_size * 0.25
+
+        self.df["group"] = "orig"
+
+        if mode == "fixed":
+            tmp_df = self.gfill_fixed(nfill, distance=distance)
+        elif mode == "random":
+            tmp_df = self.gfill_random(nfill, distance=distance)
+        else:
+            raise ValueError("PointGrid: Invalid gfill mode ({})".format(mode))
+
+        self.df = pd.concat([self.df, tmp_df], ignore_index=True, sort=False)
+
+
+    def gfill_fixed(self, nfill, distance):
         """
         nfill (int)
             number of additional points to add within given bounds for each
@@ -80,12 +102,35 @@ class PointGrid():
             maximum decimal degree distance from original grid point (lon, lat)
             allowed in each direction
         """
-        if self.df is None:
-            warnings.warn("Grid dataframe does not exist and will be created.")
-            self.to_dataframe()
-        if distance is None:
-            distance = self.pixel_size / 2
-        self.df["group"] = "orig"
+        fill_list = []
+
+        for i, parent in self.df.iterrows():
+
+            lon_vals = np.linspace(parent["lon"] - distance, parent["lon"] + distance, np.ceil(np.sqrt(nfill)))
+            lat_vals = np.linspace(parent["lat"] - distance, parent["lat"] + distance, np.ceil(np.sqrt(nfill)))
+            sub_grid = list(itertools.product(lon_vals, lat_vals))
+
+            tmp_fill_list = []
+            for j in sub_grid:
+                child = parent.to_dict()
+                child["group"] = "fill"
+                child["lon"], child["lat"] = j
+                tmp_fill_list.append(child)
+            fill_list.extend(tmp_fill_list)
+
+        tmp_df = pd.DataFrame(fill_list)
+        return tmp_df
+
+
+    def gfill_random(self, nfill, distance):
+        """
+        nfill (int)
+            number of additional points to add within given bounds for each
+            grid point
+        distance (float)
+            maximum decimal degree distance from original grid point (lon, lat)
+            allowed in each direction
+        """
         fill_list = []
         for i, parent in self.df.iterrows():
             tmp_fill_list = []
@@ -97,8 +142,7 @@ class PointGrid():
                 tmp_fill_list.append(child)
             fill_list.extend(tmp_fill_list)
         tmp_df = pd.DataFrame(fill_list)
-        self.df = pd.concat([self.df, tmp_df], ignore_index=True ,sort=False)
-
+        return tmp_df
 
     def grid_size(self):
         if self.prop_list is None:
