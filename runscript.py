@@ -134,7 +134,13 @@ class RunCNN():
                 # self.model.fc.parameters(), # only final layer
                 self.model.parameters(), # all layers
                 lr=self.kwargs["lr"],
-                momentum=self.kwargs["momentum"])
+                momentum=self.kwargs["momentum"]
+            )
+        elif self.kwargs["optim"] == "adam":
+            self.optimizer = torch.optim.Adam(
+                self.model.parameters(),
+                lr=self.kwargs["lr"]
+            )
 
         # Decay LR by a factor of `gamma` every `step_size` epochs
         # exp lr scheduler

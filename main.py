@@ -68,7 +68,7 @@ print("Running on:", device)
 
 # mode = "hash"
 mode = "batch"
-# mode = "other"
+mode = "other"
 
 run = {
     "train": True,
@@ -127,7 +127,7 @@ def output_csv():
     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
     df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
     df_out = df_out[col_order]
-    df_out_path = os.path.join(base_path, "output/results_{}.csv".format(timestamp))
+    df_out_path = os.path.join(base_path, "output/s1_train/results_{}.csv".format(timestamp))
     df_out.to_csv(df_out_path, index=False, encoding='utf-8')
 
 
@@ -147,7 +147,7 @@ def json_sha1_hash(hash_obj):
 if mode == "hash":
 
     # hash_list = []
-    hash_list = pd.read_csv(os.path.join(base_path, "cnn_results_merge.csv"))["hash"]
+    hash_list = pd.read_csv(os.path.join(base_path, "_old/cnn_results_merge.csv"))["hash"]
 
     param_dicts = []
 
@@ -164,7 +164,7 @@ elif mode == "batch":
         "run_type": [1],
         "n_input_channels": [8],
         "n_epochs": [60],
-        "optim": ["sgd"],
+        "optim": ["sgd", "adam"],
         "lr": [0.001, 0.005, 0.01],
         "momentum": [0.97],
         "step_size": [5, 15],
@@ -173,7 +173,7 @@ elif mode == "batch":
             [1.0, 1.0, 1.0]
         ],
         "net": ["resnet18"],
-        "net": ["resnet101"],
+        # "net": ["resnet101"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -200,17 +200,17 @@ else:
         "run_type": 1,
         "n_input_channels": 8,
         "n_epochs": 5,
-        "optim": "sgd",
-        "lr": 0.009,
-        "momentum": 0.95,
-        "step_size": 15,
-        "gamma": 0.1,
+        "optim": "adam",
+        "lr": 0.005,
+        "momentum": 0.97,
+        "step_size": 5,
+        "gamma": 0.5,
         "loss_weights": [1.0, 1.0, 1.0],
-        "net": "resnet152",
+        "net": "resnet18",
         "batch_size": 64,
         "num_workers": 16,
         "dim": 224,
-        "agg_method": "min"
+        "agg_method": "mean"
     }]
 
 
