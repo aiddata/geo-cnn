@@ -26,6 +26,7 @@ import resnet
 
 from create_grid import PointGrid
 
+
 print('-' * 40)
 
 print("\nInitializing...")
@@ -38,12 +39,10 @@ cat_names = [0, 1, 2]
 
 ncats = len(cat_names)
 
-# ntl classes
-ntl_class_bins = {
-    0: [0, 3],
-    1: [3, 8],
-    2: [8, 63]
-}
+# ntl classes (starting value for each bin, ends at following value)
+#   First value should always be 0
+#   Final value capped at max of data
+ntl_class_bins = [0, 3, 8]
 
 # ntl year
 ntl_year = 2010
@@ -57,28 +56,42 @@ type_weights = [0.850, 0.150, 0.0, 0.0]
 
 
 # grid settings
-overwrite_grid = False
-pixel_size = 0.12
+pixel_size = 0.08
 nfill = 400
 
 
-# overwrtie class/type definitions
-overwrite_full = False
+overwrite_all = False
+
+overwrite_grid = False | overwrite_all # base grid generation
+overwrite_full = False | overwrite_all # overwrite class/type definitions
+overwrite_trim = False | overwrite_all # overwrite class size trimming (which is randomized)
+
 
 # boundary path definiing grid area
 tza_adm0_path = os.path.join(base_path, 'data/TZA_ADM0_GADM28_simplified.geojson')
 
+# grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "cal")
+# grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "raw")
+grid_tag = str(pixel_size).split(".")[1]
+
 # raw grid
 grid_path = os.path.join(
     base_path,
-    "data/sample_grid_{}.csv".format(str(pixel_size).split(".")[1])
+    "data/sample_grid_init_{}.csv".format(grid_tag)
 )
 
 # full set of data (before trimming)
 full_path = os.path.join(
     base_path,
-    "data/sample_grid_{}_full.csv".format(str(pixel_size).split(".")[1])
+    "data/sample_grid_data_{}.csv".format(grid_tag)
 )
+
+# final set of data (after trimming)
+trim_path = os.path.join(
+    base_path,
+    "data/sample_grid_trim_{}.csv".format(grid_tag)
+)
+
 
 # -----------------------------------------------------------------------------
 
@@ -180,30 +193,22 @@ if not os.path.isfile(grid_path) or overwrite_grid:
     grid.gfill(nfill)
     grid.to_csv(grid_path)
 
-df = pd.read_csv(grid_path, sep=",", encoding='utf-8')
+grid_df = pd.read_csv(grid_path, sep=",", encoding='utf-8')
+
 
 # -----------------------------------------------------------------------------
 
+
 print("\nBuilding datasets...")
 
-# copy of full df
-
-original_df = df.copy(deep=True)
-
-# for use in debugging
-# df = original_df.copy(deep=True)
-
-
-# =====================================
-
-
 if not os.path.isfile(full_path) or overwrite_full:
+    df = grid_df.copy(deep=True)
     # get ntl values
     df['ntl'] = df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=7), axis=1)
     # label each point based on ntl value for point and class bins
     df["label"] = None
-    for c, b in ntl_class_bins.iteritems():
-        df.loc[df['ntl'] >= b[0], 'label'] = int(c)
+    for c, b in enumerate(ntl_class_bins):
+        df.loc[df['ntl'] >= b, 'label'] = int(c)
     # ----------------------------------------
     # determine size of each data type (train, val, etc)
     df['type'] = None
@@ -218,12 +223,27 @@ if not os.path.isfile(full_path) or overwrite_full:
         df.loc[df["cell_id"] == cell_id, 'type'] = row['type']
     # save full set of data
     df.to_csv(full_path, index=False, encoding='utf-8')
+else:
+    df = pd.read_csv(full_path, sep=",", encoding='utf-8')
+
+
+print("\nNormalizing class sizes...")
+
+if not os.path.isfile(trim_path) or overwrite_trim:
+    ndf = normalize(df, 'type', type_names, 'label', cat_names)
+else:
+    ndf = pd.read_csv(trim_path, sep=",", encoding='utf-8')
+
+
+print("\nPreparing dataframe dict...")
+
+dataframe_dict = {}
+for i in type_names:
+    dataframe_dict[i] = ndf.loc[ndf['type'] == i]
 
 
 # -----------------------------------------------------------------------------
 
-
-df = pd.read_csv(full_path, sep=",", encoding='utf-8')
 
 # print resulting split of classes for each data type
 print("Full data:")
@@ -233,10 +253,6 @@ for i in type_names:
     for j in cat_names: print("{0}: {1}".format(j, sum(tmp_df['label'] == j)))
 
 
-print("\nNormalizing class sizes...")
-
-ndf = normalize(df, 'type', type_names, 'label', cat_names)
-
 print("Normalized data:")
 for i in type_names:
     tmp_df = ndf.loc[ndf['type'] == i]
@@ -245,16 +261,6 @@ for i in type_names:
 
 
 # -----------------------------------------------------------------------------
-
-
-dataframe_dict = {}
-
-print("Final data:")
-for i in type_names:
-    dataframe_dict[i] = ndf.loc[ndf['type'] == i]
-    print("Samples per cat ({}):".format(i))
-    for j in cat_names: print("{0}: {1}".format(j, sum(dataframe_dict[i]['label'] == j)))
-
 
 
 # train_df = df.loc[df['type'] == "train"]
