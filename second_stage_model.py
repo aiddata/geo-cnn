@@ -353,7 +353,10 @@ def run(id_string):
                     print(e)
                     metric_vals = ["Error" for i in metric_list]
                 else:
-                    metric_vals = [np.array([metric_list[j](y_true[i], y_predict[i]) for i in range(lm_dict["k"])]).mean() for j in metric_list]
+                    metric_vals = [
+                        np.array([metric_list[j](y_true[i], y_predict[i])
+                        for i in range(lm_dict["k"])]).mean() for j in metric_list
+                    ]
 
             else:
 
@@ -368,7 +371,9 @@ def run(id_string):
                 else:
                     metric_vals = [metric_list[i](y_train, y_predict) for i in metric_list]
 
-            results.append(dict(zip(keys, [task_hash, id_string, name, lm_dict["model"].__name__, x_name] + metric_vals)))
+            tmp_vals = [task_hash, id_string, name, lm_dict["model"].__name__, x_name]
+            tmp_vals += metric_vals
+            results.append(dict(zip(keys, tmp_vals)))
 
     df = pd.DataFrame(results)
     df = df[keys]

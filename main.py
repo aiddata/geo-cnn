@@ -127,7 +127,7 @@ def output_csv():
     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
     df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
     df_out = df_out[col_order]
-    df_out_path = os.path.join(base_path, "output/s1_train/results_{}.csv".format(timestamp))
+    df_out_path = os.path.join(base_path, "output/s1_train/train_{}.csv".format(timestamp))
     df_out.to_csv(df_out_path, index=False, encoding='utf-8')
 
 
@@ -152,7 +152,7 @@ if mode == "hash":
     param_dicts = []
 
     for param_hash in hash_list:
-        param_json_path = os.path.join(base_path, "output/s1_param_json/params_{}.json".format(param_hash))
+        param_json_path = os.path.join(base_path, "output/s1_params/params{}.json".format(param_hash))
         with open(param_json_path) as j:
             param_dicts.append(json.load(j))
 
@@ -237,12 +237,12 @@ for ix, p in enumerate(param_dicts):
 
     print("\nParam hash: {}\n".format(param_hash))
 
-    param_json_path = os.path.join(base_path, "output/s1_param_json/params_{}.json".format(param_hash))
+    param_json_path = os.path.join(base_path, "output/s1_params/params_{}.json".format(param_hash))
 
     with open(param_json_path, "w", 0) as param_json:
         json.dump(params, param_json)
 
-    state_path = os.path.join(base_path, "output/s1_state_dict/state_dict_{}.pt".format(param_hash))
+    state_path = os.path.join(base_path, "output/s1_state/state_{}.pt".format(param_hash))
 
     # -----------------
 
