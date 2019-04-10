@@ -72,14 +72,11 @@ class PointGrid():
         self.prop_list = list(self.gen_grid(pixel_size, **kwargs))
 
 
-    def gfill(self, nfill, distance=None, mode="fixed"):
+    def gfill(self, nfill, distance, mode="fixed"):
 
         if self.df is None:
             warnings.warn("Grid dataframe does not exist and will be created.")
             self.to_dataframe()
-
-        if distance is None:
-            distance = self.pixel_size * 0.25
 
         self.df["group"] = "orig"
 
