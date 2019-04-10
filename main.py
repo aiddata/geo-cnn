@@ -77,6 +77,9 @@ run = {
     "predict_new": True
 }
 
+
+imagery_year = 2010
+
 # new_predict_source_data = dhs2010_cluster.copy(deep=True)
 new_predict_source_data = lsms2010_cluster.copy(deep=True)
 # new_predict_source_data = lsms2012_cluster.copy(deep=True)
@@ -123,7 +126,7 @@ def output_csv():
     ]
     df_out = pd.DataFrame(results)
     df_out['pixel_size'] = pixel_size
-    df_out['ncats'] = ncats
+    df_out['ncats'] = len(cat_names)
     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
     df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
     df_out = df_out[col_order]
@@ -251,6 +254,7 @@ for ix, p in enumerate(param_dicts):
         dataloaders = build_dataloaders(
             dataframe_dict,
             base_path,
+            imagery_year,
             data_transform=None,
             dim=params["dim"],
             batch_size=params["batch_size"],
@@ -302,6 +306,7 @@ for ix, p in enumerate(param_dicts):
         new_dataloaders = build_dataloaders(
             new_data,
             base_path,
+            imagery_year,
             data_transform=None,
             dim=params["dim"],
             batch_size=params["batch_size"],
