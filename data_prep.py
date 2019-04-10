@@ -34,19 +34,41 @@ print("\nInitializing...")
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
-# cat_names = ['low', 'med', 'high']
-cat_names = [0, 1, 2]
 
-ncats = len(cat_names)
+# -----------------
+# grid settings
+
+# base grid resolution
+pixel_size = 0.08
+# number of additional points to fill for each base point
+nfill = 225
+# distance from base point to fill in
+fill_dist = 0.01
+# fixed or random fill of point
+fill_mode = "fixed"
+# boundary path definiing grid area
+boundary_path = os.path.join(base_path, 'data/boundary/TZA_ADM0_GADM28_simplified.geojson')
+
+# -----------------
+# ntl settings
 
 # ntl classes (starting value for each bin, ends at following value)
 #   First value should always be 0
 #   Final value capped at max of data
 ntl_class_bins = [0, 3, 8]
+# ntl_class_bins = [0, 6, 12]
+
+# whether to use calibrated ntl data or original
+ntl_calibrated = False
 
 # ntl year
 ntl_year = 2010
 
+# -----------------
+
+# ntl cateogories (low, med, high)
+#   must match number of values in ntl_class_bins
+cat_names = [0, 1, 2]
 
 # data types to subset
 type_names = ["train", "val", "test", "predict"]
@@ -55,10 +77,8 @@ type_names = ["train", "val", "test", "predict"]
 type_weights = [0.850, 0.150, 0.0, 0.0]
 
 
-# grid settings
-pixel_size = 0.08
-nfill = 400
-
+# -----------------
+# output settings
 
 overwrite_all = False
 
@@ -67,9 +87,6 @@ overwrite_full = False | overwrite_all # overwrite class/type definitions
 overwrite_trim = False | overwrite_all # overwrite class size trimming (which is randomized)
 
 
-# boundary path definiing grid area
-tza_adm0_path = os.path.join(base_path, 'data/TZA_ADM0_GADM28_simplified.geojson')
-
 # grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "cal")
 # grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "raw")
 grid_tag = str(pixel_size).split(".")[1]
@@ -77,19 +94,19 @@ grid_tag = str(pixel_size).split(".")[1]
 # raw grid
 grid_path = os.path.join(
     base_path,
-    "data/sample_grid_init_{}.csv".format(grid_tag)
+    "data/grid/sample_grid_init_{}.csv".format(grid_tag)
 )
 
 # full set of data (before trimming)
 full_path = os.path.join(
     base_path,
-    "data/sample_grid_data_{}.csv".format(grid_tag)
+    "data/grid/sample_grid_data_{}.csv".format(grid_tag)
 )
 
 # final set of data (after trimming)
 trim_path = os.path.join(
     base_path,
-    "data/sample_grid_trim_{}.csv".format(grid_tag)
+    "data/grid/sample_grid_trim_{}.csv".format(grid_tag)
 )
 
 
@@ -174,23 +191,19 @@ def normalize(data, type_field, type_values, class_field, class_values):
 
 print("\nPreparing grid..")
 
-# ntl data
-ntl = NTL(calibrated=False)
-ntl.set_year(ntl_year)
-
-# boundary
-tza_adm0 = fiona.open(tza_adm0_path)
+# load boundary data
+boundary_src = fiona.open(boundary_path)
 
 # define, build, and save sample grid
 if not os.path.isfile(grid_path) or overwrite_grid:
-    grid = PointGrid(tza_adm0)
+    grid = PointGrid(boundary_src)
     grid.grid(pixel_size)
     # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
     # grid.to_geojson(geo_path)
     # grid_path = os.path.join(base_path, "data/sample_grid.csv")
     # grid.to_csv(grid_path)
     grid.df = grid.to_dataframe()
-    grid.gfill(nfill)
+    grid.gfill(nfill, distance=fill_dist, mode=fill_mode)
     grid.to_csv(grid_path)
 
 grid_df = pd.read_csv(grid_path, sep=",", encoding='utf-8')
@@ -200,6 +213,10 @@ grid_df = pd.read_csv(grid_path, sep=",", encoding='utf-8')
 
 
 print("\nBuilding datasets...")
+
+# ntl data
+ntl = NTL(calibrated=ntl_calibrated)
+ntl.set_year(ntl_year)
 
 if not os.path.isfile(full_path) or overwrite_full:
     df = grid_df.copy(deep=True)
@@ -231,6 +248,8 @@ print("\nNormalizing class sizes...")
 
 if not os.path.isfile(trim_path) or overwrite_trim:
     ndf = normalize(df, 'type', type_names, 'label', cat_names)
+    ndf.to_csv(trim_path, index=False, encoding='utf-8')
+
 else:
     ndf = pd.read_csv(trim_path, sep=",", encoding='utf-8')
 
