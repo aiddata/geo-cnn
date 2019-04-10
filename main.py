@@ -77,22 +77,27 @@ run = {
     "predict_new": True
 }
 
-
-imagery_year = 2010
-
-# new_predict_source_data = dhs2010_cluster.copy(deep=True)
-new_predict_source_data = lsms2010_cluster.copy(deep=True)
-# new_predict_source_data = lsms2012_cluster.copy(deep=True)
-
-
 timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
 
 date_str = datetime.datetime.now().strftime("%Y%m%d")
 
+# -----------------
+
+# training settings
+imagery_year = 2010
+
 tags = [date_str, "2010", "true_raw_ntl"]
 
+# -----------------
+
+# prediciton settings
+new_predict_source_data = dhs2010_cluster.copy(deep=True)
+# new_predict_source_data = lsms2010_cluster.copy(deep=True)
+# new_predict_source_data = lsms2012_cluster.copy(deep=True)
+
 pred_tags = [date_str, "2010", "true_raw_ntl"]
+
 
 # -----------------------------------------------------------------------------
 

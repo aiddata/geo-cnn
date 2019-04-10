@@ -34,6 +34,9 @@ print("\nInitializing...")
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
+# boundary path defining grid area
+boundary_path = os.path.join(base_path, 'data/boundary/TZA_ADM0_GADM28_simplified.geojson')
+
 
 # -----------------
 # grid settings
@@ -46,8 +49,6 @@ nfill = 225
 fill_dist = 0.01
 # fixed or random fill of point
 fill_mode = "fixed"
-# boundary path definiing grid area
-boundary_path = os.path.join(base_path, 'data/boundary/TZA_ADM0_GADM28_simplified.geojson')
 
 # -----------------
 # ntl settings
