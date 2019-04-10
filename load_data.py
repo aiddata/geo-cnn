@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 
-def build_dataloaders(df_dict, base_path, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="max", shuffle=True):
+def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="mean", shuffle=True):
 
     if data_transform == None:
 
@@ -23,7 +23,7 @@ def build_dataloaders(df_dict, base_path, data_transform=None, dim=224, batch_si
 
     # where group is train, val, test, predict
     for group in df_dict:
-        tmp_dset = BandDataset(df_dict[group], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
+        tmp_dset = BandDataset(df_dict[group], base_path, year, dim=dim, transform=data_transform, agg_method=agg_method)
         dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
 
@@ -51,10 +51,10 @@ def build_dataloaders(df_dict, base_path, data_transform=None, dim=224, batch_si
 class BandDataset(Dataset):
     """Get the data
     """
-    def __init__(self, dataframe, root_dir, dim=224, transform=None, agg_method="max"):
+    def __init__(self, dataframe, root_dir, year, dim=224, transform=None, agg_method="mean"):
 
         self.dim = dim
-        self.year = 2010
+        self.year = year
         # self.bands = ["b1", "b2", "b3", ]
         self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"]
         # self.bands = ["b3", "b4", "b5"]
