@@ -16,7 +16,7 @@ class Settings():
         self.param_dicts = None
         self.param_count = None
         self.quiet = quiet
-
+ 
 
     def json_sha1_hash(self, hash_obj):
         hash_json = json.dumps(hash_obj,

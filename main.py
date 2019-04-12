@@ -46,7 +46,7 @@ import resnet
 from load_data import build_dataloaders
 from data_prep import *
 from runscript import *
-from load_survey_data import *
+from load_survey_data import surveys
 
 
 # -----------------------------------------------------------------------------
@@ -92,9 +92,9 @@ tags = [date_str, "2010", "true_raw_ntl"]
 # -----------------
 
 # prediciton settings
-new_predict_source_data = dhs2010_cluster.copy(deep=True)
-# new_predict_source_data = lsms2010_cluster.copy(deep=True)
-# new_predict_source_data = lsms2012_cluster.copy(deep=True)
+new_predict_source_data = surveys["dhs2010_cluster"].copy(deep=True)
+# new_predict_source_data = surveys["lsms2010_cluster"].copy(deep=True)
+# new_predict_source_data = surveys["lsms2012_cluster"].copy(deep=True)
 
 pred_tags = [date_str, "2010", "true_raw_ntl"]
 

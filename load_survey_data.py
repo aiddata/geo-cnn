@@ -11,6 +11,8 @@ import numpy as np
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
+surveys = {}
+
 
 # -----------------------------------------------------------------------------
 
@@ -46,7 +48,7 @@ lsms2010_cluster['ntl'] = lsms2010_cluster.apply(
 
 lsms2010_cluster["pred_yval"] = lsms2010_cluster[lsms2010_field]
 
-
+surveys["lsms2010_cluster"] = lsms2010_cluster
 
 # -----------------------------------------------------------------------------
 
@@ -65,6 +67,7 @@ lsms2012_cluster['ntl'] = lsms2012_cluster.apply(
 
 lsms2012_cluster["pred_yval"] = lsms2012_cluster[lsms2012_field]
 
+surveys["lsms2012_cluster"] = lsms2012_cluster
 
 # -----------------------------------------------------------------------------
 
@@ -82,3 +85,5 @@ dhs2010_cluster['ntl'] = dhs2010_cluster.apply(
     lambda z: get_ntl(z['lon'], z['lat']), axis=1)
 
 dhs2010_cluster["pred_yval"] = dhs2010_cluster[dhs2010_field]
+
+surveys["dhs2010_cluster"] = dhs2010_cluster
