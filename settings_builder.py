@@ -14,9 +14,10 @@ class Settings():
     def __init__(self, base, quiet=False):
         self.base_path = base
         self.param_dicts = None
+        self.static = None
         self.param_count = None
         self.quiet = quiet
- 
+
 
     def json_sha1_hash(self, hash_obj):
         hash_json = json.dumps(hash_obj,
@@ -41,15 +42,20 @@ class Settings():
         return tmp_hash
 
 
-    def dict_product(self, d):
+    def gen_dict_product(self, d):
         keys = d.keys()
         for element in itertools.product(*d.values()):
-            return dict(zip(keys, element))
+            yield dict(zip(keys, element))
+
+
+    def dict_product(self, d):
+        return list(self.gen_dict_product(d))
 
 
     def _param_dict_check(self):
         if self.param_dicts is None:
             raise Exception("Settings: No parameter data loaded")
+
 
     def set_param_count(self):
         self._param_dict_check()
@@ -61,32 +67,31 @@ class Settings():
         return self.param_count
 
 
-    def load_csv(self, path, field="hash"):
-        hash_df = pd.read_csv(path, sep=",", encoding='utf-8')
-        hash_list = hash_df[field]
-
-        self.param_dicts = []
-
-        param_json_format = os.path.join(self.base_path, "output/s1_params/params_{}.json")
-        for param_hash in hash_list:
-            param_json_path = param_json_format.format(param_hash)
-            with open(param_json_path) as j:
-                self.param_dicts.append(json.load(j))
+    def _batch_check(self, data):
+        if not isinstance(data, dict):
+            raise ValueError("Settings: invalid JSON data provided (type: {})".format(type(data)))
+        if not "batch" in data:
+            raise ValueError("Settings: no batch params found")
+        if not isinstance(data["batch"], dict):
+            raise ValueError("Settings: invalid batch params format (type: {})".format(type(data["batch"])))
+        for k in data["batch"]:
+            if not isinstance(data["batch"][k], list):
+                raise ValueError("Settings: batch params must be lists ({})".format(k))
+        if not "static" in data:
+            raise ValueError("Settings: no static params found")
+        if not isinstance(data["static"], dict):
+            raise ValueError("Settings: invalid static params format (type: {})".format(type(data["static"])))
 
 
     def load_batch(self, pranges):
-        for i in pranges:
-            if not isinstance(pranges[i], list):
-                raise ValueError("Settings: invalid batch format (`{}` not given as list)".format(i))
-        self.param_dicts = self.dict_product(pranges)
+        self._batch_check(pranges)
+        self.static = pranges["static"]
+        self.param_dicts = [i for i in self.dict_product(pranges["batch"])]
+        # self.param_dicts = [i.update({"static": self.static}) for i in self.dict_product(pranges["batch"])]
         # self.param_count = np.prod([len(i) for i in pranges.values()])
         if not self.quiet:
-            print("\nPreparing parameter set:")
+            print("\nPreparing batch parameter set:")
             pprint.pprint(pranges, indent=4)
-
-
-    def load_single(self, param_dict):
-        self.param_dicts = [param_dict]
 
 
     def load_json(self, arg):
@@ -105,17 +110,46 @@ class Settings():
                     raise Exception("Settings: load_json given string that is not serialized JSON or existing file path")
         else:
             data = arg
-        if isinstance(data, dict):
-            batch = True
-            for i in data:
-                if not isinstance(data[i], list):
-                    batch = False
-                    self.load_single(data)
-                    break
-            if batch:
-                self.load_batch(data)
-        else:
-            raise ValueError("Settings: invalid JSON data provided (type: {})".format(type(data)))
+        self._batch_check(data)
+        self.load_batch(data)
+
+
+    def check_static_params(self):
+        self._param_dict_check()
+        static_match = None
+        for i in self.param_dicts:
+            if "static" not in i:
+                raise ValueError("Settings: no static params found in param dict")
+            if static_match is None:
+                static_match = i["static"]
+            if static_match != i["static"]:
+                raise Exception("Settings: static params do not match")
+
+
+    def load_csv(self, path, field="hash"):
+        if not os.path.isfile(file):
+            raise Exception("Settings: CSV file path provided does not exist ({})".format(path))
+
+        hash_df = pd.read_csv(path, sep=",", encoding='utf-8')
+        hash_list = hash_df[field]
+
+        self.param_dicts = []
+
+        param_json_format = os.path.join(self.base_path, "output/s1_params/params_{}.json")
+        for param_hash in hash_list:
+            param_json_path = param_json_format.format(param_hash)
+            with open(param_json_path) as j:
+                self.param_dicts.append(json.load(j))
+        self.check_static_params()
+        self.static = self.param_dicts[0]["static"]
+
+
+    def load_single(self, param_dict):
+        self.param_dicts = [param_dict]
+        self.static = param_dict["static"]
+        if not self.quiet:
+            print("\nPreparing single parameter set:")
+            pprint.pprint(param_dict, indent=4)
 
 
     def load(self, arg):
