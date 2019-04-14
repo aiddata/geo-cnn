@@ -29,6 +29,10 @@ push load_survey_data.py
 push main.py
 push second_stage_model.py
 
+for i in settings_*; do
+    push $i
+done
+
 cp s1_jobscript tmp_s1_jobscript
 cp s2_jobscript tmp_s2_jobscript
 
