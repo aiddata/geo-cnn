@@ -25,7 +25,7 @@ from torch.utils.data import Dataset, DataLoader
 import resnet
 
 from create_grid import PointGrid
-
+from load_data import NTL_Reader
 
 print('-' * 40)
 
@@ -35,7 +35,7 @@ print("\nInitializing...")
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
 # boundary path defining grid area
-boundary_path = os.path.join(base_path, 'data/boundary/TZA_ADM0_GADM28_simplified.geojson')
+boundary_path = '/sciclone/aiddata10/REU/projects/mcc_tanzaniadata/boundary/TZA_ADM0_GADM28_simplified.geojson'
 
 
 # -----------------
@@ -64,6 +64,9 @@ ntl_calibrated = False
 
 # ntl year
 ntl_year = 2010
+
+# size of square (pixels) to calculate ntl
+ntl_dim = 7
 
 # -----------------
 
@@ -112,25 +115,6 @@ trim_path = os.path.join(
 
 
 # -----------------------------------------------------------------------------
-
-
-class NTL():
-    def __init__(self, calibrated=False):
-        self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites"
-        if calibrated:
-            self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
-    def set_year(self, year):
-        self.year = year
-        self.path = glob.glob(os.path.join(self.base, "*{0}*.tif".format(self.year)))[0]
-        self.file = rasterio.open(self.path)
-    def value(self, lon, lat, ntl_dim=7):
-        """Get nighttime lights average value for grid around point
-        """
-        r, c = self.file.index(lon, lat)
-        ntl_win = ((r-ntl_dim/2+1, r+ntl_dim/2+1), (c-ntl_dim/2+1, c+ntl_dim/2+1))
-        ntl_data = self.file.read(1, window=ntl_win)
-        ntl_mean = ntl_data.mean()
-        return ntl_mean
 
 
 def gen_sample_size(count, weights):
@@ -216,13 +200,13 @@ grid_df = pd.read_csv(grid_path, sep=",", encoding='utf-8')
 print("\nBuilding datasets...")
 
 # ntl data
-ntl = NTL(calibrated=ntl_calibrated)
+ntl = NTL_Reader(calibrated=ntl_calibrated)
 ntl.set_year(ntl_year)
 
 if not os.path.isfile(full_path) or overwrite_full:
     df = grid_df.copy(deep=True)
     # get ntl values
-    df['ntl'] = df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=7), axis=1)
+    df['ntl'] = df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)
     # label each point based on ntl value for point and class bins
     df["label"] = None
     for c, b in enumerate(ntl_class_bins):
