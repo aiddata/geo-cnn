@@ -73,7 +73,8 @@ class RunCNN():
         else:
             raise ValueError("Invalid network specified: {}".format(kwargs["net"]))
 
-
+        #  run type: 1 = fine tune, 2 = fixed feature extractor
+        #  - replace run type option with "# of layers to fine tune"
         if self.kwargs["run_type"] == 2:
             layer_count = len(list(self.model.parameters()))
             for layer, param in enumerate(self.model.parameters()):
