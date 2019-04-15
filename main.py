@@ -1,6 +1,6 @@
 """
 
-qsub -I -l nodes=1:hima:gpu:ppn=64 -l walltime=8:00:00
+qsub -I -l nodes=1:hima:gpu:ppn=64 -l walltime=72:00:00
 
 hi06 = p100 x2
 hi07 = v100 x2
@@ -26,31 +26,28 @@ from __future__ import print_function, division
 
 import os
 import copy
-# import itertools
 import datetime
 import time
-# import pprint
-
-# import json
-# import hashlib
 
 import pandas as pd
 import numpy as np
 import fiona
-
 import torch
-import torch.nn as nn
-
-import resnet
 
 from load_data import build_dataloaders
 from runscript import RunCNN
 from load_survey_data import surveys
-
-from data_prep import *
+from settings_builder import Settings
+from data_prep import gen_sample_size, apply_types, normalize, PrepareSamples
 
 
 # -----------------------------------------------------------------------------
+
+
+print('-' * 40)
+
+print("\nInitializing...")
+
 
 
 quiet = False
@@ -76,15 +73,29 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 date_str = datetime.datetime.now().strftime("%Y%m%d")
 
 
+base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
+
+json_path = "settings_example.json"
+
+s = Settings(base_path)
+s.load(json_path)
+s.set_param_count()
+tasks = s.hashed_iter()
+
+
+ps = PrepareSamples(base_path, s.static)
+dataframe_dict, class_sizes = ps.run()
+
+
 # -----------------------------------------------------------------------------
 
 
 for ix, (param_hash, params) in enumerate(tasks):
     # -----------------
-    params['pixel_size'] = pixel_size
-    params['ncats'] = len(cat_names)
-    params["train_class_sizes"] = train_class_sizes
-    params["val_class_sizes"] = val_class_sizes
+    params['pixel_size'] = ps.pixel_size
+    params['ncats'] = len(ps.cat_names)
+    params["train_class_sizes"] = class_sizes["train"]
+    params["val_class_sizes"] = class_sizes["val"]
     # -----------------
     print('-' * 10)
     print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
@@ -102,7 +113,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             num_workers=params["num_workers"],
             agg_method=params["agg_method"])
         train_cnn = RunCNN(
-            dataloaders, device, cat_names,
+            dataloaders, device, ps.cat_names,
             parallel=False, quiet=quiet, **params)
         if run["train"]:
             acc_p, class_p, time_p = train_cnn.train()
@@ -142,7 +153,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             agg_method=params["agg_method"],
             shuffle=False)
         new_cnn = RunCNN(
-            new_dataloaders, device, cat_names,
+            new_dataloaders, device, ps.cat_names,
             parallel=False, quiet=quiet, **params)
         new_cnn.load(state_path)
         # ---------
