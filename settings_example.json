@@ -18,7 +18,7 @@
         "agg_method": ["mean"]
     },
     "static": {
-        "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_tanzaniadata/boundary/TZA_ADM0_GADM28_simplified.geojson",
+        "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/boundary/TZA_ADM0_GADM28_simplified.geojson",
         "grid_pixel_size": 0.08,
         "grid_nfill": 225,
         "grid_fill_dist": 0.01,

@@ -9,6 +9,7 @@ import torch.nn as nn
 import resnet
 import vgg
 
+
 class RunCNN():
 
     def __init__(self, dataloaders, device, cat_names,

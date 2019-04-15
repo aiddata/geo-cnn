@@ -52,14 +52,12 @@ def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, ba
                                  std=[0.229, 0.224, 0.225]), # imagenet stds
         ])
 
-
     dataloaders = {}
 
     # where group is train, val, test, predict
     for group in df_dict:
         tmp_dset = BandDataset(df_dict[group], base_path, year, dim=dim, transform=data_transform, agg_method=agg_method)
         dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
-
 
     # train_dset = BandDataset(df_dict["train"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
     # val_dset = BandDataset(df_dict["val"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
@@ -79,7 +77,6 @@ def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, ba
     # }
 
     return dataloaders
-
 
 
 class BandDataset(Dataset):
