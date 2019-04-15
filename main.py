@@ -85,7 +85,7 @@ tasks = s.hashed_iter()
 
 ps = PrepareSamples(base_path, s.static)
 dataframe_dict, class_sizes = ps.run()
-
+ps.print_counts()
 
 # -----------------------------------------------------------------------------
 
