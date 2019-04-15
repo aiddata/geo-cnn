@@ -11,8 +11,8 @@ import numpy as np
 class Settings():
 
 
-    def __init__(self, base, quiet=False):
-        self.base_path = base
+    def __init__(self, quiet=False):
+        self.base_path = None
         self.param_dicts = None
         self.static = None
         self.param_count = None
@@ -86,6 +86,7 @@ class Settings():
     def load_batch(self, pranges):
         self._batch_check(pranges)
         self.static = pranges["static"]
+        self.base_path = self.static["base_path"]
         self.param_dicts = [i for i in self.dict_product(pranges["batch"])]
         # self.param_dicts = [i.update({"static": self.static}) for i in self.dict_product(pranges["batch"])]
         # self.param_count = np.prod([len(i) for i in pranges.values()])
@@ -142,11 +143,13 @@ class Settings():
                 self.param_dicts.append(json.load(j))
         self.check_static_params()
         self.static = self.param_dicts[0]["static"]
+        self.base_path = self.static["base_path"]
 
 
     def load_single(self, param_dict):
         self.param_dicts = [param_dict]
         self.static = param_dict["static"]
+        self.base_path = self.static["base_path"]
         if not self.quiet:
             print("\nPreparing single parameter set:")
             pprint.pprint(param_dict, indent=4)

@@ -43,22 +43,9 @@ from data_prep import gen_sample_size, apply_types, normalize, PrepareSamples
 
 # -----------------------------------------------------------------------------
 
-
-print('-' * 40)
-
-print("\nInitializing...")
-
-
+json_path = "settings_example.json"
 
 quiet = False
-
-
-cuda_device_id = 0
-
-device = torch.device("cuda:{}".format(cuda_device_id) if torch.cuda.is_available() else "cpu")
-
-print("Running on:", device)
-
 
 run = {
     "train": True,
@@ -67,28 +54,32 @@ run = {
     "predict_new": True
 }
 
+cuda_device_id = 0
+
+# -----------------------------------------------------------------------------
+
+print('-' * 40)
+print("\nInitializing...")
+
 timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
 
 date_str = datetime.datetime.now().strftime("%Y%m%d")
 
-
-base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
-
-json_path = "settings_example.json"
-
-s = Settings(base_path)
+s = Settings()
 s.load(json_path)
+base_path = s.base_path
 s.set_param_count()
 tasks = s.hashed_iter()
 
-
-ps = PrepareSamples(base_path, s.static)
+ps = PrepareSamples(s.base_path, s.static)
 dataframe_dict, class_sizes = ps.run()
 ps.print_counts()
 
-# -----------------------------------------------------------------------------
+device = torch.device("cuda:{}".format(cuda_device_id) if torch.cuda.is_available() else "cpu")
+print("Running on:", device)
 
+# -----------------------------------------------------------------------------
 
 for ix, (param_hash, params) in enumerate(tasks):
     # -----------------
