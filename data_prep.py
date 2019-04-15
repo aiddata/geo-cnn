@@ -26,6 +26,7 @@ import resnet
 
 from create_grid import PointGrid
 from load_data import NTL_Reader
+from settings_builder import Settings
 
 print('-' * 40)
 
@@ -34,21 +35,28 @@ print("\nInitializing...")
 
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
-# boundary path defining grid area
-boundary_path = '/sciclone/aiddata10/REU/projects/mcc_tanzaniadata/boundary/TZA_ADM0_GADM28_simplified.geojson'
+json_path = "settings_example.json"
 
+s = Settings(base_path)
+s.load(json_path)
+s.set_param_count()
+tasks = s.hashed_iter()
+
+
+# boundary path defining grid area
+boundary_path = s.static["boundary_path"]
 
 # -----------------
 # grid settings
 
 # base grid resolution
-pixel_size = 0.08
+pixel_size = s.static["pixel_size"]
 # number of additional points to fill for each base point
-nfill = 225
+nfill = s.static["nfill"]
 # distance from base point to fill in
-fill_dist = 0.01
+fill_dist = s.static["fill_dist"]
 # fixed or random fill of point
-fill_mode = "fixed"
+fill_mode = s.static["fill_mode"]
 
 # -----------------
 # ntl settings
@@ -56,29 +64,28 @@ fill_mode = "fixed"
 # ntl classes (starting value for each bin, ends at following value)
 #   First value should always be 0
 #   Final value capped at max of data
-ntl_class_bins = [0, 3, 8]
-# ntl_class_bins = [0, 6, 12]
+ntl_class_bins = s.static["ntl_class_bins"]
 
 # whether to use calibrated ntl data or original
-ntl_calibrated = False
+ntl_calibrated = s.static["ntl_calibrated"]
 
 # ntl year
-ntl_year = 2010
+ntl_year = s.static["ntl_year"]
 
 # size of square (pixels) to calculate ntl
-ntl_dim = 7
+ntl_dim = s.static["ntl_dim"]
 
 # -----------------
 
 # ntl cateogories (low, med, high)
 #   must match number of values in ntl_class_bins
-cat_names = [0, 1, 2]
+cat_names = s.static["cat_names"]
 
 # data types to subset
-type_names = ["train", "val", "test", "predict"]
+type_names = s.static["type_names"]
 
 # ratio for data types (must sum to 1.0)
-type_weights = [0.850, 0.150, 0.0, 0.0]
+type_weights = s.static["type_weights"]
 
 
 # -----------------

@@ -43,7 +43,6 @@ import torch.nn as nn
 
 import resnet
 
-from settings_builder import Settings
 from load_data import build_dataloaders
 from runscript import RunCNN
 from load_survey_data import surveys
@@ -52,6 +51,7 @@ from data_prep import *
 
 
 # -----------------------------------------------------------------------------
+
 
 quiet = False
 
@@ -79,119 +79,13 @@ date_str = datetime.datetime.now().strftime("%Y%m%d")
 # -----------------------------------------------------------------------------
 
 
-# def output_csv():
-#     col_order = [
-#         "hash",
-#         "id_string",
-#         "acc",
-#         "time",
-#         "run_type",
-#         "n_epochs",
-#         "optim",
-#         "lr",
-#         "momentum",
-#         "step_size",
-#         "gamma",
-#         "n_input_channels",
-#         "pixel_size",
-#         "ncats",
-#         "loss_weights",
-#         "train_class_sizes",
-#         "val_class_sizes",
-#         "class_acc",
-#         "net",
-#         "batch_size",
-#         "num_workers",
-#         "dim",
-#         "agg_method"
-#     ]
-#     df_out = pd.DataFrame(results)
-#     df_out['pixel_size'] = pixel_size
-#     df_out['ncats'] = len(cat_names)
-#     df_out["train_class_sizes"] = [train_class_sizes] * len(df_out)
-#     df_out["val_class_sizes"] = [val_class_sizes] * len(df_out)
-#     df_out = df_out[col_order]
-#     df_out_path = os.path.join(base_path, "output/s1_train/train_{}.csv".format(timestamp))
-#     df_out.to_csv(df_out_path, index=False, encoding='utf-8')
-
-
-# def json_sha1_hash(hash_obj):
-#     hash_json = json.dumps(hash_obj,
-#                            sort_keys = True,
-#                            ensure_ascii = True,
-#                            separators=(', ', ': '))
-#     hash_builder = hashlib.sha1()
-#     hash_builder.update(hash_json)
-#     hash_sha1 = hash_builder.hexdigest()
-#     return hash_sha1
-
-
-# pranges = {
-#     "run_type": [1],
-#     "n_input_channels": [8],
-#     "n_epochs": [60],
-#     "optim": ["sgd", "adam"],
-#     "lr": [0.001, 0.005, 0.01],
-#     "momentum": [0.97],
-#     "step_size": [5, 15],
-#     "gamma": [0.75, 0.25],
-#     "loss_weights": [
-#         [1.0, 1.0, 1.0]
-#     ],
-#     "net": ["resnet18"],
-#     "batch_size": [64],
-#     "num_workers": [16],
-#     "dim": [224],
-#     "agg_method": ["mean"],
-#     "imagery_year": [2010],
-#     "survey": ["dhs2010_cluster"]
-# }
-
-# print("\nPreparing following parameter set:\n")
-# pprint.pprint(pranges, indent=4)
-# print('-' * 20)
-
-# def dict_product(d):
-#     keys = d.keys()
-#     for element in itertools.product(*d.values()):
-#         yield dict(zip(keys, element))
-
-# param_dicts = list(dict_product(pranges))
-
-# pcount = len(param_dicts)
-
-
-# -----------------------------------------------------------------------------
-
-
-
-# results = []
-
-# for ix, p in enumerate(param_dicts):
-
-#     params = copy.deepcopy(p)
-
-#     print('-' * 10)
-#     print("\nParameter combination: {}/{}".format(ix+1, pcount))
-
-#     full_param_hash = json_sha1_hash(params)
-#     param_hash = full_param_hash[:7]
-
-#     print("\nParam hash: {}\n".format(param_hash))
-
-#     param_json_path = os.path.join(base_path, "output/s1_params/params_{}.json".format(param_hash))
-
-#     with open(param_json_path, "w", 0) as param_json:
-#         json.dump(params, param_json)
-
-
-s = Settings(base_path)
-json_path = "settings_example.json"
-s.load(json_path)
-s.set_param_count()
-tasks = s.hashed_iter()
-
 for ix, (param_hash, params) in enumerate(tasks):
+    # -----------------
+    params['pixel_size'] = pixel_size
+    params['ncats'] = len(cat_names)
+    params["train_class_sizes"] = train_class_sizes
+    params["val_class_sizes"] = val_class_sizes
+    # -----------------
     print('-' * 10)
     print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
     print("\nParam hash: {}\n".format(param_hash))
@@ -217,8 +111,6 @@ for ix, (param_hash, params) in enumerate(tasks):
             params['acc'] = acc_p
             params['class_acc'] = class_p
             params['time'] = time_p
-            # results.append(params)
-            # output_csv()
             s.write_to_json(param_hash, params)
             train_cnn.save(state_path)
         else:
