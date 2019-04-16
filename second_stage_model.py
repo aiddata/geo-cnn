@@ -22,17 +22,24 @@ from scipy import stats
 
 import matplotlib.pyplot as plot
 
+from settings_builder import Settings
 
-# -------------------------------------
-
-# mode = "serial"
-mode = "parallel"
-
-base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
+# -----------------------------------------------------------------------------
 
 
-predict_tag = "a1"
-model_tag = "a1"
+json_path = "settings_example.json"
+
+
+
+s = Settings()
+s.load(json_path)
+base_path = s.base_path
+
+mode = s.config["second_stage_mode"]
+
+predict_tag = s.config["predict_tag"]
+model_tag = s.config["model_tag"]
+
 
 # timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 #     '%Y_%m_%d_%H_%M_%S')

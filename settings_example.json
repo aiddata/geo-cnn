@@ -47,7 +47,8 @@
             "predict": false,
             "predict_new": true
         },
-        "cuda_device_id": 0
+        "cuda_device_id": 0,
+        "second_stage_mode": "parallel"
     },
     "csv": {
         "path": "none",
