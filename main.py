@@ -41,28 +41,10 @@ print("\nInitializing...")
 
 # date_str = datetime.datetime.now().strftime("%Y%m%d")
 
-
 s = Settings()
 s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
-
-
-# ============
-# ============
-version = s.config["version"]
-
-predict_tag = s.config["predict_tag"]
-
-overwrite_sample_prep = s.config["overwrite_sample_prep"]
-
-run = s.config["run"]
-
-cuda_device_id = s.config["cuda_device_id"]
-# ============
-# ============
-
-
 
 output_dirs = ["s1_params", "s1_state", "s1_predict", "s1_train", "s2_models"]
 for d in output_dirs:
@@ -72,29 +54,27 @@ for d in output_dirs:
 s.save_params()
 tasks = s.hashed_iter()
 
-ps = PrepareSamples(s.base_path, s.static, version, overwrite=overwrite_sample_prep)
-dataframe_dict, class_sizes = ps.run()
-ps.print_counts()
+if s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]:
+    ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
+    dataframe_dict, class_sizes = ps.run()
+    ps.print_counts()
 
-device = torch.device("cuda:{}".format(cuda_device_id) if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:{}".format(s.config["cuda_device_id"]) if torch.cuda.is_available() else "cpu")
 print("\nRunning on:", device)
-
 
 # -----------------------------------------------------------------------------
 
 for ix, (param_hash, params) in enumerate(tasks):
-    # -----------------
-    params["train"] = {}
-    params["train"]['ncats'] = len(ps.cat_names)
-    params["train"]["train_class_sizes"] = class_sizes["train"]
-    params["train"]["val_class_sizes"] = class_sizes["val"]
-    # -----------------
     print('\n' + '-' * 40)
     print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
     print("\nParam hash: {}\n".format(param_hash))
-    state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, version))
+    state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
     # -----------------
-    if run["train"] or run["test"] or run["predict"]:
+    if s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]:
+        params["train"] = {}
+        params["train"]['ncats'] = len(ps.cat_names)
+        params["train"]["train_class_sizes"] = class_sizes["train"]
+        params["train"]["val_class_sizes"] = class_sizes["val"]
         dataloaders = build_dataloaders(
             dataframe_dict,
             base_path,
@@ -106,7 +86,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             agg_method=params["agg_method"])
         train_cnn = RunCNN(
             dataloaders, device, parallel=False, **params)
-        if run["train"]:
+        if s.config["run"]["train"]:
             acc_p, class_p, time_p = train_cnn.train()
             params["train"]["acc"] = acc_p
             params["train"]["class_acc"] = class_p
@@ -115,12 +95,12 @@ for ix, (param_hash, params) in enumerate(tasks):
             train_cnn.save(state_path)
         else:
             train_cnn.load(state_path)
-        if run["test"]:
+        if s.config["run"]["test"]:
             epoch_loss, epoch_acc, class_acc, time_elapsed = train_cnn.test()
-        if run["predict"]:
+        if s.config["run"]["predict"]:
             pred_data, _ = train_cnn.predict(features=True)
     # -----------------
-    if run["predict_new"]:
+    if s.config["run"]["predict_new"]:
         """
         - load data
         - load trained cnn state
@@ -152,5 +132,5 @@ for ix, (param_hash, params) in enumerate(tasks):
         new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
         col_order = list(new_data["predict"].columns) + feat_labels
         new_out = new_out[col_order]
-        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}.csv".format(param_hash, version, predict_tag))
+        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}.csv".format(param_hash, s.config["version"], s.config["predict_tag"]))
         new_out.to_csv(new_out_path, index=False, encoding='utf-8')
