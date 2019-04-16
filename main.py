@@ -30,6 +30,8 @@ from data_prep import make_dir, gen_sample_size, apply_types, normalize, Prepare
 
 version = "v2"
 
+predict_tag = "a1"
+
 json_path = "settings_example.json"
 
 quiet = False
@@ -151,5 +153,5 @@ for ix, (param_hash, params) in enumerate(tasks):
         new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
         col_order = list(new_data["predict"].columns) + feat_labels
         new_out = new_out[col_order]
-        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, version))
+        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}.csv".format(param_hash, version, predict_tag))
         new_out.to_csv(new_out_path, index=False, encoding='utf-8')
