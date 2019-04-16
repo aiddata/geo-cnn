@@ -25,7 +25,6 @@ import matplotlib.pyplot as plot
 
 # -------------------------------------
 
-
 # mode = "serial"
 mode = "parallel"
 
@@ -47,13 +46,6 @@ regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}.csv".format(
 regex_search = glob.glob(regex_str)
 
 qlist = ["_".join(os.path.basename(i).split("_")[1:3]) for i in regex_search]
-
-
-# id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual full fine tune - batch 64
-# id_string = "0718ecc_2019_03_18_15_46_27" # 60 epoch - mean - resnet152 - actual full fine tune - batch 64
-# id_string = "c5e054d_2019_03_18_16_46_53" # 60 epoch - max - resnet152 - actual full fine tune - batch 64
-# id_string = "174f06a_2019_03_21_13_41_16"
-# qlist = ["31b84fa_2019_03_21_17_10_29"]
 
 
 # qlist = ["7a118a3_2019_03_28_12_48_37"]

@@ -26,28 +26,12 @@ from settings_builder import Settings
 from data_prep import make_dir, gen_sample_size, apply_types, normalize, PrepareSamples
 
 
-# -----------------------------------------------------------------------------
-
-version = "v2"
-
-predict_tag = "a1"
-
+# *****************
+# *****************
 json_path = "settings_example.json"
+# *****************
+# *****************
 
-quiet = False
-
-overwrite_sample_prep = False
-
-run = {
-    "train": True,
-    "test": False,
-    "predict": False,
-    "predict_new": True
-}
-
-cuda_device_id = 0
-
-# -----------------------------------------------------------------------------
 
 print('-' * 40)
 print("\nInitializing...")
@@ -58,12 +42,27 @@ print("\nInitializing...")
 # date_str = datetime.datetime.now().strftime("%Y%m%d")
 
 
-s = Settings(version)
+s = Settings()
 s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
 
-s.param_dicts
+
+# ============
+# ============
+version = s.config["version"]
+
+predict_tag = s.config["predict_tag"]
+
+overwrite_sample_prep = s.config["overwrite_sample_prep"]
+
+run = s.config["run"]
+
+cuda_device_id = s.config["cuda_device_id"]
+# ============
+# ============
+
+
 
 output_dirs = ["s1_params", "s1_state", "s1_predict", "s1_train", "s2_models"]
 for d in output_dirs:
@@ -106,7 +105,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             num_workers=params["num_workers"],
             agg_method=params["agg_method"])
         train_cnn = RunCNN(
-            dataloaders, device, parallel=False, quiet=quiet, **params)
+            dataloaders, device, parallel=False, **params)
         if run["train"]:
             acc_p, class_p, time_p = train_cnn.train()
             params["train"]["acc"] = acc_p
@@ -143,7 +142,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             agg_method=params["agg_method"],
             shuffle=False)
         new_cnn = RunCNN(
-            new_dataloaders, device, parallel=False, quiet=quiet, **params)
+            new_dataloaders, device, parallel=False, **params)
         new_cnn.load(state_path)
         # ---------
         new_pred_data, _ = new_cnn.predict(features=True)

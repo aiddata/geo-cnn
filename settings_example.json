@@ -6,7 +6,7 @@
         "optim": ["sgd"],
         "lr": [0.001],
         "momentum": [0.97],
-        "step_size": [5, 10 ,15],
+        "step_size": [5, 10 ],
         "gamma": [0.75],
         "loss_weights": [
             [1.0, 1.0, 1.0]
@@ -18,7 +18,6 @@
         "agg_method": ["mean"]
     },
     "static": {
-        "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
         "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/boundary/TZA_ADM0_GADM28_simplified.geojson",
         "grid_pixel_size": 0.08,
         "grid_nfill": 225,
@@ -33,5 +32,25 @@
         "type_weights": [0.850, 0.150, 0.0, 0.0],
         "imagery_year": 2010,
         "survey": "dhs2010_cluster"
+    },
+    "config": {
+        "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
+        "mode": "batch",
+        "version": "v2",
+        "predict_tag": "p1",
+        "model_tag": "m1",
+        "quiet": false,
+        "overwrite_sample_prep": false,
+        "run": {
+            "train": true,
+            "test": false,
+            "predict": false,
+            "predict_new": true
+        },
+        "cuda_device_id": 0
+    },
+    "csv": {
+        "path": "none",
+        "field": "none"
     }
 }
