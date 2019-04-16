@@ -11,7 +11,8 @@ import numpy as np
 class Settings():
 
 
-    def __init__(self, quiet=False):
+    def __init__(self, version, quiet=False):
+        self.version = version
         self.base_path = None
         self.param_dicts = None
         self.static = None
@@ -87,8 +88,9 @@ class Settings():
         self._batch_check(pranges)
         self.static = pranges["static"]
         self.base_path = self.static["base_path"]
-        self.param_dicts = [i for i in self.dict_product(pranges["batch"])]
-        # self.param_dicts = [i.update({"static": self.static}) for i in self.dict_product(pranges["batch"])]
+        self.param_dicts = self.dict_product(pranges["batch"])
+        for p in self.param_dicts:
+            p.update({"static": self.static})
         # self.param_count = np.prod([len(i) for i in pranges.values()])
         if not self.quiet:
             print("\nPreparing batch parameter set:")
@@ -127,7 +129,7 @@ class Settings():
                 raise Exception("Settings: static params do not match")
 
 
-    def load_csv(self, path, field="hash"):
+    def load_csv(self, path, version, field="hash"):
         if not os.path.isfile(file):
             raise Exception("Settings: CSV file path provided does not exist ({})".format(path))
 
@@ -136,9 +138,9 @@ class Settings():
 
         self.param_dicts = []
 
-        param_json_format = os.path.join(self.base_path, "output/s1_params/params_{}.json")
+        param_json_format = os.path.join(self.base_path, "output/s1_params/params_{}_{}.json")
         for param_hash in hash_list:
-            param_json_path = param_json_format.format(param_hash)
+            param_json_path = param_json_format.format(param_hash, version)
             with open(param_json_path) as j:
                 self.param_dicts.append(json.load(j))
         self.check_static_params()
@@ -179,7 +181,16 @@ class Settings():
 
 
     def write_to_json(self, phash, pdict):
-        output_format = os.path.join(self.base_path, "output/s1_params/params_{}.json")
-        path = output_format.format(phash)
+        output_format = os.path.join(self.base_path, "output/s1_train/train_{}_{}.json")
+        path = output_format.format(phash, self.version)
         with open(path, "w", 0) as f:
             json.dump(pdict, f)
+
+
+    def save_params(self):
+        self._param_dict_check()
+        output_format = os.path.join(self.base_path, "output/s1_params/params_{}_{}.json")
+        for phash, pdict in self.gen_hashed_iter():
+            path = output_format.format(phash, self.version)
+            with open(path, "w", 0) as f:
+                json.dump(pdict, f)
