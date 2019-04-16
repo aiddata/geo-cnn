@@ -9,43 +9,32 @@ hi07 = v100 x2
 
 """
 
-
-# import os
-# import errno
-# from affine import Affine
-
-# def make_dir(path):
-#     try:
-#         os.makedirs(path)
-#     except OSError as exception:
-#         if exception.errno != errno.EEXIST:
-#             raise
-
-
 from __future__ import print_function, division
 
 import os
 import copy
-import datetime
-import time
+# import datetime
+# import time
 
 import pandas as pd
-import numpy as np
-import fiona
 import torch
 
 from load_data import build_dataloaders
 from runscript import RunCNN
 from load_survey_data import surveys
 from settings_builder import Settings
-from data_prep import gen_sample_size, apply_types, normalize, PrepareSamples
+from data_prep import make_dir, gen_sample_size, apply_types, normalize, PrepareSamples
 
 
 # -----------------------------------------------------------------------------
 
+version = "v2"
+
 json_path = "settings_example.json"
 
 quiet = False
+
+overwrite_sample_prep = False
 
 run = {
     "train": True,
@@ -61,58 +50,66 @@ cuda_device_id = 0
 print('-' * 40)
 print("\nInitializing...")
 
-timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
-    '%Y_%m_%d_%H_%M_%S')
+# timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+#     '%Y_%m_%d_%H_%M_%S')
 
-date_str = datetime.datetime.now().strftime("%Y%m%d")
+# date_str = datetime.datetime.now().strftime("%Y%m%d")
 
-s = Settings()
+
+s = Settings(version)
 s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
+
+s.param_dicts
+
+output_dirs = ["s1_params", "s1_state", "s1_predict", "s1_train", "s2_models"]
+for d in output_dirs:
+    abs_d = os.path.join(base_path, "output", d)
+    make_dir(abs_d)
+
+s.save_params()
 tasks = s.hashed_iter()
 
-ps = PrepareSamples(s.base_path, s.static)
+ps = PrepareSamples(s.base_path, s.static, version, overwrite=overwrite_sample_prep)
 dataframe_dict, class_sizes = ps.run()
 ps.print_counts()
 
 device = torch.device("cuda:{}".format(cuda_device_id) if torch.cuda.is_available() else "cpu")
-print("Running on:", device)
+print("\nRunning on:", device)
+
 
 # -----------------------------------------------------------------------------
 
 for ix, (param_hash, params) in enumerate(tasks):
     # -----------------
-    params['pixel_size'] = ps.pixel_size
-    params['ncats'] = len(ps.cat_names)
-    params["train_class_sizes"] = class_sizes["train"]
-    params["val_class_sizes"] = class_sizes["val"]
+    params["train"] = {}
+    params["train"]['ncats'] = len(ps.cat_names)
+    params["train"]["train_class_sizes"] = class_sizes["train"]
+    params["train"]["val_class_sizes"] = class_sizes["val"]
     # -----------------
-    print('-' * 10)
+    print('\n' + '-' * 40)
     print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
     print("\nParam hash: {}\n".format(param_hash))
-    state_path = os.path.join(base_path, "output/s1_state/state_{}.pt".format(param_hash))
+    state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, version))
     # -----------------
     if run["train"] or run["test"] or run["predict"]:
         dataloaders = build_dataloaders(
             dataframe_dict,
             base_path,
-            params["imagery_year"],
+            params["static"]["imagery_year"],
             data_transform=None,
             dim=params["dim"],
             batch_size=params["batch_size"],
             num_workers=params["num_workers"],
             agg_method=params["agg_method"])
         train_cnn = RunCNN(
-            dataloaders, device, ps.cat_names,
-            parallel=False, quiet=quiet, **params)
+            dataloaders, device, parallel=False, quiet=quiet, **params)
         if run["train"]:
             acc_p, class_p, time_p = train_cnn.train()
-            params['hash'] = param_hash
-            params['id_string'] = "{}_{}.csv".format(param_hash, timestamp)
-            params['acc'] = acc_p
-            params['class_acc'] = class_p
-            params['time'] = time_p
+            params["train"]["acc"] = acc_p
+            params["train"]["class_acc"] = class_p
+            params["train"]["time"] = time_p
             s.write_to_json(param_hash, params)
             train_cnn.save(state_path)
         else:
@@ -131,12 +128,12 @@ for ix, (param_hash, params) in enumerate(tasks):
         - output to csv for second stage models
         """
         new_data = {
-            "predict": surveys[params["survey"]].copy(deep=True)
+            "predict": surveys[params["static"]["survey"]].copy(deep=True)
         }
         new_dataloaders = build_dataloaders(
             new_data,
             base_path,
-            params["imagery_year"],
+            params["static"]["imagery_year"],
             data_transform=None,
             dim=params["dim"],
             batch_size=params["batch_size"],
@@ -144,8 +141,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             agg_method=params["agg_method"],
             shuffle=False)
         new_cnn = RunCNN(
-            new_dataloaders, device, ps.cat_names,
-            parallel=False, quiet=quiet, **params)
+            new_dataloaders, device, parallel=False, quiet=quiet, **params)
         new_cnn.load(state_path)
         # ---------
         new_pred_data, _ = new_cnn.predict(features=True)
@@ -155,5 +151,5 @@ for ix, (param_hash, params) in enumerate(tasks):
         new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
         col_order = list(new_data["predict"].columns) + feat_labels
         new_out = new_out[col_order]
-        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, timestamp))
+        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}.csv".format(param_hash, version))
         new_out.to_csv(new_out_path, index=False, encoding='utf-8')
