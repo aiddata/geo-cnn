@@ -12,18 +12,17 @@ import vgg
 
 class RunCNN():
 
-    def __init__(self, dataloaders, device, cat_names,
-                 parallel=False, quiet=False, **kwargs):
+    def __init__(self, dataloaders, device, parallel=False, quiet=False, **kwargs):
 
         self.dataloaders = dataloaders
         self.device = device
-
-        self.ncats = len(cat_names)
 
         self.parallel = parallel
         self.quiet = quiet
 
         self.kwargs = kwargs
+        self.cat_names = kwargs["static"]["cat_names"]
+        self.ncats = len(self.cat_names)
 
         print('')
         print('-' * 20)
