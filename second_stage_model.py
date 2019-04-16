@@ -4,8 +4,8 @@ import os
 import glob
 import itertools
 import random
-import time
-import datetime
+# import time
+# import datetime
 from copy import deepcopy
 
 import numpy as np
@@ -32,16 +32,21 @@ mode = "parallel"
 base_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania"
 
 
+predict_tag = "a1"
+model_tag = "a1"
 
-timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
-    '%Y_%m_%d_%H_%M_%S')
+# timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+#     '%Y_%m_%d_%H_%M_%S')
 
-merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(timestamp))
+# merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(timestamp))
+merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(model_tag))
 
+# -----------------
 
-regex_str = os.path.join(base_path, "output/s1_predict/predict_*_2019_04_*.csv")
+regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}.csv".format(predict_tag))
 regex_search = glob.glob(regex_str)
-qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
+
+qlist = ["_".join(os.path.basename(i).split("_")[1:3]) for i in regex_search]
 
 
 # id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual full fine tune - batch 64
@@ -53,9 +58,9 @@ qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search
 
 # qlist = ["7a118a3_2019_03_28_12_48_37"]
 
-
 # qlist = pd.read_csv(os.path.join(base_path, "cnn_results_merge_1.csv"))["id_string"].tolist()
 
+# -------------------------------------
 
 
 def pearson_r2(true, predict):
