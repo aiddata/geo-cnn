@@ -3,6 +3,7 @@ from __future__ import print_function, division
 import os
 import copy
 import itertools
+import errno
 
 import pandas as pd
 import numpy as np
@@ -10,6 +11,15 @@ import fiona
 
 from create_grid import PointGrid
 from load_data import NTL_Reader
+
+
+
+def make_dir(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
 
 
 def gen_sample_size(count, weights):
@@ -69,12 +79,18 @@ def normalize(data, type_field, type_values, class_field, class_values):
 
 class PrepareSamples():
 
-    def __init__(self, base_path, static_params):
+    def __init__(self, base_path, static_params, version, overwrite=None):
+
+        self.base_path = base_path
+        self.static_params = static_params
+        self.version = version
 
         # -----------------
         # output settings
 
         overwrite_all = False
+        if overwrite:
+            overwrite_all = overwrite
 
         self.overwrite_grid = False | overwrite_all # base grid generation
         self.overwrite_full = False | overwrite_all # overwrite class/type definitions
@@ -83,7 +99,10 @@ class PrepareSamples():
 
         # grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "cal")
         # grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "raw")
-        grid_tag = str(static_params["grid_pixel_size"]).split(".")[1]
+        grid_tag = "{}_{}".format(
+            str(static_params["grid_pixel_size"]).split(".")[1],
+            version
+        )
 
         # raw grid
         self.grid_path = os.path.join(
@@ -171,25 +190,25 @@ class PrepareSamples():
         self.ntl = NTL_Reader(calibrated=self.ntl_calibrated)
         self.ntl.set_year(self.ntl_year)
         # ----------
-        df = self.grid_df.copy(deep=True)
+        self.df = self.grid_df.copy(deep=True)
         # get ntl values
-        df['ntl'] = df.apply(lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        self.df['ntl'] = self.df.apply(lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
         # label each point based on ntl value for point and class bins
-        df["label"] = None
+        self.df["label"] = None
         for c, b in enumerate(self.ntl_class_bins):
-            df.loc[df['ntl'] >= b, 'label'] = int(c)
+            self.df.loc[self.df['ntl'] >= b, 'label'] = int(c)
         # ----------------------------------------
         # determine size of each data type (train, val, etc)
-        df['type'] = None
+        self.df['type'] = None
         # subset to original grid (no spatial overlap)
-        tmp_df = df.loc[df["group"] == "orig"].copy(deep=True)
-        # define data group type
-        self.df = apply_types(tmp_df, self.cat_names, self.type_names, self.type_weights)
+        tmp_df = self.df.loc[self.df["group"] == "orig"].copy(deep=True)
+        # define data group type for original grid
+        tmp_df = apply_types(tmp_df, self.cat_names, self.type_names, self.type_weights)
         # based on classes for original grid subset, apply classes to
         # all associated subgrid points
-        for _, row in self.df.iterrows():
+        for _, row in tmp_df.iterrows():
             cell_id = row["cell_id"]
-            df.loc[df["cell_id"] == cell_id, 'type'] = row['type']
+            self.df.loc[self.df["cell_id"] == cell_id, 'type'] = row['type']
         # save full set of data
         self.df.to_csv(self.full_path, index=False, encoding='utf-8')
 
@@ -201,7 +220,7 @@ class PrepareSamples():
 
     def run(self):
 
-        print("\nPreparing grid..")
+        print("\nPreparing grid...")
         # define, build, and save sample grid
         if not os.path.isfile(self.grid_path) or self.overwrite_grid:
             self.prepare_grid()
@@ -239,15 +258,15 @@ class PrepareSamples():
     def print_counts(self):
 
         # print resulting split of classes for each data type
-        print("Full data:")
+        print("\nFull data:")
         for i in self.type_names:
             tmp_df = self.df.loc[self.df['type'] == i]
-            print("Samples per cat ({}):".format(i))
-            for j in self.cat_names: print("{0}: {1}".format(j, sum(tmp_df['label'] == j)))
+            print("\tSamples per cat ({}):".format(i))
+            for j in self.cat_names: print("\t{0}: {1}".format(j, sum(tmp_df['label'] == j)))
 
 
-        print("Normalized data:")
+        print("\nNormalized data:")
         for i in self.type_names:
             tmp_df = self.ndf.loc[self.ndf['type'] == i]
-            print("Samples per cat ({}):".format(i))
-            for j in self.cat_names: print("{0}: {1}".format(j, sum(tmp_df['label'] == j)))
+            print("\tSamples per cat ({}):".format(i))
+            for j in self.cat_names: print("\t{0}: {1}".format(j, sum(tmp_df['label'] == j)))
