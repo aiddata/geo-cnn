@@ -2,16 +2,16 @@
     "batch": {
         "run_type": [1],
         "n_input_channels": [8],
-        "n_epochs": [1],
-        "optim": ["sgd"],
-        "lr": [0.001],
+        "n_epochs": [60],
+        "optim": ["sgd", "adam"],
+        "lr": [0.0009, 0.009, 0.09],
         "momentum": [0.97],
-        "step_size": [5, 10 ],
-        "gamma": [0.75],
+        "step_size": [5, 15],
+        "gamma": [0.75, 0.025],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet18"],
+        "net": ["resnet18", "resnet101"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -36,7 +36,7 @@
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
         "mode": "batch",
-        "version": "v2",
+        "version": "v1",
         "predict_tag": "p1",
         "model_tag": "m1",
         "quiet": false,
@@ -48,7 +48,7 @@
             "predict_new": true
         },
         "cuda_device_id": 0,
-        "second_stage_mode": "parallel"
+        "second_stage_mode": "serial"
     },
     "csv": {
         "path": "none",
