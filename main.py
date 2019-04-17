@@ -46,7 +46,7 @@ s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
 
-output_dirs = ["s1_params", "s1_state", "s1_predict", "s1_train", "s2_models"]
+output_dirs = ["s1_params", "s1_state", "s1_predict", "s1_train", "s2_models", "s2_merge"]
 for d in output_dirs:
     abs_d = os.path.join(base_path, "output", d)
     make_dir(abs_d)

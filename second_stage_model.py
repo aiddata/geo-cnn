@@ -4,8 +4,8 @@ import os
 import glob
 import itertools
 import random
-# import time
-# import datetime
+import time
+import datetime
 from copy import deepcopy
 
 import numpy as np
@@ -129,11 +129,11 @@ lm_list = [
 
 # https://scikit-learn.org/stable/modules/classes.html#regression-metrics
 metric_list = {
-    # "pr2": pearson_r2,
-    # "evs": metrics.explained_variance_score,
-    # "mae": metrics.mean_absolute_error,
-    # "mae2": metrics.median_absolute_error,
-    # "mse": metrics.mean_squared_error,
+    "pr2": pearson_r2,
+    "evs": metrics.explained_variance_score,
+    "mae": metrics.mean_absolute_error,
+    "mae2": metrics.median_absolute_error,
+    "mse": metrics.mean_squared_error,
     "r2": metrics.r2_score
 }
 
@@ -407,18 +407,18 @@ else:
     raise ValueError("Invalid `mode` value for script ({}).".format(mode))
 
 
-if rank == 0:
-    print "Merging..."
+# if rank == 0:
+#     print "Merging..."
 
-    merge_df_list = []
+#     merge_df_list = []
 
-    merge_file_list = [os.path.join(base_path, "output/s2_models/models_{}_{}.csv".format(i, model_tag)) for i in qlist]
+#     merge_file_list = [os.path.join(base_path, "output/s2_models/models_{}_{}.csv".format(i, model_tag)) for i in qlist]
 
-    for merge_file in merge_file_list:
-        df = pd.read_csv(merge_file, quotechar='\"',
-                            na_values='', keep_default_na=False,
-                            encoding='utf-8')
-        merge_df_list.append(df)
+#     for merge_file in merge_file_list:
+#         df = pd.read_csv(merge_file, quotechar='\"',
+#                             na_values='', keep_default_na=False,
+#                             encoding='utf-8')
+#         merge_df_list.append(df)
 
-    merge_df = pd.concat(merge_df_list, axis=0, ignore_index=True)
-    merge_df.to_csv(merge_out_path, index=False, encoding='utf-8')
+#     merge_df = pd.concat(merge_df_list, axis=0, ignore_index=True)
+#     merge_df.to_csv(merge_out_path, index=False, encoding='utf-8')
