@@ -213,7 +213,7 @@ class Settings():
 
     def write_to_json(self, phash, pdict):
         output_format = os.path.join(self.base_path, "output/s1_train/train_{}_{}.json")
-        path = output_format.format(phash, self.version)
+        path = output_format.format(phash, self.config["version"])
         with open(path, "w", 0) as f:
             json.dump(pdict, f)
 
@@ -222,6 +222,6 @@ class Settings():
         self._param_dict_check()
         output_format = os.path.join(self.base_path, "output/s1_params/params_{}_{}.json")
         for phash, pdict in self.gen_hashed_iter():
-            path = output_format.format(phash, self.version)
+            path = output_format.format(phash, self.config["version"])
             with open(path, "w", 0) as f:
                 json.dump(pdict, f)

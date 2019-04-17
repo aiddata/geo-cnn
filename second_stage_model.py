@@ -17,7 +17,7 @@ from sklearn.model_selection import KFold, train_test_split, cross_val_score, cr
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-import seaborn as sns
+# import seaborn as sns
 from scipy import stats
 
 import matplotlib.pyplot as plot
@@ -27,8 +27,11 @@ from settings_builder import Settings
 # -----------------------------------------------------------------------------
 
 
+# *****************
+# *****************
 json_path = "settings_example.json"
-
+# *****************
+# *****************
 
 
 s = Settings()
@@ -41,19 +44,19 @@ predict_tag = s.config["predict_tag"]
 model_tag = s.config["model_tag"]
 
 
-# timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
-#     '%Y_%m_%d_%H_%M_%S')
+timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+    '%Y_%m_%d_%H_%M_%S')
 
-# merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(timestamp))
-merge_out_path = os.path.join(base_path, "output/models_merge_{}.csv".format(model_tag))
+merge_out_path = os.path.join(base_path, "output/models_merge_{}_{}.csv".format(timestamp, model_tag))
 
 # -----------------
 
 regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}.csv".format(predict_tag))
 regex_search = glob.glob(regex_str)
 
-qlist = ["_".join(os.path.basename(i).split("_")[1:3]) for i in regex_search]
+qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
 
+print qlist
 
 # qlist = ["7a118a3_2019_03_28_12_48_37"]
 
@@ -126,15 +129,15 @@ lm_list = [
 
 # https://scikit-learn.org/stable/modules/classes.html#regression-metrics
 metric_list = {
-    "pr2": pearson_r2,
-    "evs": metrics.explained_variance_score,
-    "mae": metrics.mean_absolute_error,
-    "mae2": metrics.median_absolute_error,
-    "mse": metrics.mean_squared_error,
+    # "pr2": pearson_r2,
+    # "evs": metrics.explained_variance_score,
+    # "mae": metrics.mean_absolute_error,
+    # "mae2": metrics.median_absolute_error,
+    # "mse": metrics.mean_squared_error,
     "r2": metrics.r2_score
 }
 
-keys = ["hash", "id", "name", "model", "input"] + metric_list.keys()
+keys = ["id", "name", "model", "input"] + metric_list.keys()
 
 
 # -------------------------------------
@@ -298,15 +301,6 @@ def train_and_predict(X_train, y_train, X_test, model, alpha=None):
 
 def run(id_string):
 
-    task_hash = id_string.split("_")[0]
-
-    # id_string = "7383df5_2019_03_18_17_41_44" # 60 epoch - min - resnet152 - actual full fine tune - batch 64
-    # id_string = "0718ecc_2019_03_18_15_46_27" # 60 epoch - mean - resnet152 - actual full fine tune - batch 64
-    # id_string = "c5e054d_2019_03_18_16_46_53" # 60 epoch - max - resnet152 - actual full fine tune - batch 64
-    # id_string = "174f06a_2019_03_21_13_41_16"
-    # id_string = "31b84fa_2019_03_21_17_10_29"
-
-
     pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
     pred_data = pd.read_csv(pred_data_path, quotechar='\"',
@@ -315,7 +309,7 @@ def run(id_string):
 
     test_feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
-    model_results_path = os.path.join(base_path, "output/s2_models/models_{}.csv".format(id_string))
+    model_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}.csv".format(id_string, model_tag))
 
 
     # reduce feature dimensions using PCA
@@ -375,7 +369,7 @@ def run(id_string):
                 else:
                     metric_vals = [metric_list[i](y_train, y_predict) for i in metric_list]
 
-            tmp_vals = [task_hash, id_string, name, lm_dict["model"].__name__, x_name]
+            tmp_vals = [id_string, name, lm_dict["model"].__name__, x_name]
             tmp_vals += metric_vals
             results.append(dict(zip(keys, tmp_vals)))
 
@@ -418,7 +412,7 @@ if rank == 0:
 
     merge_df_list = []
 
-    merge_file_list = [os.path.join(base_path, "output/s2_models/models_{}.csv".format(i)) for i in qlist]
+    merge_file_list = [os.path.join(base_path, "output/s2_models/models_{}_{}.csv".format(i, model_tag)) for i in qlist]
 
     for merge_file in merge_file_list:
         df = pd.read_csv(merge_file, quotechar='\"',
