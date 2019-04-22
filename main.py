@@ -29,6 +29,8 @@ from data_prep import make_dir, gen_sample_size, apply_types, normalize, Prepare
 # *****************
 # *****************
 json_path = "settings_example.json"
+json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
+
 # *****************
 # *****************
 
@@ -69,8 +71,9 @@ for ix, (param_hash, params) in enumerate(tasks):
     print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
     print("\nParam hash: {}\n".format(param_hash))
     state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
+    new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}.csv".format(param_hash, s.config["version"], s.config["predict_tag"]))
     # -----------------
-    if s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]:
+    if (not os.path.isfile(state_path) or s.config["overwrite_train"]) and (s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]):
         params["train"] = {}
         params["train"]['ncats'] = len(ps.cat_names)
         params["train"]["train_class_sizes"] = class_sizes["train"]
@@ -100,7 +103,7 @@ for ix, (param_hash, params) in enumerate(tasks):
         if s.config["run"]["predict"]:
             pred_data, _ = train_cnn.predict(features=True)
     # -----------------
-    if s.config["run"]["predict_new"]:
+    if (not os.path.isfile(new_out_path) or s.config["overwrite_predict_new"]) and (s.config["run"]["predict_new"]):
         """
         - load data
         - load trained cnn state
@@ -132,5 +135,4 @@ for ix, (param_hash, params) in enumerate(tasks):
         new_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
         col_order = list(new_data["predict"].columns) + feat_labels
         new_out = new_out[col_order]
-        new_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}.csv".format(param_hash, s.config["version"], s.config["predict_tag"]))
         new_out.to_csv(new_out_path, index=False, encoding='utf-8')

@@ -41,6 +41,8 @@
         "model_tag": "m1",
         "quiet": false,
         "overwrite_sample_prep": false,
+        "overwrite_train": false,
+        "overwrite_predict_new": false,
         "run": {
             "train": true,
             "test": false,
