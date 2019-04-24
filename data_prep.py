@@ -110,6 +110,12 @@ class PrepareSamples():
             "data/grid/sample_grid_init_{}.csv".format(grid_tag)
         )
 
+        # ntl data (ntl values added)
+        self.ntl_path = os.path.join(
+            base_path,
+            "data/grid/sample_grid_ntl_{}.csv".format(grid_tag)
+        )
+
         # full set of data (before trimming)
         self.full_path = os.path.join(
             base_path,
@@ -156,6 +162,9 @@ class PrepareSamples():
         # size of square (pixels) to calculate ntl
         self.ntl_dim = static_params["ntl_dim"]
 
+        # minimum NTL to keep (for dropping zero/low values that may be noise)
+        self.ntl_min = static_params["ntl_min"]
+
         # -----------------
 
         # ntl cateogories (low, med, high)
@@ -185,7 +194,7 @@ class PrepareSamples():
         self.grid_df = grid.df.copy(deep=True)
 
 
-    def build_datasets(self):
+    def assign_ntl(self):
         # ntl data
         self.ntl = NTL_Reader(calibrated=self.ntl_calibrated)
         self.ntl.set_year(self.ntl_year)
@@ -193,6 +202,11 @@ class PrepareSamples():
         self.df = self.grid_df.copy(deep=True)
         # get ntl values
         self.df['ntl'] = self.df.apply(lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        self.df = self.df.loc[self.df['ntl'] >= self.ntl_min]
+        self.df.to_csv(self.ntl_path, index=False, encoding='utf-8')
+
+
+    def build_datasets(self):
         # label each point based on ntl value for point and class bins
         self.df["label"] = None
         for c, b in enumerate(self.ntl_class_bins):
@@ -227,6 +241,11 @@ class PrepareSamples():
         else:
             self.grid_df = pd.read_csv(self.grid_path, sep=",", encoding='utf-8')
 
+        print("\nAdding NTL values...")
+        if not os.path.isfile(self.ntl_path) or self.overwrite_full:
+            self.assign_ntl()
+        else:
+            self.df = pd.read_csv(self.ntl_path, sep=",", encoding='utf-8')
 
         print("\nBuilding datasets...")
         if not os.path.isfile(self.full_path) or self.overwrite_full:
