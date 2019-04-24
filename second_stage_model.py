@@ -30,6 +30,7 @@ from settings_builder import Settings
 # *****************
 # *****************
 json_path = "settings_example.json"
+json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
 
@@ -129,11 +130,11 @@ lm_list = [
 
 # https://scikit-learn.org/stable/modules/classes.html#regression-metrics
 metric_list = {
-    "pr2": pearson_r2,
-    "evs": metrics.explained_variance_score,
-    "mae": metrics.mean_absolute_error,
-    "mae2": metrics.median_absolute_error,
-    "mse": metrics.mean_squared_error,
+    # "pr2": pearson_r2,
+    # "evs": metrics.explained_variance_score,
+    # "mae": metrics.mean_absolute_error,
+    # "mae2": metrics.median_absolute_error,
+    # "mse": metrics.mean_squared_error,
     "r2": metrics.r2_score
 }
 

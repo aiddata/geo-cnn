@@ -38,7 +38,7 @@ cp s1_jobscript tmp_s1_jobscript
 cp s2_jobscript tmp_s2_jobscript
 
 echo "python /sciclone/aiddata10/REU/projects/mcc_tanzania/"${dir}"/main.py" >> s1_jobscript
-echo "mpirun --mca mpi_warn_on_fork 0 --map-by node -np 80 python-mpi /sciclone/aiddata10/REU/projects/mcc_tanzania/"${dir}"/second_stage_model.py" >> s2_jobscript
+echo "mpirun --mca mpi_warn_on_fork 0 --map-by node python-mpi /sciclone/aiddata10/REU/projects/mcc_tanzania/"${dir}"/second_stage_model.py" >> s2_jobscript
 
 push s1_jobscript
 push s2_jobscript

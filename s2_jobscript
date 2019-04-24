@@ -1,7 +1,7 @@
 #!/bin/tcsh
 #PBS -N asg:cnn-s2
-#PBS -l nodes=5:c18c:ppn=16
+#PBS -l nodes=3:c18c:ppn=16
 #PBS -l walltime=24:00:00
 #PBS -j oe
 
-# mpirun --mca mpi_warn_on_fork 0 --map-by node -np 80 python-mpi /sciclone/aiddata10/REU/projects/mcc_tanzania/second_stage_model.py
+# mpirun --mca mpi_warn_on_fork 0 --map-by node -np 48 python-mpi /sciclone/aiddata10/REU/projects/mcc_tanzania/second_stage_model.py
