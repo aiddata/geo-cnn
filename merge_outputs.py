@@ -1,5 +1,7 @@
 
 import os
+import datetime
+import time
 import json
 import glob
 from copy import deepcopy
@@ -20,6 +22,9 @@ json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 
 
+timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+    '%Y_%m_%d_%H_%M_%S')
+
 s = Settings()
 s.load(json_path)
 base_path = s.base_path
@@ -30,7 +35,7 @@ predict_tag = s.config["predict_tag"]
 model_tag = s.config["model_tag"]
 
 # final merged output
-merge_out_path = os.path.join(base_path, "output/s2_merge/merge_{}_{}_{}.csv".format(version, predict_tag, model_tag))
+merge_out_path = os.path.join(base_path, "output/s2_merge/merge_{}_{}_{}_{}.csv".format(version, predict_tag, model_tag, timestamp))
 
 # find input data based on models
 #   use combinations of version, predict tag, and model tag to search
