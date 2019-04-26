@@ -41,18 +41,17 @@ base_path = s.base_path
 
 mode = s.config["second_stage_mode"]
 
-predict_tag = s.config["predict_tag"]
 model_tag = s.config["model_tag"]
 
 
 timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
 
-merge_out_path = os.path.join(base_path, "output/models_merge_{}_{}.csv".format(timestamp, model_tag))
+# merge_out_path = os.path.join(base_path, "output/models_merge_{}_{}.csv".format(timestamp, model_tag))
 
 # -----------------
 
-regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}.csv".format(predict_tag))
+regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}_{}.csv".format(s.config["version"], s.config["predict_tag"]))
 regex_search = glob.glob(regex_str)
 
 qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
