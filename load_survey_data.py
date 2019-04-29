@@ -19,15 +19,15 @@ surveys = {}
 
 
 ntl_calibrated = False
-ntl_year = 2010
 ntl_dim = 7
 
 # ntl data
 ntl = NTL_Reader(calibrated=ntl_calibrated)
-ntl.set_year(ntl_year)
 
 
 # -----------------------------------------------------------------------------
+
+ntl.set_year(2010)
 
 lsms2010_field = 'cons'
 
@@ -48,6 +48,7 @@ surveys["lsms2010_cluster"] = lsms2010_cluster
 
 # -----------------------------------------------------------------------------
 
+ntl.set_year(2012)
 
 lsms2012_field = 'cons'
 
@@ -67,6 +68,7 @@ surveys["lsms2012_cluster"] = lsms2012_cluster
 
 # -----------------------------------------------------------------------------
 
+ntl.set_year(2010)
 
 dhs2010_field = 'wealthscore'
 

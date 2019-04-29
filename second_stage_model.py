@@ -319,7 +319,7 @@ def run(id_string):
     y_train = pred_data["pred_yval"].values
 
     x_train = {}
-    x_train["ntl"] = pred_data[['ntl_2010']].values
+    x_train["ntl"] = pred_data[['ntl']].values
     x_train["cnn"] = pred_data[test_feat_labels].values
 
     x_train["all"] = x_train["ntl"] + x_train["cnn"]
