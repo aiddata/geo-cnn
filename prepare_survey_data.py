@@ -57,110 +57,16 @@ dhs_merge = dhs_data.merge(dhs_coords, on="cluster")
 dhs_geo = dhs_merge.copy(deep=True)
 dhs_geo = dhs_geo.loc[~dhs_geo["lat"].isnull() | ~dhs_geo["lon"].isnull()]
 dhs_geo = dhs_geo.loc[(dhs_geo["lat"] != 0) & (dhs_geo["lon"] != 0)]
-dhs_buffer = 5000/111123.0
-dhs_geo['geometry'] = dhs_geo.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
-dhs_geo['geometry'] = dhs_geo.apply(lambda z: z['geometry'].buffer(dhs_buffer), axis=1)
-dhs_geo = gpd.GeoDataFrame(dhs_geo)
-
-ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
-
-ntl_years = [2010]
-
-dhs_final = 0
-for y in ntl_years:
-    ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(y)))[0]
-    extract_geojson = rs.zonal_stats(dhs_geo, ntl_path, stats="mean", geojson_out=True)
-    extract_list = [i['properties'] for i in extract_geojson]
-    dhs_extract = pd.DataFrame(extract_list)
-    dhs_extract.columns = ["ntl_{0}".format(y) if i == "mean" else i for i in dhs_extract.columns]
-    if not dhs_final:
-        dhs_final = dhs_extract.copy(deep=True)
-    else:
-        dhs_extract = dhs_extract[["cluster", "ntl_{0}".format(y)]]
-        dhs_final = dhs_final.merge(dhs_extract, on="cluster")
-
-
-# output household
-dhs_household = dhs_final.copy(deep=True)
-dhs_household_path = os.path.join(survey_data, "final/tanzania_2010_dhs_household.csv")
-dhs_household.to_csv(dhs_household_path, index=False, encoding='utf-8')
-
-
-
-# cluster
-# group by lat/lon
-# mean wealthscore, mean ntl, number of households n in group
-
-dhs_precluster = dhs_final.copy(deep=True)
-dhs_precluster["lonlat"] = dhs_precluster.apply(
-    lambda z: "{0}_{1}".format(z["lon"], z["lat"]), axis=1)
-dhs_precluster["n"] = 1
-
-agg_fields = {
-    "lon": "last",
-    "lat": "last",
-    "wealthscore": "mean",
-    "n": "sum"
-}
-
-for y in ntl_years: agg_fields["ntl_{0}".format(y)] = "mean"
-
-dhs_cluster = dhs_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
-
-
-# output cluster
-dhs_cluster_path = os.path.join(survey_data, "final/tanzania_2010_dhs_cluster.csv")
-dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
-
-
-# # --------------------------------------------------------------------------
-# # --------------------------------------------------------------------------
-# # DHS 2015
-
-# dhs_base = [
-#     i for i in glob.glob(
-#         os.path.join(survey_data, "DHS", "TZ_2015-16_DHS_*"))
-#     if os.path.isdir(i)
-# ][0]
-
-# dhs_data_path = os.path.join(dhs_base, "TZHR63DT/TZHR63FL.DTA")
-# dhs_coords_path = os.path.join(dhs_base, "TZGE61FL/TZGE61FL.shp")
-
-# dhs_data = pd.read_stata(dhs_data_path)
-# dhs_coords = gpd.read_file(dhs_coords_path)
-
-
-# var_list = ["hhid", "hv001", "hv005", "hv271"]
-# name_list = ["hhid", "cluster", "weight", "wealthscore"]
-
-# dhs_data = dhs_data[var_list]
-# dhs_data.columns = name_list
-
-
-# var_list = ["DHSCLUST", "LATNUM", "LONGNUM"]
-# name_list = ["cluster", "lat", "lon"]
-
-# dhs_coords = dhs_coords[var_list]
-# dhs_coords.columns = name_list
-
-# dhs_merge = dhs_data.merge(dhs_coords, on="cluster")
-
-
-# # add ntl extract
-# # drop lat or lon = 0 or NA / empty
-# # buffer 5km and get mean extract
-
-# dhs_geo = dhs_merge.copy(deep=True)
-# dhs_geo = dhs_geo.loc[~dhs_geo["lat"].isnull() | ~dhs_geo["lon"].isnull()]
-# dhs_geo = dhs_geo.loc[(dhs_geo["lat"] != 0) & (dhs_geo["lon"] != 0)]
 # dhs_buffer = 5000/111123.0
 # dhs_geo['geometry'] = dhs_geo.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
 # dhs_geo['geometry'] = dhs_geo.apply(lambda z: z['geometry'].buffer(dhs_buffer), axis=1)
 # dhs_geo = gpd.GeoDataFrame(dhs_geo)
 
-# ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+dhs_final = dhs_geo
 
-# ntl_years = [2015]
+
+# ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+# ntl_years = [2010]
 
 # dhs_final = 0
 # for y in ntl_years:
@@ -176,37 +82,98 @@ dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
 #         dhs_final = dhs_final.merge(dhs_extract, on="cluster")
 
 
-# # output household
-# dhs_household = dhs_final.copy(deep=True)
-# dhs_household_path = os.path.join(survey_data, "final/tanzania_2015_dhs_household.csv")
-# dhs_household.to_csv(dhs_household_path, index=False, encoding='utf-8')
+# output household
+dhs_household = dhs_final.copy(deep=True)
+dhs_household_path = os.path.join(survey_data, "final/tanzania_2010_dhs_household.csv")
+dhs_household.to_csv(dhs_household_path, index=False, encoding='utf-8')
 
+# cluster
+#   group by lat/lon
+#   mean wealthscore, mean ntl, number of households n in group
 
+dhs_precluster = dhs_final.copy(deep=True)
+dhs_precluster["lonlat"] = dhs_precluster.apply(
+    lambda z: "{0}_{1}".format(z["lon"], z["lat"]), axis=1)
+dhs_precluster["n"] = 1
 
-# # cluster
-# # group by lat/lon
-# # mean wealthscore, mean ntl, number of households n in group
-
-# dhs_precluster = dhs_final.copy(deep=True)
-# dhs_precluster["lonlat"] = dhs_precluster.apply(
-#     lambda z: "{0}_{1}".format(z["lon"], z["lat"]), axis=1)
-# dhs_precluster["n"] = 1
-
-# agg_fields = {
-#     "lon": "last",
-#     "lat": "last",
-#     "wealthscore": "mean",
-#     "n": "sum"
-# }
+agg_fields = {
+    "lon": "last",
+    "lat": "last",
+    "wealthscore": "mean",
+    "n": "sum"
+}
 
 # for y in ntl_years: agg_fields["ntl_{0}".format(y)] = "mean"
 
-# dhs_cluster = dhs_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
+dhs_cluster = dhs_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
+
+# output cluster
+dhs_cluster_path = os.path.join(survey_data, "final/tanzania_2010_dhs_cluster.csv")
+dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
 
 
-# # output cluster
-# dhs_cluster_path = os.path.join(survey_data, "final/tanzania_2015_dhs_cluster.csv")
-# dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# DHS 2015
+
+dhs_base = [
+    i for i in glob.glob(
+        os.path.join(survey_data, "DHS", "TZ_2015-16_DHS_*"))
+    if os.path.isdir(i)
+][0]
+
+dhs_data_path = os.path.join(dhs_base, "TZHR7HDT/TZHR7HFL.DTA")
+dhs_coords_path = os.path.join(dhs_base, "TZGE7AFL/TZGE7AFL.shp")
+
+dhs_data = pd.read_stata(dhs_data_path)
+dhs_coords = gpd.read_file(dhs_coords_path)
+
+
+var_list = ["hhid", "hv001", "hv005", "hv271"]
+name_list = ["hhid", "cluster", "weight", "wealthscore"]
+
+dhs_data = dhs_data[var_list]
+dhs_data.columns = name_list
+
+
+var_list = ["DHSCLUST", "LATNUM", "LONGNUM"]
+name_list = ["cluster", "lat", "lon"]
+
+dhs_coords = dhs_coords[var_list]
+dhs_coords.columns = name_list
+
+dhs_merge = dhs_data.merge(dhs_coords, on="cluster")
+
+# drop lat or lon = 0 or NA / empty
+dhs_merge = dhs_merge.loc[~dhs_merge["lat"].isnull() | ~dhs_merge["lon"].isnull()]
+dhs_merge = dhs_merge.loc[(dhs_merge["lat"] != 0) & (dhs_merge["lon"] != 0)]
+
+# output household
+dhs_household = dhs_merge.copy(deep=True)
+dhs_household_path = os.path.join(survey_data, "final/tanzania_2015_dhs_household.csv")
+dhs_household.to_csv(dhs_household_path, index=False, encoding='utf-8')
+
+# cluster
+#   group by lat/lon
+#   mean wealthscore, number of households n in group
+
+dhs_precluster = dhs_household.copy(deep=True)
+dhs_precluster["lonlat"] = dhs_precluster.apply(
+    lambda z: "{0}_{1}".format(z["lon"], z["lat"]), axis=1)
+dhs_precluster["n"] = 1
+
+agg_fields = {
+    "lon": "last",
+    "lat": "last",
+    "wealthscore": "mean",
+    "n": "sum"
+}
+
+dhs_cluster = dhs_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
+
+# output cluster
+dhs_cluster_path = os.path.join(survey_data, "final/tanzania_2015_dhs_cluster.csv")
+dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
 
 
 # --------------------------------------------------------------------------
