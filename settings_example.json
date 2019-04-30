@@ -4,14 +4,14 @@
         "n_input_channels": [8],
         "n_epochs": [60],
         "optim": ["adam"],
-        "lr": [0.009, 0.03, 0.09],
+        "lr": [0.009, 0.09],
         "momentum": [0.97],
         "step_size": [10, 20],
         "gamma": [0.75],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet18", "resnet34", "resnet50"],
+        "net": ["resnet18", "resnet50"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -23,7 +23,7 @@
         "grid_nfill": 225,
         "grid_fill_dist": 0.01,
         "grid_fill_mode": "fixed",
-        "ntl_year": 2010,
+        "ntl_year": 2015,
         "ntl_class_bins": [0, 3, 8],
         "ntl_calibrated": false,
         "ntl_dim": 7,
@@ -32,13 +32,13 @@
         "type_names": ["train", "val", "test", "predict"],
         "type_weights": [0.850, 0.150, 0.0, 0.0],
         "imagery_year": 2010,
-        "survey": "lsms2010_cluster"
+        "survey": "dhs2015_cluster"
     },
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
         "mode": "batch",
         "version": "v1",
-        "predict_tag": "p3",
+        "predict_tag": "p4",
         "model_tag": "m1",
         "quiet": false,
         "overwrite_sample_prep": false,
