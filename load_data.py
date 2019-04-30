@@ -17,8 +17,13 @@ class NTL_Reader():
         self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites"
         if calibrated:
             self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
+        self.year = None
+        self.path = None
+        self.file = None
 
     def set_year(self, year):
+        if self.file is not None:
+            self.file.close()
         self.year = year
         self.path = glob.glob(os.path.join(self.base, "*{0}*.tif".format(self.year)))[0]
         self.file = rasterio.open(self.path)
