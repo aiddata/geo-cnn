@@ -21,7 +21,7 @@ import torch
 
 from load_data import build_dataloaders
 from runscript import RunCNN
-from load_survey_data import surveys
+from load_survey_data import SurveyData
 from settings_builder import Settings
 from data_prep import make_dir, gen_sample_size, apply_types, normalize, PrepareSamples
 
@@ -30,7 +30,6 @@ from data_prep import make_dir, gen_sample_size, apply_types, normalize, Prepare
 # *****************
 json_path = "settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
-
 # *****************
 # *****************
 
@@ -55,6 +54,8 @@ for d in output_dirs:
 
 s.save_params()
 tasks = s.hashed_iter()
+
+survey_data = SurveyData(base_path, s.static)
 
 if s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]:
     ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
@@ -112,7 +113,7 @@ for ix, (param_hash, params) in enumerate(tasks):
         - output to csv for second stage models
         """
         new_data = {
-            "predict": surveys[params["static"]["survey"]].copy(deep=True)
+            "predict": survey_data.surveys[params["static"]["survey"]].copy(deep=True)
         }
         new_dataloaders = build_dataloaders(
             new_data,
