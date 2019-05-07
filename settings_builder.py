@@ -14,7 +14,8 @@ class Settings():
     def __init__(self):
         self.base_path = None
 
-        self.comfig = None
+        self.predict = None
+        self.config = None
         self.static = None
 
         self.param_dicts = None
@@ -67,9 +68,6 @@ class Settings():
     def get_param_count(self):
         self.set_param_count()
         return self.param_count
-
-
-
 
 
     def check_static_params(self):
@@ -180,6 +178,7 @@ class Settings():
         else:
             data = arg
         self._general_check(data)
+        self.predict = data["predict"]
         self.config = data["config"]
         self.base_path = self.config["base_path"]
         if self.config["mode"] == "batch":
@@ -224,4 +223,4 @@ class Settings():
         for phash, pdict in self.gen_hashed_iter():
             path = output_format.format(phash, self.config["version"])
             with open(path, "w", 0) as f:
-                json.dump(pdict, f)
+                json.dump(pdict, f, indent=4, sort_keys=True)

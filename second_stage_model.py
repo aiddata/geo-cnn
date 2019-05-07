@@ -43,6 +43,7 @@ mode = s.config["second_stage_mode"]
 
 model_tag = s.config["model_tag"]
 
+predict_hash = s.build_hash(s.predict, nchar=7)
 
 timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
@@ -51,7 +52,7 @@ timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 
 # -----------------
 
-regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}_{}.csv".format(s.config["version"], s.config["predict_tag"]))
+regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}_{}_{}.csv".format(predict_hash, s.config["version"], s.config["predict_tag"]))
 regex_search = glob.glob(regex_str)
 
 qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
