@@ -13,8 +13,9 @@ from __future__ import print_function, division
 
 import os
 import copy
-# import datetime
-# import time
+import shutil
+import datetime
+import time
 
 import pandas as pd
 import torch
@@ -37,8 +38,8 @@ json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 print('-' * 40)
 print("\nInitializing...")
 
-# timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
-#     '%Y_%m_%d_%H_%M_%S')
+timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+    '%Y_%m_%d_%H_%M_%S')
 
 # date_str = datetime.datetime.now().strftime("%Y%m%d")
 
@@ -47,10 +48,16 @@ s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
 
-output_dirs = ["s1_params", "s1_state", "s1_predict", "s1_train", "s2_models", "s2_merge"]
+output_dirs = ["s0_settings", "s1_params", "s1_state", "s1_predict", "s1_train", "s2_models", "s2_merge"]
 for d in output_dirs:
     abs_d = os.path.join(base_path, "output", d)
     make_dir(abs_d)
+
+job_dir = os.path.basename(os.path.dirname(json_path))
+shutil.copyfile(
+    json_path,
+    os.path.join(base_path, "output/s0_settings/settings_{}_{}.json".format(job_dir, timestamp))
+)
 
 s.save_params()
 tasks = s.hashed_iter()
