@@ -4,14 +4,14 @@
         "n_input_channels": [8],
         "n_epochs": [60],
         "optim": ["adam"],
-        "lr": [0.009],
+        "lr": [0.009, 0.09],
         "momentum": [0.97],
-        "step_size": [20],
-        "gamma": [0.75],
+        "step_size": [10, 20],
+        "gamma": [0.75, 0.25],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet18"],
+        "net": ["resnet34"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -27,35 +27,43 @@
         "ntl_class_bins": [0, 3, 8],
         "ntl_calibrated": false,
         "ntl_dim": 7,
-        "ntl_min": 1,
+        "ntl_min": 0,
         "cat_names": [0, 1, 2],
         "type_names": ["train", "val", "test", "predict"],
         "type_weights": [0.850, 0.150, 0.0, 0.0],
-        "imagery_year": 2010,
-        "survey": "dhs2010_cluster"
+        "imagery_year": 2010
     },
-    "predict": {
-        "survey": "dhs2015_cluster",
+    "survey_predict": {
+        "survey": "dhs2010_cluster",
         "imagery_year": 2010,
-        "ntl_year": 2013,
+        "ntl_year": 2010,
+        "ntl_calibrated": false,
+        "ntl_dim": 7
+    },
+    "custom_predict": {
+        "data": "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surface_grid.csv",
+        "imagery_year": 2010,
+        "ntl_year": 2010,
         "ntl_calibrated": false,
         "ntl_dim": 7
     },
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
         "mode": "batch",
-        "version": "v2",
-        "predict_tag": "p4",
-        "model_tag": "m2",
+        "predict": "custom_predict",
+        "version": "v5",
+        "predict_tag": "p5",
+        "model_tag": "m5",
         "quiet": false,
         "overwrite_sample_prep": false,
         "overwrite_train": true,
-        "overwrite_predict_new": true,
+        "overwrite_survey_predict": true,
         "run": {
-            "train": false,
+            "train": true,
             "test": false,
             "predict": false,
-            "predict_new": true
+            "survey_predict": false,
+            "custom_predict": true
         },
         "cuda_device_id": 0,
         "second_stage_mode": "parallel"

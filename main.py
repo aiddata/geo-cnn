@@ -20,8 +20,7 @@ import time
 import pandas as pd
 import torch
 
-from load_data import build_dataloaders
-from runscript import RunCNN
+from runscript import RunCNN, build_dataloaders
 from load_survey_data import SurveyData
 from settings_builder import Settings
 from data_prep import make_dir, gen_sample_size, apply_types, normalize, PrepareSamples
@@ -62,35 +61,45 @@ shutil.copyfile(
 s.save_params()
 tasks = s.hashed_iter()
 
-if s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]:
-    ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
-    dataframe_dict, class_sizes = ps.run()
-    ps.print_counts()
-
-predict_hash = s.build_hash(s.predict, nchar=7)
+predict_settings = s.data[s.config["predict"]]
+predict_hash = s.build_hash(predict_settings, nchar=7)
 
 device = torch.device("cuda:{}".format(s.config["cuda_device_id"]) if torch.cuda.is_available() else "cpu")
 print("\nRunning on:", device)
 
 # -----------------------------------------------------------------------------
 
+sample_data = None
+predict_data = None
+
 for ix, (param_hash, params) in enumerate(tasks):
+
     print('\n' + '-' * 40)
     print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
     print("\nParam hash: {}\n".format(param_hash))
+
     state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
+
     full_out_path = os.path.join(base_path, "output/s1_predict/raw_predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
     group_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
 
-    # -----------------
+    custom_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
+
 
     if (not os.path.isfile(state_path) or s.config["overwrite_train"]) and (s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]):
+
+        if sample_data is None:
+            ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
+            sample_data, class_sizes = ps.run()
+            ps.print_counts()
+
         params["train"] = {}
         params["train"]['ncats'] = len(ps.cat_names)
         params["train"]["train_class_sizes"] = class_sizes["train"]
         params["train"]["val_class_sizes"] = class_sizes["val"]
+
         dataloaders = build_dataloaders(
-            dataframe_dict,
+            sample_data,
             base_path,
             params["static"]["imagery_year"],
             data_transform=None,
@@ -98,9 +107,14 @@ for ix, (param_hash, params) in enumerate(tasks):
             batch_size=params["batch_size"],
             num_workers=params["num_workers"],
             agg_method=params["agg_method"])
-        train_cnn = RunCNN(
-            dataloaders, device, parallel=False, **params)
+
+        train_cnn = RunCNN(dataloaders, device, parallel=False, **params)
+
+        train_cnn.init_print()
+        train_cnn.init_net()
+
         if s.config["run"]["train"]:
+            train_cnn.init_loss()
             acc_p, class_p, time_p = train_cnn.train()
             params["train"]["acc"] = acc_p
             params["train"]["class_acc"] = class_p
@@ -109,50 +123,94 @@ for ix, (param_hash, params) in enumerate(tasks):
             train_cnn.save(state_path)
         else:
             train_cnn.load(state_path)
-        if s.config["run"]["test"]:
-            epoch_loss, epoch_acc, class_acc, time_elapsed = train_cnn.test()
-        if s.config["run"]["predict"]:
-            pred_data, _ = train_cnn.predict(features=True)
 
-    # -----------------
+        # if s.config["run"]["test"]:
+        #     train_cnn.init_loss()
+        #     epoch_loss, epoch_acc, class_acc, time_elapsed = train_cnn.test()
 
-    if (not os.path.isfile(full_out_path) or s.config["overwrite_predict_new"]) and (s.config["run"]["predict_new"]):
-        """
-        - load data
-        - load trained cnn state
-        - run predict
-        - append cnn features to original data
-        - output to csv for second stage models
-        """
-        survey_data = SurveyData(base_path, s.predict)
-        new_data = {
-            "predict": survey_data.surveys[s.predict["survey"]].copy(deep=True)
-        }
+        # if s.config["run"]["predict"]:
+        #     pred_data, _ = train_cnn.predict(features=True)
+
+
+    if (not os.path.isfile(full_out_path) or s.config["overwrite_survey_predict"]) and (s.config["run"]["survey_predict"]):
+
+        # load survey data
+        if predict_data is None:
+            survey_data = SurveyData(base_path, predict_settings)
+            predict_data = {
+                "predict": survey_data.surveys[predict_settings["survey"]].copy(deep=True)
+            }
+
         new_dataloaders = build_dataloaders(
-            new_data,
+            predict_data,
             base_path,
-            s.predict["imagery_year"],
+            predict_settings["imagery_year"],
             data_transform=None,
             dim=params["dim"],
             batch_size=params["batch_size"],
             num_workers=params["num_workers"],
             agg_method=params["agg_method"],
             shuffle=False)
-        new_cnn = RunCNN(
-            new_dataloaders, device, parallel=False, **params)
+
+        new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
         new_cnn.load(state_path)
-        # ---------
+
+        # predict
         new_pred_data, _ = new_cnn.predict(features=True)
+
+        # merge predict with original data
         feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
         pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
         pred_df = pd.DataFrame(pred_dicts)
-        full_out = new_data["predict"].merge(pred_df, left_index=True, right_index=True)
-        full_col_order = list(new_data["predict"].columns) + feat_labels
+        full_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
+        full_col_order = list(predict_data["predict"].columns) + feat_labels
         full_out = full_out[full_col_order]
         full_out.to_csv(full_out_path, index=False, encoding='utf-8')
-        agg_fields = {i:"mean" if i.startswith("feat") else "last" for i in full_col_order}
-        del agg_fields["group"]
-        group_out = full_out.groupby("group").agg(agg_fields).reset_index()
-        group_col_order = [i for i in full_col_order if i != "group"]
-        group_out = group_out[group_col_order]
-        group_out.to_csv(group_out_path, index=False, encoding='utf-8')
+
+        # aggregate by group
+        if "group" in full_col_order:
+            agg_fields = {i:"mean" if i.startswith("feat") else "last" for i in full_col_order}
+            del agg_fields["group"]
+            group_out = full_out.groupby("group").agg(agg_fields).reset_index()
+            group_col_order = [i for i in full_col_order if i != "group"]
+            group_out = group_out[group_col_order]
+            group_out.to_csv(group_out_path, index=False, encoding='utf-8')
+
+
+
+    if (not os.path.isfile(custom_out_path) or s.config["overwrite_custom_predict"]) and (s.config["run"]["custom_predict"]):
+
+        # load custom data
+        if predict_data is None:
+            custom_data = pd.read_csv(predict_settings["data"], quotechar='\"',
+                                     na_values='', keep_default_na=False,
+                                     encoding='utf-8')
+            predict_data = {
+                "predict": custom_data
+            }
+
+        new_dataloaders = build_dataloaders(
+            predict_data,
+            base_path,
+            predict_settings["imagery_year"],
+            data_transform=None,
+            dim=params["dim"],
+            batch_size=params["batch_size"],
+            num_workers=params["num_workers"],
+            agg_method=params["agg_method"],
+            shuffle=False)
+
+        new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
+        new_cnn.load(state_path)
+
+        # predict
+        new_pred_data, _ = new_cnn.predict(features=True)
+
+        # merge predict with original data
+        feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+        pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
+        pred_df = pd.DataFrame(pred_dicts)
+        custom_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
+        full_col_order = list(predict_data["predict"].columns) + feat_labels
+        custom_out = custom_out[full_col_order]
+        custom_out.to_csv(custom_out_path, index=False, encoding='utf-8')

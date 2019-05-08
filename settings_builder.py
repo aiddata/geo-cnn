@@ -14,7 +14,7 @@ class Settings():
     def __init__(self):
         self.base_path = None
 
-        self.predict = None
+        self.data = None
         self.config = None
         self.static = None
 
@@ -178,7 +178,7 @@ class Settings():
         else:
             data = arg
         self._general_check(data)
-        self.predict = data["predict"]
+        self.data = data
         self.config = data["config"]
         self.base_path = self.config["base_path"]
         if self.config["mode"] == "batch":
