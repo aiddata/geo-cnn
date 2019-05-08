@@ -3,10 +3,7 @@ import os
 import glob
 import rasterio
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-
-
+from torch.utils.data import Dataset
 
 
 class NTL_Reader():
@@ -43,45 +40,6 @@ class NTL_Reader():
         else:
             raise ValueError("NTL_Reader: invalid method given for calculating NTL value ({})".format(method))
         return ntl_val
-
-
-def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="mean", shuffle=True):
-
-    if data_transform == None:
-
-        data_transform = transforms.Compose([
-            # transforms.RandomSizedCrop(224),
-            # transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], # imagenet means
-                                 std=[0.229, 0.224, 0.225]), # imagenet stds
-        ])
-
-    dataloaders = {}
-
-    # where group is train, val, test, predict
-    for group in df_dict:
-        tmp_dset = BandDataset(df_dict[group], base_path, year, dim=dim, transform=data_transform, agg_method=agg_method)
-        dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
-
-    # train_dset = BandDataset(df_dict["train"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-    # val_dset = BandDataset(df_dict["val"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-    # test_dset = BandDataset(df_dict["test"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-    # predict_dset = BandDataset(df_dict["predict"], base_path, dim=dim, transform=data_transform, agg_method=agg_method)
-
-    # train_dataloader = DataLoader(train_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    # val_dataloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    # test_dataloader = DataLoader(test_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    # predict_dataloader = DataLoader(predict_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-
-    # dataloaders = {
-    #     "train": train_dataloader,
-    #     "val": val_dataloader,
-    #     "test": test_dataloader,
-    #     "predict": predict_dataloader
-    # }
-
-    return dataloaders
 
 
 class BandDataset(Dataset):

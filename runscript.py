@@ -9,6 +9,33 @@ import torch.nn as nn
 import resnet
 import vgg
 
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
+from load_data import BandDataset
+
+
+def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="mean", shuffle=True):
+
+    if data_transform == None:
+
+        data_transform = transforms.Compose([
+            # transforms.RandomSizedCrop(224),
+            # transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], # imagenet means
+                                 std=[0.229, 0.224, 0.225]), # imagenet stds
+        ])
+
+    dataloaders = {}
+
+    # where group is train, val, test, predict
+    for group in df_dict:
+        tmp_dset = BandDataset(df_dict[group], base_path, year, dim=dim, transform=data_transform, agg_method=agg_method)
+        dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+
+    return dataloaders
+
 
 class RunCNN():
 
@@ -21,15 +48,8 @@ class RunCNN():
         self.quiet = quiet
 
         self.kwargs = kwargs
-        self.cat_names = kwargs["static"]["cat_names"]
-        self.ncats = len(self.cat_names)
 
-        print('')
-        print('-' * 20)
-        print("RunCNN initializing with parameters: \n\n{}".format(kwargs))
-        print('-' * 20)
-        print('')
-
+        self.dataloaders = {}
         self.model = None
         self.criterion = None
         self.optimizer = None
@@ -37,41 +57,73 @@ class RunCNN():
         self.state_dict = None
         self.pmodel = None
 
+
+    def set_train_data(self, data):
+        self.dataloaders["train"] = data
+
+
+    def set_val_data(self, data):
+        self.dataloaders["val"] = data
+
+
+    def set_test_data(self, data):
+        self.dataloaders["test"] = data
+
+
+    def set_predict_data(self, data):
+        self.dataloaders["predict"] = data
+
+
+    def init_training(self):
+        self.cat_names = self.kwargs["static"]["cat_names"]
+        self.ncats = len(self.cat_names)
+
+
+    def init_print(self):
+        print('')
+        print('-' * 20)
+        print("RunCNN initializing with parameters: \n\n{}".format(self.kwargs))
+        print('-' * 20)
+        print('')
+
+
+    def init_net(self):
+
         net_args = {
             "pretrained":True,
-            "n_input_channels": kwargs["n_input_channels"]
+            "n_input_channels": self.kwargs["n_input_channels"]
         }
 
         # https://pytorch.org/docs/stable/torchvision/models.html
-        if kwargs["net"] == "resnet18":
+        if self.kwargs["net"] == "resnet18":
             self.model = resnet.resnet18(**net_args)
-        elif kwargs["net"] == "resnet34":
+        elif self.kwargs["net"] == "resnet34":
             self.model = resnet.resnet34(**net_args)
-        elif kwargs["net"] == "resnet50":
+        elif self.kwargs["net"] == "resnet50":
             self.model = resnet.resnet50(**net_args)
-        elif kwargs["net"] == "resnet101":
+        elif self.kwargs["net"] == "resnet101":
             self.model = resnet.resnet101(**net_args)
-        elif kwargs["net"] == "resnet152":
+        elif self.kwargs["net"] == "resnet152":
             self.model = resnet.resnet152(**net_args)
-        elif kwargs["net"] == "vgg11":
+        elif self.kwargs["net"] == "vgg11":
             self.model = vgg.vgg11(**net_args)
-        elif kwargs["net"] == "vgg11_bn":
+        elif self.kwargs["net"] == "vgg11_bn":
             self.model = vgg.vgg11_bn(**net_args)
-        elif kwargs["net"] == "vgg13":
+        elif self.kwargs["net"] == "vgg13":
             self.model = vgg.vgg13(**net_args)
-        elif kwargs["net"] == "vgg13_bn":
+        elif self.kwargs["net"] == "vgg13_bn":
             self.model = vgg.vgg13_bn(**net_args)
-        elif kwargs["net"] == "vgg16":
+        elif self.kwargs["net"] == "vgg16":
             self.model = vgg.vgg16(**net_args)
-        elif kwargs["net"] == "vgg16_bn":
+        elif self.kwargs["net"] == "vgg16_bn":
             self.model = vgg.vgg16_bn(**net_args)
-        elif kwargs["net"] == "vgg19":
+        elif self.kwargs["net"] == "vgg19":
             self.model = vgg.vgg19(**net_args)
-        elif kwargs["net"] == "vgg19_bn":
+        elif self.kwargs["net"] == "vgg19_bn":
             self.model = vgg.vgg19_bn(**net_args)
 
         else:
-            raise ValueError("Invalid network specified: {}".format(kwargs["net"]))
+            raise ValueError("Invalid network specified: {}".format(self.kwargs["net"]))
 
         #  run type: 1 = fine tune, 2 = fixed feature extractor
         #  - replace run type option with "# of layers to fine tune"
@@ -85,13 +137,16 @@ class RunCNN():
         # get existing number for input features
         # set new number for output features to number of categories being classified
         # see: https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
-        if "resnet" in kwargs["net"]:
+        if "resnet" in self.kwargs["net"]:
             num_ftrs = self.model.fc.in_features
             self.model.fc = nn.Linear(num_ftrs, self.ncats)
-        elif "vgg" in kwargs["net"]:
+        elif "vgg" in self.kwargs["net"]:
             num_ftrs = self.model.classifier[6].in_features
             self.model.classifier[6] = nn.Linear(num_ftrs, self.ncats)
 
+
+
+    def init_loss(self):
         loss_weights = torch.tensor(
             map(float, self.kwargs["loss_weights"])).cuda()
 
