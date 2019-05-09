@@ -339,7 +339,8 @@ def run(id_string):
 
         results = []
 
-        model_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}.csv".format(name, id_string, model_tag))
+        models_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}.csv".format(name, id_string, model_tag))
+        metrics_results_path = os.path.join(base_path, "output/s2_metrics/metrics_{}_{}_{}.csv".format(name, id_string, model_tag))
 
         for x_name, x_data in x_train.iteritems():
 
@@ -378,7 +379,7 @@ def run(id_string):
 
         df = pd.DataFrame(results)
         df = df[keys]
-        df.to_csv(model_results_path, index=False, encoding='utf-8')
+        df.to_csv(metrics_results_path, index=False, encoding='utf-8')
 
 
 # -----------------------------------------------------------------------------

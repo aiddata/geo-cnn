@@ -39,7 +39,7 @@ merge_out_path = os.path.join(base_path, "output/s2_merge/merge_{}_{}_{}_{}.csv"
 
 # find input data based on models
 #   use combinations of version, predict tag, and model tag to search
-regex_str = os.path.join(base_path, "output/s2_models/models_*_{}_{}_{}.csv".format(version, predict_tag, model_tag))
+regex_str = os.path.join(base_path, "output/s2_metrics/metrics_*_{}_{}_{}.csv".format(version, predict_tag, model_tag))
 regex_search = glob.glob(regex_str)
 
 qlist = regex_search
