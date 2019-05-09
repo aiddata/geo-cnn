@@ -71,24 +71,23 @@ def pearson_r2(true, predict):
 
 
 # https://scikit-learn.org/stable/modules/classes.html#module-sklearn.linear_model
-lm_list = [
-    {
-    #     "name": "ridge",
-    #     "model": linear_model.RidgeCV
-    # },{
-    #     "name": "lasso",
-    #     "model": linear_model.Lasso
-    # },{
-    #     "name": "lassolars",
-    #     "model": linear_model.LassoLars
-    # },{
-    #     "name": "lars",
-    #     "model": linear_model.Lars
-    # },{
-    #     "name": "linear",
-    #     "model": linear_model.LinearRegression
-    # },{
-        "name": "ridge_cv10",
+model_lookup = {
+    "ridge": {
+        "model": linear_model.RidgeCV
+    },
+    "lasso": {
+        "model": linear_model.Lasso
+    },
+    "lassolars": {
+        "model": linear_model.LassoLars
+    },
+    "lars": {
+        "model": linear_model.Lars
+    },
+    "linear": {
+        "model": linear_model.LinearRegression
+    },
+    "ridge_cv10": {
         "model": linear_model.Ridge,
         "k": 10,
         "k_inner": 10,
@@ -96,26 +95,26 @@ lm_list = [
         "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3,1e-2, 1, 5, 10, 20],
         # "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
-    },{
-        "name": "lasso_cv10",
+    },
+    "lasso_cv10": {
         "model": linear_model.Lasso,
         "k": 10,
         "k_inner": 5,
         "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
-    # },{
-    #     "name": "lassolars_cv10",
-    #     "model": linear_model.LassoLars,
-    #     "k": 10,
-    #     "k_inner": 5,
-    #     "alphas": np.logspace(0.5, 10, 10),
-    #     "metric": pearson_r2
-    # },{
-    #     "name": "lars_cv10",
-    #     "model": linear_model.Lars,
-    #     "k": 10
-    },{
-        "name": "linear_cv10",
+    },
+    "lassolars_cv10": {
+        "model": linear_model.LassoLars,
+        "k": 10,
+        "k_inner": 5,
+        "alphas": np.logspace(0.5, 10, 10),
+        "metric": pearson_r2
+    },
+    "lars_cv10": {
+        "model": linear_model.Lars,
+        "k": 10
+    },
+    "linear_cv10": {
         "model": linear_model.LinearRegression,
         "k": 10
     }
@@ -125,18 +124,20 @@ lm_list = [
     # "PassiveAggressiveRegressor",
     # "RANSACRegressor",
     # "SGDRegressor"
-]
+}
 
 
 # https://scikit-learn.org/stable/modules/classes.html#regression-metrics
-metric_list = {
-    # "pr2": pearson_r2,
-    # "evs": metrics.explained_variance_score,
-    # "mae": metrics.mean_absolute_error,
-    # "mae2": metrics.median_absolute_error,
-    # "mse": metrics.mean_squared_error,
+metric_lookup = {
+    "pr2": pearson_r2,
+    "evs": metrics.explained_variance_score,
+    "mae": metrics.mean_absolute_error,
+    "mae2": metrics.median_absolute_error,
+    "mse": metrics.mean_squared_error,
     "r2": metrics.r2_score
 }
+
+metric_list = {i:metric_lookup[i] for i in s.data["second_stage"]["metrics"]}
 
 keys = ["id", "name", "model", "input"] + metric_list.keys()
 
@@ -310,7 +311,6 @@ def run(id_string):
 
     test_feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
-    model_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}.csv".format(id_string, model_tag))
 
 
     # reduce feature dimensions using PCA
@@ -332,12 +332,14 @@ def run(id_string):
 
     print "Running models:"
 
-    results = []
 
-    for lm_dict_orig in lm_list:
-        lm_dict = deepcopy(lm_dict_orig)
-        name = lm_dict["name"]
-        del lm_dict["name"]
+    for name in s.data["second_stage"]["models"]:
+
+        lm_dict = deepcopy(model_lookup[name])
+
+        results = []
+
+        model_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}.csv".format(name, id_string, model_tag))
 
         for x_name, x_data in x_train.iteritems():
 
@@ -374,9 +376,9 @@ def run(id_string):
             tmp_vals += metric_vals
             results.append(dict(zip(keys, tmp_vals)))
 
-    df = pd.DataFrame(results)
-    df = df[keys]
-    df.to_csv(model_results_path, index=False, encoding='utf-8')
+        df = pd.DataFrame(results)
+        df = df[keys]
+        df.to_csv(model_results_path, index=False, encoding='utf-8')
 
 
 # -----------------------------------------------------------------------------
@@ -406,20 +408,3 @@ elif mode == "serial":
             run(qlist[c])
 else:
     raise ValueError("Invalid `mode` value for script ({}).".format(mode))
-
-
-# if rank == 0:
-#     print "Merging..."
-
-#     merge_df_list = []
-
-#     merge_file_list = [os.path.join(base_path, "output/s2_models/models_{}_{}.csv".format(i, model_tag)) for i in qlist]
-
-#     for merge_file in merge_file_list:
-#         df = pd.read_csv(merge_file, quotechar='\"',
-#                             na_values='', keep_default_na=False,
-#                             encoding='utf-8')
-#         merge_df_list.append(df)
-
-#     merge_df = pd.concat(merge_df_list, axis=0, ignore_index=True)
-#     merge_df.to_csv(merge_out_path, index=False, encoding='utf-8')

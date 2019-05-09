@@ -1,4 +1,8 @@
 {
+    "csv": {
+        "path": "none",
+        "field": "none"
+    },
     "batch": {
         "run_type": [1],
         "n_input_channels": [8],
@@ -47,6 +51,10 @@
         "ntl_calibrated": false,
         "ntl_dim": 7
     },
+    "second_stage": {
+        "models": ["ridge_cv10", "lasso_cv10", "linear_cv10"],
+        "metrics": ["r2"]
+    },
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
         "mode": "batch",
@@ -54,6 +62,7 @@
         "version": "v5",
         "predict_tag": "p5",
         "model_tag": "m5",
+        "surface_tag": "s1",
         "quiet": false,
         "overwrite_sample_prep": false,
         "overwrite_train": true,
@@ -67,9 +76,5 @@
         },
         "cuda_device_id": 0,
         "second_stage_mode": "parallel"
-    },
-    "csv": {
-        "path": "none",
-        "field": "none"
     }
 }
