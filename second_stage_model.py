@@ -16,6 +16,7 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import KFold, train_test_split, cross_val_score, cross_val_predict
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.externals import joblib
 
 # import seaborn as sns
 from scipy import stats
@@ -43,7 +44,7 @@ mode = s.config["second_stage_mode"]
 
 model_tag = s.config["model_tag"]
 
-predict_hash = s.build_hash(s.predict, nchar=7)
+predict_hash = s.build_hash(s.data[s.config["predict"]], nchar=7)
 
 timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
     '%Y_%m_%d_%H_%M_%S')
@@ -87,7 +88,7 @@ model_lookup = {
     "linear": {
         "model": linear_model.LinearRegression
     },
-    "ridge_cv10": {
+    "ridge-cv10": {
         "model": linear_model.Ridge,
         "k": 10,
         "k_inner": 10,
@@ -96,25 +97,25 @@ model_lookup = {
         # "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
     },
-    "lasso_cv10": {
+    "lasso-cv10": {
         "model": linear_model.Lasso,
         "k": 10,
         "k_inner": 5,
         "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
     },
-    "lassolars_cv10": {
+    "lassolars-cv10": {
         "model": linear_model.LassoLars,
         "k": 10,
         "k_inner": 5,
         "alphas": np.logspace(0.5, 10, 10),
         "metric": pearson_r2
     },
-    "lars_cv10": {
+    "lars-cv10": {
         "model": linear_model.Lars,
         "k": 10
     },
-    "linear_cv10": {
+    "linear-cv10": {
         "model": linear_model.LinearRegression,
         "k": 10
     }
@@ -285,7 +286,7 @@ def scale_features(X_train, X_test):
     return X_train, X_test
 
 
-def train_and_predict(X_train, y_train, X_test, model, alpha=None):
+def train(X_train, y_train, model, alpha=None):
     """
     Trains model and predicts test set.
     """
@@ -294,8 +295,17 @@ def train_and_predict(X_train, y_train, X_test, model, alpha=None):
     else:
         lm = model()
     lm.fit(X_train, y_train)
+    return lm
+
+
+def train_and_predict(X_train, y_train, X_test, model, alpha=None):
+    """
+    Trains model and predicts test set.
+    """
+    lm = train(X_train, y_train, model, alpha=None)
     y_predict = lm.predict(X_test)
     return y_predict
+
 
 
 # -------------------------------------
@@ -339,15 +349,18 @@ def run(id_string):
 
         results = []
 
-        models_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}.csv".format(name, id_string, model_tag))
+        models_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}.joblib".format(name, id_string, model_tag))
         metrics_results_path = os.path.join(base_path, "output/s2_metrics/metrics_{}_{}_{}.csv".format(name, id_string, model_tag))
 
         for x_name, x_data in x_train.iteritems():
 
+            print "\t{}({})...".format(name, x_name)
+
+            lm = train(x_data, y_train, lm_dict["model"])
+            joblib.dump(lm, models_results_path)
+
             # run with or without cross validation
             if "k" in lm_dict:
-
-                print "\t{}({})...".format(name, x_name)
 
                 try:
                     y_true, y_predict = run_cv(x_data, y_train, **lm_dict)
@@ -362,11 +375,8 @@ def run(id_string):
 
             else:
 
-                print "\t{}()...".format(name, x_name)
-                lm_func = lm_dict["model"]
-
                 try:
-                    y_predict = train_and_predict(x_data, y_train, x_data, lm_func)
+                    y_predict = lm.predict(x_data)
                 except Exception as e:
                     print(e)
                     metric_vals = ["Error" for i in metric_list]

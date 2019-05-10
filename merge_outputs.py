@@ -45,15 +45,13 @@ regex_search = glob.glob(regex_str)
 qlist = regex_search
 
 
-
 merge_df_list = []
 
-for model_file in qlist:
-    df = pd.read_csv(model_file, quotechar='\"',
-                     na_values='', keep_default_na=False,
-                     encoding='utf-8')
-    merge_df_list.append(df)
-    model_hash = os.path.basename(model_file)[:-4].split("_")[1]
+for metric_file in qlist:
+    df = pd.read_csv(metric_file, quotechar='\"',
+                        na_values='', keep_default_na=False,
+                        encoding='utf-8')
+    model_hash = os.path.basename(metric_file)[:-4].split("_")[2]
     param_json_path = os.path.join(base_path, "output/s1_train/train_{}_{}.json".format(model_hash, version))
     with open(param_json_path) as f:
         params = json.load(f)
@@ -63,9 +61,9 @@ for model_file in qlist:
                     df[ki] = [params[k][ki]] * len(df)
             else:
                 df[k] = [params[k]] * len(df)
+    merge_df_list.append(df)
 
 
 merge_df = pd.concat(merge_df_list, axis=0, ignore_index=True)
-
 
 merge_df.to_csv(merge_out_path, index=False, encoding='utf-8')

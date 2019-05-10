@@ -52,13 +52,13 @@
         "ntl_dim": 7
     },
     "second_stage": {
-        "models": ["ridge_cv10", "lasso_cv10", "linear_cv10"],
+        "models": ["ridge-cv10", "lasso-cv10"],
         "metrics": ["r2"]
     },
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
         "mode": "batch",
-        "predict": "custom_predict",
+        "predict": "survey_predict",
         "version": "v5",
         "predict_tag": "p5",
         "model_tag": "m5",
