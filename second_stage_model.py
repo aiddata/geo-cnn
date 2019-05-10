@@ -412,7 +412,7 @@ if mode == "parallel":
         except Exception as e:
             print "Error processing task: {} ({})".format(c, qlist[c])
             raise
-            print e
+            # print e
             # raise Exception("Error processing task: {0}".format(qlist[c]))
         c += size
     comm.Barrier()
