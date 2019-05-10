@@ -312,7 +312,9 @@ def train_and_predict(X_train, y_train, X_test, model, alpha=None):
 
 
 def run(id_string):
-
+    """
+    id_string = <train hash>_<predict hash>_<version tag>_<predict tag>
+    """
     pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
     pred_data = pd.read_csv(pred_data_path, quotechar='\"',
