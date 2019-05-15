@@ -55,6 +55,22 @@
         "models": ["ridge-cv10", "lasso-cv10"],
         "metrics": ["r2"]
     },
+    "third_stage": {
+        "grid": {
+            "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/boundary/TZA_ADM0_GADM28_simplified.geojson",
+            "pixel_size": 0.01
+        },
+        "predict": {
+            "imagery_year": 2010,
+            "ntl_year": 2010,
+            "ntl_calibrated": false,
+            "ntl_dim": 7
+        },
+        "surface": {
+            "pixel_size": 0.01,
+            "pixel_agg": 10
+        }
+    },
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/mcc_tanzania",
         "mode": "batch",
