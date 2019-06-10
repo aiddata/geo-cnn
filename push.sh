@@ -18,7 +18,10 @@ push() {
     cp $src/$1 $dst/$1
 }
 
-# push prepare_survey_data.py
+push utility/prepare_ghana_survey_data.py
+push utility/prepare_tanzania_survey_data.py
+push utility/estimate_ntl_classes.py
+
 push data_prep.py
 push create_grid.py
 push runscript.py
