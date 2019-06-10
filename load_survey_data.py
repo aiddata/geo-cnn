@@ -28,10 +28,12 @@ class SurveyData():
 
         self.surveys = {}
 
-        self._lsms2010_cluster()
-        self._lsms2012_cluster()
-        self._dhs2010_cluster()
-        self._dhs2015_cluster()
+        self._tanzania_2010_lsms_cluster()
+        self._tanzania_2012_lsms_cluster()
+        self._tanzania_2010_dhs_cluster()
+        self._tanzania_2015_dhs_cluster()
+        self._ghana_2008_dhs_cluster()
+        self._ghana_2014_dhs_cluster()
 
 
     def duplicate(self, df):
@@ -55,81 +57,121 @@ class SurveyData():
         return new_df
 
 
-    def _lsms2010_cluster(self):
-        lsms2010_field = 'cons'
+    def _tanzania_2010_lsms_cluster(self):
+        field = 'cons'
 
-        lsms2010_clusters_path = os.path.join(
+        clusters_path = os.path.join(
             self.base_path, "data/surveys/final/tanzania_2010_lsms_cluster.csv")
 
-        lsms2010_cluster = pd.read_csv(lsms2010_clusters_path, quotechar='\"',
+        cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        lsms2010_cluster = self.duplicate(lsms2010_cluster)
+        cluster = self.duplicate(cluster)
 
-        lsms2010_cluster['ntl'] = lsms2010_cluster.apply(
+        cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
-        lsms2010_cluster["pred_yval"] = lsms2010_cluster[lsms2010_field]
+        cluster["pred_yval"] = cluster[field]
 
-        self.surveys["lsms2010_cluster"] = lsms2010_cluster
+        self.surveys["tanzania_2010_lsms_cluster"] = cluster
 
 
-    def _lsms2012_cluster(self):
-        lsms2012_field = 'cons'
+    def _tanzania_2012_lsms_cluster(self):
+        field = 'cons'
 
-        lsms2012_clusters_path = os.path.join(
+        clusters_path = os.path.join(
             self.base_path, "data/surveys/final/tanzania_2012_lsms_cluster.csv")
 
-        lsms2012_cluster = pd.read_csv(lsms2012_clusters_path, quotechar='\"',
+        cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        lsms2012_cluster = self.duplicate(lsms2012_cluster)
+        cluster = self.duplicate(cluster)
 
-        lsms2012_cluster['ntl'] = lsms2012_cluster.apply(
+        cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
-        lsms2012_cluster["pred_yval"] = lsms2012_cluster[lsms2012_field]
+        cluster["pred_yval"] = cluster[field]
 
-        self.surveys["lsms2012_cluster"] = lsms2012_cluster
+        self.surveys["tanzania_2012_lsms_cluster"] = cluster
 
 
-    def _dhs2010_cluster(self):
-        dhs2010_field = 'wealthscore'
+    def _tanzania_2010_dhs_cluster(self):
+        field = 'wealthscore'
 
-        dhs2010_clusters_path = os.path.join(
+        clusters_path = os.path.join(
             self.base_path, "data/surveys/final/tanzania_2010_dhs_cluster.csv")
 
-        dhs2010_cluster = pd.read_csv(dhs2010_clusters_path, quotechar='\"',
+        cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        dhs2010_cluster = self.duplicate(dhs2010_cluster)
+        cluster = self.duplicate(cluster)
 
-        dhs2010_cluster['ntl'] = dhs2010_cluster.apply(
+        cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
-        dhs2010_cluster["pred_yval"] = dhs2010_cluster[dhs2010_field]
+        cluster["pred_yval"] = cluster[field]
 
-        self.surveys["dhs2010_cluster"] = dhs2010_cluster
+        self.surveys["tanzania_2010_dhs_cluster"] = cluster
 
 
-    def _dhs2015_cluster(self):
-        dhs2015_field = 'wealthscore'
+    def _tanzania_2015_dhs_cluster(self):
+        field = 'wealthscore'
 
-        dhs2015_clusters_path = os.path.join(
+        clusters_path = os.path.join(
             self.base_path, "data/surveys/final/tanzania_2015_dhs_cluster.csv")
 
-        dhs2015_cluster = pd.read_csv(dhs2015_clusters_path, quotechar='\"',
+        cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        dhs2015_cluster = self.duplicate(dhs2015_cluster)
+        cluster = self.duplicate(cluster)
 
-        dhs2015_cluster['ntl'] = dhs2015_cluster.apply(
+        cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
-        dhs2015_cluster["pred_yval"] = dhs2015_cluster[dhs2015_field]
+        cluster["pred_yval"] = cluster[field]
 
-        self.surveys["dhs2015_cluster"] = dhs2015_cluster
+        self.surveys["tanzania_2015_dhs_cluster"] = cluster
+
+
+    def _ghana_2008_dhs_cluster(self):
+        field = 'wealthscore'
+
+        clusters_path = os.path.join(
+            self.base_path, "data/surveys/final/ghana_2008_dhs_cluster.csv")
+
+        cluster = pd.read_csv(clusters_path, quotechar='\"',
+                                na_values='', keep_default_na=False,
+                                encoding='utf-8')
+
+        cluster = self.duplicate(cluster)
+
+        cluster['ntl'] = cluster.apply(
+            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+
+        cluster["pred_yval"] = cluster[field]
+
+        self.surveys["ghana_2008_dhs_cluster"] = cluster
+
+
+    def _ghana_2014_dhs_cluster(self):
+        field = 'wealthscore'
+
+        clusters_path = os.path.join(
+            self.base_path, "data/surveys/final/ghana_2014_dhs_cluster.csv")
+
+        cluster = pd.read_csv(clusters_path, quotechar='\"',
+                                na_values='', keep_default_na=False,
+                                encoding='utf-8')
+
+        cluster = self.duplicate(cluster)
+
+        cluster['ntl'] = cluster.apply(
+            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+
+        cluster["pred_yval"] = cluster[field]
+
+        self.surveys["ghana_2014_dhs_cluster"] = cluster
