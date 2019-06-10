@@ -1,17 +1,13 @@
 
 
 import os
-import errno
 import glob
-import functools
 import pandas as pd
 import geopandas as gpd
-import numpy as np
-import rasterstats as rs
-from shapely.geometry import Point
 
 
-base = "/sciclone/aiddata10/REU/projects"
+# base = "/sciclone/aiddata10/REU/projects"
+base = "/home/userz/Desktop"
 project = "mcc_ghana"
 
 survey_data = os.path.join(base, project, "data/surveys")
@@ -27,8 +23,10 @@ dhs_base = [
     if os.path.isdir(i)
 ][0]
 
-dhs_data_path = os.path.join(dhs_base, "TZHR63DT/TZHR63FL.DTA")
-dhs_coords_path = os.path.join(dhs_base, "TZGE61FL/TZGE61FL.shp")
+dhs_data_path = os.path.join(dhs_base, "GHHR5ADT/GHHR5AFL.DTA")
+
+# geographic data (shapefile)
+dhs_coords_path = os.path.join(dhs_base, "GHGE5AFL/GHGE5AFL.shp")
 
 dhs_data = pd.read_stata(dhs_data_path)
 dhs_coords = gpd.read_file(dhs_coords_path)
@@ -59,7 +57,7 @@ dhs_final = dhs_geo
 
 # output household
 dhs_household = dhs_final.copy(deep=True)
-dhs_household_path = os.path.join(survey_data, "final/tanzania_2010_dhs_household.csv")
+dhs_household_path = os.path.join(survey_data, "final/ghana_2008_dhs_household.csv")
 dhs_household.to_csv(dhs_household_path, index=False, encoding='utf-8')
 
 # cluster
@@ -81,7 +79,7 @@ agg_fields = {
 dhs_cluster = dhs_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
 
 # output cluster
-dhs_cluster_path = os.path.join(survey_data, "final/tanzania_2010_dhs_cluster.csv")
+dhs_cluster_path = os.path.join(survey_data, "final/ghana_2008_dhs_cluster.csv")
 dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
 
 
@@ -95,8 +93,8 @@ dhs_base = [
     if os.path.isdir(i)
 ][0]
 
-dhs_data_path = os.path.join(dhs_base, "TZHR7HDT/TZHR7HFL.DTA")
-dhs_coords_path = os.path.join(dhs_base, "TZGE7AFL/TZGE7AFL.shp")
+dhs_data_path = os.path.join(dhs_base, "GHHR72DT/GHHR72FL.DTA")
+dhs_coords_path = os.path.join(dhs_base, "GHGE71FL/GHGE71FL.shp")
 
 dhs_data = pd.read_stata(dhs_data_path)
 dhs_coords = gpd.read_file(dhs_coords_path)
@@ -127,7 +125,7 @@ dhs_final = dhs_geo
 
 # output household
 dhs_household = dhs_final.copy(deep=True)
-dhs_household_path = os.path.join(survey_data, "final/tanzania_2015_dhs_household.csv")
+dhs_household_path = os.path.join(survey_data, "final/ghana_2014_dhs_household.csv")
 dhs_household.to_csv(dhs_household_path, index=False, encoding='utf-8')
 
 # cluster
@@ -149,5 +147,5 @@ agg_fields = {
 dhs_cluster = dhs_precluster.groupby(["lonlat"]).agg(agg_fields).reset_index()
 
 # output cluster
-dhs_cluster_path = os.path.join(survey_data, "final/tanzania_2015_dhs_cluster.csv")
+dhs_cluster_path = os.path.join(survey_data, "final/ghana_2014_dhs_cluster.csv")
 dhs_cluster.to_csv(dhs_cluster_path, index=False, encoding='utf-8')
