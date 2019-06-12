@@ -2,7 +2,9 @@
 
 project=$1
 settings=$2
-dir=$3
+dir_prefix=$3
+
+dir=${dir_prefix}_${settings}
 
 if [[ $dir == "" ]]; then
     echo "Must specify job dir"
