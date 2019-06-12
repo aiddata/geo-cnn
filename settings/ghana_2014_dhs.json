@@ -1,0 +1,96 @@
+{
+    "csv": {
+        "path": "none",
+        "field": "none"
+    },
+    "batch": {
+        "run_type": [1],
+        "n_input_channels": [8],
+        "n_epochs": [60],
+        "optim": ["adam"],
+        "lr": [0.009, 0.09],
+        "momentum": [0.97],
+        "step_size": [10, 20],
+        "gamma": [0.75, 0.25],
+        "loss_weights": [
+            [1.0, 1.0, 1.0]
+        ],
+        "net": ["resnet34"],
+        "batch_size": [64],
+        "num_workers": [16],
+        "dim": [224],
+        "agg_method": ["mean"]
+    },
+    "static": {
+        "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/boundary/GHA_adm0_GADM28.geojson",
+        "grid_pixel_size": 0.08,
+        "grid_nfill": 225,
+        "grid_fill_dist": 0.01,
+        "grid_fill_mode": "fixed",
+        "ntl_year": 2013,
+        "ntl_class_bins": [0, 3, 8],
+        "ntl_calibrated": false,
+        "ntl_dim": 7,
+        "ntl_min": 0,
+        "cat_names": [0, 1, 2],
+        "type_names": ["train", "val", "test", "predict"],
+        "type_weights": [0.850, 0.150, 0.0, 0.0],
+        "imagery_year": 2014
+    },
+    "survey_predict": {
+        "survey": "ghana_2014_dhs_cluster",
+        "imagery_year": 2014,
+        "ntl_year": 2013,
+        "ntl_calibrated": false,
+        "ntl_dim": 7
+    },
+    "custom_predict": {
+        "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surface_grid.csv",
+        "imagery_year": 2014,
+        "ntl_year": 2013,
+        "ntl_calibrated": false,
+        "ntl_dim": 7
+    },
+    "second_stage": {
+        "models": ["ridge-cv10", "lasso-cv10"],
+        "metrics": ["r2"]
+    },
+    "third_stage": {
+        "grid": {
+            "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/boundary/GHA_adm0_GADM28.geojson",
+            "pixel_size": 0.01
+        },
+        "predict": {
+            "imagery_year": 2010,
+            "ntl_year": 2010,
+            "ntl_calibrated": false,
+            "ntl_dim": 7
+        },
+        "surface": {
+            "pixel_size": 0.01,
+            "pixel_agg": 10
+        }
+    },
+    "config": {
+        "base_path": "/sciclone/aiddata10/REU/projects/mcc_ghana",
+        "mode": "batch",
+        "predict": "survey_predict",
+        "version": "v10",
+        "predict_tag": "p10",
+        "model_tag": "m10",
+        "surface_tag": "s10",
+        "quiet": false,
+        "overwrite_sample_prep": false,
+        "overwrite_train": true,
+        "overwrite_survey_predict": true,
+        "run": {
+            "train": true,
+            "test": false,
+            "predict": false,
+            "survey_predict": false,
+            "custom_predict": true
+        },
+        "cuda_device_id": 0,
+        "second_stage_mode": "parallel"
+    }
+}
