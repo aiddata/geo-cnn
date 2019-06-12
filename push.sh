@@ -24,7 +24,7 @@ pushr() {
     cp -r $src/$1 $dst/$1
 }
 
-pushr utility
+pushr scripts
 pushr settings
 
 push data_prep.py
@@ -66,10 +66,10 @@ cp second_stage_model.py tmp_second_stage_model.py
 cp merge_outputs.py tmp_merge_outputs.py
 cp build_surface_grid.py tmp_build_surface_grid.py
 
-sed -i 's/# json_path = "settings/settings_example.json"/json_path = "settings/${settings}.json"/' main.py
-sed -i 's/# json_path = "settings/settings_example.json"/json_path = "settings/${settings}.json"/' second_stage_model.py
-sed -i 's/# json_path = "settings/settings_example.json"/json_path = "settings/${settings}.json"/' merge_outputs.py
-sed -i 's/# json_path = "settings/settings_example.json"/json_path = "settings/${settings}.json"/' build_surface_grid.py
+sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' main.py
+sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' second_stage_model.py
+sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' merge_outputs.py
+sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' build_surface_grid.py
 
 push main.py
 push second_stage_model.py
