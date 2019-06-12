@@ -38,7 +38,7 @@
         "imagery_year": 2015
     },
     "survey_predict": {
-        "survey": "tanzania_2010_dhs_cluster",
+        "survey": "tanzania_2015_dhs_cluster",
         "imagery_year": 2015,
         "ntl_year": 2013,
         "ntl_calibrated": false,

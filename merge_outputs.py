@@ -16,7 +16,7 @@ from settings_builder import Settings
 
 # *****************
 # *****************
-json_path = "settings_example.json"
+json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************

@@ -28,7 +28,7 @@ from data_prep import make_dir, gen_sample_size, apply_types, normalize, Prepare
 
 # *****************
 # *****************
-json_path = "settings_example.json"
+json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
