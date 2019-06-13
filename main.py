@@ -110,6 +110,7 @@ for ix, (param_hash, params) in enumerate(tasks):
 
         train_cnn = RunCNN(dataloaders, device, parallel=False, **params)
 
+        train_cnn.init_training()
         train_cnn.init_print()
         train_cnn.init_net()
 
@@ -153,6 +154,11 @@ for ix, (param_hash, params) in enumerate(tasks):
             shuffle=False)
 
         new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
+
+        new_cnn.init_training()
+        new_cnn.init_print()
+        new_cnn.init_net()
+
         new_cnn.load(state_path)
 
         # predict

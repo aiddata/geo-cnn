@@ -49,7 +49,7 @@ class RunCNN():
 
         self.kwargs = kwargs
 
-        self.dataloaders = {}
+        # self.dataloaders = {}
         self.model = None
         self.criterion = None
         self.optimizer = None
