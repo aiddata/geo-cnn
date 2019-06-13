@@ -14,10 +14,11 @@ from settings_builder import Settings
 from data_prep import make_dir
 
 from create_grid import PointGrid
-from load_data import NTL_Reader
+from load_ntl_data import NTL_Reader
 
 # *****************
 # *****************
+json_path = "settings/settings_example.json"
 json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************

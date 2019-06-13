@@ -12,7 +12,7 @@ import vgg
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from load_data import BandDataset
+from load_landsat_data import BandDataset
 
 
 def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="mean", shuffle=True):

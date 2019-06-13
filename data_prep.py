@@ -10,7 +10,7 @@ import numpy as np
 import fiona
 
 from create_grid import PointGrid
-from load_data import NTL_Reader
+from load_ntl_data import NTL_Reader
 
 
 

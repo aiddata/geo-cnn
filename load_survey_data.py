@@ -7,7 +7,7 @@ import rasterio
 import pandas as pd
 import numpy as np
 
-from load_data import NTL_Reader
+from load_ntl_data import NTL_Reader
 
 
 class SurveyData():
