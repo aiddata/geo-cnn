@@ -19,10 +19,12 @@ dst=$base/$dir
 mkdir -p $dst
 
 push() {
+    rm $dst/$1
     cp $src/$1 $dst/$1
 }
 
 pushr() {
+    rm -r $dst/$1
     cp -r $src/$1 $dst/$1
 }
 
