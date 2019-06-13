@@ -33,7 +33,7 @@ predict_hash = s.build_hash(s.data[s.config["predict"]], nchar=7)
 # timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
 #     '%Y_%m_%d_%H_%M_%S')
 
-m2 = ModelHelper(settings=s)
+mh = ModelHelper(settings=s)
 
 regex_fname = "predict_*_{}_{}_{}.csv".format(
     predict_hash, s.config["version"], s.config["predict_tag"])
@@ -43,7 +43,6 @@ regex_search = glob.glob(regex_str)
 qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
 # qlist = ["7a118a3_2019_03_28_12_48_37"]
 # qlist = pd.read_csv(os.path.join(base_path, "cnn_results_merge_1.csv"))["id_string"].tolist()
+# print qlist
 
-print qlist
-
-run_tasks(tasks=qlist, func=run_models, args=m2, mode=mode)
+run_tasks(tasks=qlist, func=run_models, args=mh, mode=mode)

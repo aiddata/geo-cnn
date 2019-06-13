@@ -186,8 +186,10 @@ def run_models(id_string, model_helper):
     """
     id_string = <train hash>_<predict hash>_<version tag>_<predict tag>
     """
+    print "S2Running: {}".format(id_string)
     mh = model_helper
-    model_tag = mk.settings.config["model_tag"]
+    model_tag = mh.settings.config["model_tag"]
+    base_path = mh.settings.base_path
 
     pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
@@ -219,9 +221,9 @@ def run_models(id_string, model_helper):
     print "Running models:"
 
 
-    for name in s.data["second_stage"]["models"]:
+    for name in mh.model_list:
 
-        lm_dict = deepcopy(m2.model_lookup[name])
+        lm_dict = deepcopy(mh.model_lookup[name])
 
         results = []
 
@@ -242,11 +244,11 @@ def run_models(id_string, model_helper):
                     y_true, y_predict = run_cv(x_data, y_train, **lm_dict)
                 except Exception as e:
                     print(e)
-                    metric_vals = ["Error" for i in metric_list]
+                    metric_vals = ["Error" for i in mh.metric_list]
                 else:
                     metric_vals = [
-                        np.array([metric_list[j](y_true[i], y_predict[i])
-                        for i in range(lm_dict["k"])]).mean() for j in metric_list
+                        np.array([mh.metric_list[j](y_true[i], y_predict[i])
+                        for i in range(lm_dict["k"])]).mean() for j in mh.metric_list
                     ]
 
             else:
@@ -255,21 +257,21 @@ def run_models(id_string, model_helper):
                     y_predict = lm.predict(x_data)
                 except Exception as e:
                     print(e)
-                    metric_vals = ["Error" for i in metric_list]
+                    metric_vals = ["Error" for i in mh.metric_list]
                 else:
-                    metric_vals = [metric_list[i](y_train, y_predict) for i in metric_list]
+                    metric_vals = [mh.metric_list[i](y_train, y_predict) for i in mh.metric_list]
 
             tmp_vals = [id_string, name, lm_dict["model"].__name__, x_name]
             tmp_vals += metric_vals
-            results.append(dict(zip(keys, tmp_vals)))
+            results.append(dict(zip(mh.keys, tmp_vals)))
 
         df = pd.DataFrame(results)
-        df = df[keys]
+        df = df[mh.keys]
         df.to_csv(metrics_results_path, index=False, encoding='utf-8')
 
 
 
-def run_tasks(tasks, func, args, mode="auto", raise_errors=False):
+def run_tasks(tasks, func, args, mode="auto", raise_errors=True):
     parallel = False
     if mode in ["auto", "parallel"]:
         try:
@@ -380,6 +382,8 @@ class ModelHelper():
             "mse": metrics.mean_squared_error,
             "r2": metrics.r2_score
         }
+
+        self.model_list = self.settings.data["second_stage"]["models"]
 
         self.metric_list = {i: self.metric_lookup[i] for i in self.settings.data["second_stage"]["metrics"]}
 
