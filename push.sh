@@ -40,6 +40,7 @@ push load_data.py
 push load_survey_data.py
 push main.py
 push second_stage_model.py
+push model_prep.py
 push merge_outputs.py
 
 for i in settings_*; do
