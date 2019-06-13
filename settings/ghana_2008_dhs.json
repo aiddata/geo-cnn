@@ -83,12 +83,13 @@
         "overwrite_sample_prep": false,
         "overwrite_train": true,
         "overwrite_survey_predict": true,
+        "overwrite_custom_predict": true,
         "run": {
             "train": true,
             "test": false,
             "predict": false,
-            "survey_predict": false,
-            "custom_predict": true
+            "survey_predict": true,
+            "custom_predict": false
         },
         "cuda_device_id": 0,
         "second_stage_mode": "parallel"
