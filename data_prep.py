@@ -190,6 +190,7 @@ class PrepareSamples():
         # grid.to_csv(grid_path)
         grid.df = grid.to_dataframe()
         grid.gfill(self.nfill, distance=self.fill_dist, mode=self.fill_mode)
+        make_dir(os.path.dirname(self.grid_path))
         grid.to_csv(self.grid_path)
         self.grid_df = grid.df.copy(deep=True)
 
