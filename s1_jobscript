@@ -5,4 +5,4 @@
 #PBS -j oe
 
 
-# python /sciclone/aiddata10/REU/projects/mcc_tanzania/main.py
+# python /sciclone/aiddata10/REU/projects/mcc_tanzania/s1_main.py

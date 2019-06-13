@@ -1,3 +1,7 @@
+"""
+Merge outputs of metrics from second stage model tests into a single file
+for comparison.
+"""
 
 import os
 import datetime
