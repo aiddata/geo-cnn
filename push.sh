@@ -36,7 +36,8 @@ push create_grid.py
 push runscript.py
 push resnet.py
 push vgg.py
-push load_data.py
+push load_ntl_data.py
+push load_landsat_data.py
 push load_survey_data.py
 push main.py
 push second_stage_model.py
