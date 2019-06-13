@@ -19,10 +19,11 @@ from load_ntl_data import NTL_Reader
 # *****************
 # *****************
 json_path = "settings/settings_example.json"
-json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
+json_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/k_tanzania_2010_dhs/settings/tanzania_2010_dhs.json"
+
 
 s = Settings()
 s.load(json_path)
@@ -35,13 +36,14 @@ for d in output_dirs:
 
 boundary_path = s.data["static"]["boundary_path"]
 
-pixel_size = s.data["surface"]["pixel_size"]
+pixel_size = s.data["third_stage"]["grid"]["pixel_size"]
 
-ntl_calibrated = s.data["surface"]["ntl_calibrated"]
-ntl_year = s.data["surface"]["ntl_year"]
-ntl_dim = s.data["surface"]["ntl_dim"]
+ntl_calibrated = s.data["third_stage"]["predict"]["ntl_calibrated"]
+ntl_year = s.data["third_stage"]["predict"]["ntl_year"]
+ntl_dim = s.data["third_stage"]["predict"]["ntl_dim"]
 
-grid_path = os.path.join(s.base_path, "s3_grid/grid_{}.csv".format("???"))
+surface_tag = s.config["surface_tag"]
+grid_path = os.path.join(s.base_path, "output/s3_grid/grid_{}.csv".format(surface_tag))
 
 # -----------------------------------------------------------------------------
 

@@ -67,24 +67,24 @@ rm tmp_s2_jobscript
 cp s1_main.py tmp_s1_main.py
 cp s2_main.py tmp_s2_main.py
 cp s2_merge.py tmp_s2_merge.py
-cp build_surface_grid.py tmp_build_surface_grid.py
+cp s3_build_grid.py tmp_s3_build_grid.py
 
 sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s1_main.py
 sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s2_main.py
 sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s2_merge.py
-sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' build_surface_grid.py
+sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s3_build_grid.py
 
 push s1_main.py
 push s2_main.py
 push s2_merge.py
-push build_surface_grid.py
+push s3_build_grid.py
 
 cp tmp_s1_main.py s1_main.py
 cp tmp_s2_main.py s2_main.py
 cp tmp_s2_merge.py s2_merge.py
-cp tmp_build_surface_grid.py build_surface_grid.py
+cp tmp_s3_build_grid.py s3_build_grid.py
 
 rm tmp_s1_main.py
 rm tmp_s2_main.py
 rm tmp_s2_merge.py
-rm tmp_build_surface_grid.py
+rm tmp_s3_build_grid.py
