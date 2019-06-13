@@ -12,7 +12,6 @@
 
 * s1_jobscripts - jobscript
 * main.py - primary script called by jobscript
-<br/>
 * data_prep.py - class/functions to generate sample data for training CNN
 * create_grid.py - class to generate point grid
 * runscript.py - core class/functions for running PyTorch CNN
