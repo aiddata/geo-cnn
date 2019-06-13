@@ -13,8 +13,6 @@ from model_prep import (pearson_r2, ModelHelper,
                         scale_features, train, train_and_predict,
                         run_models, run_tasks)
 
-# -----------------------------------------------------------------------------
-
 
 # *****************
 # *****************
@@ -30,17 +28,16 @@ base_path = s.base_path
 
 mode = s.config["second_stage_mode"]
 
-model_tag = s.config["model_tag"]
-
 predict_hash = s.build_hash(s.data[s.config["predict"]], nchar=7)
 
-timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
-    '%Y_%m_%d_%H_%M_%S')
+# timestamp = datetime.datetime.fromtimestamp(int(time.time())).strftime(
+#     '%Y_%m_%d_%H_%M_%S')
 
 m2 = ModelHelper(settings=s)
 
-
-regex_str = os.path.join(base_path, "output/s1_predict/predict_*_{}_{}_{}.csv".format(predict_hash, s.config["version"], s.config["predict_tag"]))
+regex_fname = "predict_*_{}_{}_{}.csv".format(
+    predict_hash, s.config["version"], s.config["predict_tag"])
+regex_str = os.path.join(base_path, "output", "s1_predict", regex_fname)
 regex_search = glob.glob(regex_str)
 
 qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
@@ -49,5 +46,4 @@ qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search
 
 print qlist
 
-
-run_tasks(tasks=qlist, func=run_models, args=m2)
+run_tasks(tasks=qlist, func=run_models, args=m2, mode=mode)

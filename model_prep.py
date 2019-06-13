@@ -187,6 +187,7 @@ def run_models(id_string, model_helper):
     id_string = <train hash>_<predict hash>_<version tag>_<predict tag>
     """
     mh = model_helper
+    model_tag = mk.settings.config["model_tag"]
 
     pred_data_path = os.path.join(base_path, "output/s1_predict/predict_{}.csv".format(id_string))
 
