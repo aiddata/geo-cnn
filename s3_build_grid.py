@@ -22,8 +22,6 @@ json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
-json_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/k_tanzania_2010_dhs/settings/tanzania_2010_dhs.json"
-fname = os.path.basename(json_path)
 
 s = Settings()
 s.load(json_path)
@@ -43,6 +41,7 @@ ntl_year = s.data["third_stage"]["predict"]["ntl_year"]
 ntl_dim = s.data["third_stage"]["predict"]["ntl_dim"]
 
 surface_tag = s.config["surface_tag"]
+fname = os.path.basename(json_path, ".json")
 grid_path = os.path.join(s.base_path, "output/s3_grid/grid_{}_{}.csv".format(surface_tag, fname))
 
 # -----------------------------------------------------------------------------
