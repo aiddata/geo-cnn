@@ -49,42 +49,38 @@ done
 
 cp s1_jobscript tmp_s1_jobscript
 cp s2_jobscript tmp_s2_jobscript
+cp s3_jobscript tmp_s3_jobscript
 
 echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s1_main.py" >> s1_jobscript
 echo "mpirun --mca mpi_warn_on_fork 0 --map-by node python-mpi /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s2_main.py" >> s2_jobscript
+echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s3_s1_predict.py" >> s3_jobscript
 
 push s1_jobscript
 push s2_jobscript
+push s3_jobscript
 
 cp tmp_s1_jobscript s1_jobscript
 cp tmp_s2_jobscript s2_jobscript
+cp tmp_s3_jobscript s3_jobscript
 
 rm tmp_s1_jobscript
 rm tmp_s2_jobscript
+rm tmp_s3_jobscript
 
 # -----------------------------------------------------------------------------
 
-cp s1_main.py tmp_s1_main.py
-cp s2_main.py tmp_s2_main.py
-cp s2_merge.py tmp_s2_merge.py
-cp s3_build_grid.py tmp_s3_build_grid.py
+sfiles=(
+    s1_main.py
+    s2_main.py
+    s2_merge.py
+    s3_build_grid.py
+    s3_s1_predict.py
+)
 
-sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s1_main.py
-sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s2_main.py
-sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s2_merge.py
-sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' s3_build_grid.py
-
-push s1_main.py
-push s2_main.py
-push s2_merge.py
-push s3_build_grid.py
-
-cp tmp_s1_main.py s1_main.py
-cp tmp_s2_main.py s2_main.py
-cp tmp_s2_merge.py s2_merge.py
-cp tmp_s3_build_grid.py s3_build_grid.py
-
-rm tmp_s1_main.py
-rm tmp_s2_main.py
-rm tmp_s2_merge.py
-rm tmp_s3_build_grid.py
+for i in "${sfiles[@]}"*; do
+    cp ${i} tmp_${i}
+    sed -i 's+json_path = "settings/settings_example.json"+json_path = "settings/'${settings}'.json"+' ${i}
+    push ${i}
+    cp tmp_${i} ${i}
+    rm tmp_${i}
+done
