@@ -45,7 +45,7 @@
         "ntl_dim": 7
     },
     "custom_predict": {
-        "data": "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surface_grid.csv",
+        "data": "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s3_grid/grid_s10_tanzania_2010_dhs.csv",
         "imagery_year": 2010,
         "ntl_year": 2010,
         "ntl_calibrated": false,
