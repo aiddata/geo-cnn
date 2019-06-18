@@ -72,54 +72,54 @@ print("\nRunning on:", device)
 
 predict_data = None
 
-# for ix, (param_hash, params) in enumerate(tasks):
-ix, (param_hash, params) = list(enumerate(tasks))[0]
+for ix, (param_hash, params) in enumerate(tasks):
+    # ix, (param_hash, params) = list(enumerate(tasks))[0]
 
-print('\n' + '-' * 40)
-print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
-print("\nParam hash: {}\n".format(param_hash))
+    print('\n' + '-' * 40)
+    print("\nParameter combination: {}/{}".format(ix+1, s.param_count))
+    print("\nParam hash: {}\n".format(param_hash))
 
-state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
+    state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
 
-custom_out_path = os.path.join(base_path, "output/s3_s1_predict/predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
+    custom_out_path = os.path.join(base_path, "output/s3_s1_predict/predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
 
-# if (not os.path.isfile(custom_out_path) or s.config["overwrite_custom_predict"]):
+    if (not os.path.isfile(custom_out_path) or s.config["overwrite_custom_predict"]):
 
-# load custom data
-if predict_data is None:
-    custom_data = pd.read_csv(predict_settings["data"], quotechar='\"',
-                                na_values='', keep_default_na=False,
-                                encoding='utf-8')
-    predict_data = {
-        "predict": custom_data
-    }
+        # load custom data
+        if predict_data is None:
+            custom_data = pd.read_csv(predict_settings["data"], quotechar='\"',
+                                        na_values='', keep_default_na=False,
+                                        encoding='utf-8')
+            predict_data = {
+                "predict": custom_data
+            }
 
-new_dataloaders = build_dataloaders(
-    predict_data,
-    base_path,
-    predict_settings["imagery_year"],
-    data_transform=None,
-    dim=params["dim"],
-    batch_size=params["batch_size"],
-    num_workers=params["num_workers"],
-    agg_method=params["agg_method"],
-    shuffle=False)
+        new_dataloaders = build_dataloaders(
+            predict_data,
+            base_path,
+            predict_settings["imagery_year"],
+            data_transform=None,
+            dim=params["dim"],
+            batch_size=params["batch_size"],
+            num_workers=params["num_workers"],
+            agg_method=params["agg_method"],
+            shuffle=False)
 
 
-new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
+        new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
 
-new_cnn.init_training()
-new_cnn.init_net()
-new_cnn.load(state_path)
+        new_cnn.init_training()
+        new_cnn.init_net()
+        new_cnn.load(state_path)
 
-# predict
-new_pred_data, _ = new_cnn.predict(features=True)
+        # predict
+        new_pred_data, _ = new_cnn.predict(features=True)
 
-# merge predict with original data
-feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
-pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
-pred_df = pd.DataFrame(pred_dicts)
-custom_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
-full_col_order = list(predict_data["predict"].columns) + feat_labels
-custom_out = custom_out[full_col_order]
-custom_out.to_csv(custom_out_path, index=False, encoding='utf-8')
+        # merge predict with original data
+        feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+        pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
+        pred_df = pd.DataFrame(pred_dicts)
+        custom_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
+        full_col_order = list(predict_data["predict"].columns) + feat_labels
+        custom_out = custom_out[full_col_order]
+        custom_out.to_csv(custom_out_path, index=False, encoding='utf-8')
