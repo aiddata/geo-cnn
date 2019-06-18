@@ -29,7 +29,6 @@ from data_prep import make_dir, gen_sample_size, apply_types, normalize, Prepare
 # *****************
 # *****************
 json_path = "settings/settings_example.json"
-json_path = "settings/tanzania_2010_dhs.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
@@ -48,7 +47,7 @@ s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
 
-output_dirs = ["s0_settings", "s1_params", "s1_state", "s1_predict", "s1_train", "s2_metrics", "s2_models", "s2_merge"]
+output_dirs = ["s0_settings", "s1_params", "s1_state", "s1_predict", "s1_train", "s2_metrics", "s2_models", "s2_merge", "s3_s1_predict"]
 for d in output_dirs:
     abs_d = os.path.join(base_path, "output", d)
     make_dir(abs_d)
@@ -100,8 +99,8 @@ for ix, (param_hash, params) in enumerate(tasks):
             predict_settings["imagery_year"],
             data_transform=None,
             dim=params["dim"],
-            batch_size=params["batch_size"],
-            num_workers=params["num_workers"],
+            batch_size=s.data["third_stage"]["predict"]["batch_size"],
+            num_workers=s.data["third_stage"]["predict"]["num_workers"],
             agg_method=params["agg_method"],
             shuffle=False)
 
