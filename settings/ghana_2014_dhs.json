@@ -45,7 +45,7 @@
         "ntl_dim": 7
     },
     "custom_predict": {
-        "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surface_grid.csv",
+        "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s3_grid/grid_s10_ghana_2014_dhs.csv",
         "imagery_year": 2014,
         "ntl_year": 2013,
         "ntl_calibrated": false,
@@ -64,7 +64,9 @@
             "imagery_year": 2010,
             "ntl_year": 2010,
             "ntl_calibrated": false,
-            "ntl_dim": 7
+            "ntl_dim": 7,
+            "batch_size": 64,
+            "num_workers": 8
         },
         "surface": {
             "pixel_size": 0.01,
