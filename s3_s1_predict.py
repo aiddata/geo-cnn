@@ -61,8 +61,15 @@ shutil.copyfile(
 s.save_params()
 tasks = s.hashed_iter()
 
-predict_settings = s.data["custom_predict"]
-predict_hash = s.build_hash(predict_settings, nchar=7)
+# predict_settings = s.data["custom_predict"]
+# predict_hash = s.build_hash(predict_settings, nchar=7)
+
+surface_tag = s.config["surface_tag"]
+s3_info = s.data["third_stage"]
+boundary_path = s3_info["grid"]["boundary_path"]
+fname = ".".join(os.path.basename(boundary_path).split(".")[:-1])
+grid_path = os.path.join(s.base_path, "output/s3_grid/grid_{}_{}.csv".format(surface_tag, fname))
+
 
 device = torch.device("cuda:{}".format(s.config["cuda_device_id"]) if torch.cuda.is_available() else "cpu")
 print("\nRunning on:", device)
@@ -80,13 +87,17 @@ for ix, (param_hash, params) in enumerate(tasks):
 
     state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
 
-    custom_out_path = os.path.join(base_path, "output/s3_s1_predict/predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
+    custom_out_path = os.path.join(base_path, "output/s3_s1_predict/predict_{}_{}_{}_{}_{}.csv".format(
+        param_hash, s3_info["grid"]["boundary_id"], s3_info["predict"]["imagery_year"],
+        s.config["version"], s.config["predict_tag"]))
+
+    print(custom_out_path)
 
     if (not os.path.isfile(custom_out_path) or s.config["overwrite_custom_predict"]):
 
         # load custom data
         if predict_data is None:
-            custom_data = pd.read_csv(predict_settings["data"], quotechar='\"',
+            custom_data = pd.read_csv(grid_path, quotechar='\"',
                                         na_values='', keep_default_na=False,
                                         encoding='utf-8')
             predict_data = {
@@ -96,11 +107,11 @@ for ix, (param_hash, params) in enumerate(tasks):
         new_dataloaders = build_dataloaders(
             predict_data,
             base_path,
-            predict_settings["imagery_year"],
+            s3_info["predict"]["imagery_year"],
             data_transform=None,
             dim=params["dim"],
-            batch_size=s.data["third_stage"]["predict"]["batch_size"],
-            num_workers=s.data["third_stage"]["predict"]["num_workers"],
+            batch_size=s3_info["predict"]["batch_size"],
+            num_workers=s3_info["predict"]["num_workers"],
             agg_method=params["agg_method"],
             shuffle=False)
 
