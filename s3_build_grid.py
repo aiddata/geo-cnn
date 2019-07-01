@@ -36,12 +36,13 @@ boundary_path = s.data["static"]["boundary_path"]
 
 pixel_size = s.data["third_stage"]["grid"]["pixel_size"]
 
-ntl_calibrated = s.data["third_stage"]["predict"]["ntl_calibrated"]
-ntl_year = s.data["third_stage"]["predict"]["ntl_year"]
-ntl_dim = s.data["third_stage"]["predict"]["ntl_dim"]
+# ntl_calibrated = s.data["third_stage"]["predict"]["ntl_calibrated"]
+# ntl_year = s.data["third_stage"]["predict"]["ntl_year"]
+# ntl_dim = s.data["third_stage"]["predict"]["ntl_dim"]
 
 surface_tag = s.config["surface_tag"]
-fname = os.path.basename(json_path, ".json")
+# fname = os.path.basename(json_path, ".json")
+fname = ".".join(os.path.basename(boundary_path).split(".")[:-1])
 grid_path = os.path.join(s.base_path, "output/s3_grid/grid_{}_{}.csv".format(surface_tag, fname))
 
 # -----------------------------------------------------------------------------
@@ -57,9 +58,9 @@ grid.grid(pixel_size)
 
 grid.df = grid.to_dataframe()
 
-ntl = NTL_Reader(calibrated=ntl_calibrated)
-ntl.set_year(ntl_year)
+# ntl = NTL_Reader(calibrated=ntl_calibrated)
+# ntl.set_year(ntl_year)
 
-grid.df['ntl'] = grid.df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)
+# grid.df['ntl'] = grid.df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)
 
 grid.to_csv(grid_path)
