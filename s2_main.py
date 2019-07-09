@@ -35,12 +35,18 @@ predict_hash = s.build_hash(s.data[s.config["predict"]], nchar=7)
 
 mh = ModelHelper(settings=s)
 
-regex_fname = "predict_*_{}_{}_{}.csv".format(
-    predict_hash, s.config["version"], s.config["predict_tag"])
-regex_str = os.path.join(base_path, "output", "s1_predict", regex_fname)
-regex_search = glob.glob(regex_str)
+tasks = s.hashed_iter()
 
-qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
+qlist = []
+for param_hash, _ in tasks:
+    fname = "predict_{}_{}_{}_{}.csv".format(
+        param_hash, predict_hash, s.config["version"], s.config["predict_tag"])
+
+    qlist.append(
+        "_".join(fname.split("_")[1:])[:-4] 
+    )
+
+
 # qlist = ["7a118a3_2019_03_28_12_48_37"]
 # qlist = pd.read_csv(os.path.join(base_path, "cnn_results_merge_1.csv"))["id_string"].tolist()
 # print qlist
