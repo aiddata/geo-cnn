@@ -197,7 +197,7 @@ def run_models(id_string, model_helper):
                         na_values='', keep_default_na=False,
                         encoding='utf-8')
 
-    test_feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+    feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
 
 
@@ -209,13 +209,13 @@ def run_models(id_string, model_helper):
 
     x_train = {}
     x_train["ntl"] = pred_data[['ntl']].values
-    x_train["cnn"] = pred_data[test_feat_labels].values
+    x_train["cnn"] = pred_data[feat_labels].values
 
-    x_train["all"] = x_train["ntl"] + x_train["cnn"]
-    x_train["all_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["ntl"] + x_train["cnn"])
+    x_train["all"] = pred_data[feat_labels+["ntl"]].values
+    x_train["all-pca{}".format(pca_dimension)] = pca.fit_transform(x_train["all"])
 
-    x_train["cnn_pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
-    x_train["cnn_pca{}_ntl".format(pca_dimension)] = x_train["cnn_pca{}".format(pca_dimension)] + x_train["ntl"]
+    x_train["cnn-pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
+    x_train["cnn-pca{}-ntl".format(pca_dimension)] = np.append(x_train["cnn-pca{}".format(pca_dimension)], x_train["ntl"], 1)
 
 
     print "Running models:"
@@ -227,7 +227,6 @@ def run_models(id_string, model_helper):
 
         results = []
 
-        models_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}.joblib".format(name, id_string, model_tag))
         metrics_results_path = os.path.join(base_path, "output/s2_metrics/metrics_{}_{}_{}.csv".format(name, id_string, model_tag))
 
         for x_name, x_data in x_train.iteritems():
@@ -235,6 +234,8 @@ def run_models(id_string, model_helper):
             print "\t{}({})...".format(name, x_name)
 
             lm = train(x_data, y_train, lm_dict["model"])
+
+            models_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}_{}.joblib".format(name, x_name, id_string, model_tag))
             joblib.dump(lm, models_results_path)
 
             # run with or without cross validation
