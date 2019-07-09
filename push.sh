@@ -40,6 +40,7 @@ push load_ntl_data.py
 push load_landsat_data.py
 push load_survey_data.py
 push model_prep.py
+push model_predict.py
 
 for i in settings_*; do
     push $i
