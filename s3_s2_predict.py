@@ -1,10 +1,10 @@
 
 
 import os
-import glob
-import time
-import datetime
-import pandas as pd
+# import glob
+# import time
+# import datetime
+# import pandas as pd
 
 from settings_builder import Settings
 
@@ -17,6 +17,7 @@ json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
+# json_path = "settings/ghana_2008_dhs.json"
 
 
 s = Settings()
@@ -33,7 +34,8 @@ predict_hash = s.build_hash(s.data[s.config["predict"]], nchar=7)
 
 s3_info = s.data["third_stage"]
 
-model_list =s3_info["predict"]["models"]
+model_list = s3_info["predict"]["models"]
+model_inputs = s3_info["predict"]["inputs"]
 
 model_tag = s.config["model_tag"]
 
@@ -42,18 +44,16 @@ predict_hash = s.build_hash(predict_settings, nchar=7)
 
 tasks = s.hashed_iter()
 
+qlist = []
+
 for ix, (param_hash, params) in enumerate(tasks):
-
-
     grid_predict_id = "{}_{}".format(s3_info["grid"]["boundary_id"], s3_info["predict"]["imagery_year"])
 
     grid_id_string = "{}_{}_{}_{}".format(
         param_hash, grid_predict_id, s.config["version"], s.config["predict_tag"]
     )
 
-    grid_predict_path = os.path.join(base_path, "output/s3_s1_predict/predict_{}_{}_{}_{}.csv".format(grid_id_string))
-
-
+    grid_predict_path = os.path.join(base_path, "output/s3_s1_predict/predict_{}.csv".format(grid_id_string))
 
     train_predict_id = predict_hash
 
@@ -62,17 +62,9 @@ for ix, (param_hash, params) in enumerate(tasks):
     )
 
     for name in model_list:
-        joblib_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}.joblib".format(
+        joblib_path = os.path.join(base_path, "output/s2_models/models_{}_INPUT_{}_{}.joblib".format(
             name, train_id_string, model_tag))
-
-        # loaded_model = joblib.load(joblib_path)
-
-
-
-
-
-
-qlist = ["_".join(os.path.basename(i).split("_")[1:])[:-4] for i in regex_search]
+        qlist.append((grid_predict_path, joblib_path))
 
 
 
