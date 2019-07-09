@@ -8,10 +8,10 @@
         "n_input_channels": [8],
         "n_epochs": [60],
         "optim": ["adam"],
-        "lr": [0.009, 0.09],
+        "lr": [0.009],
         "momentum": [0.97],
-        "step_size": [10, 20],
-        "gamma": [0.75, 0.25],
+        "step_size": [10],
+        "gamma": [0.75],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
@@ -45,7 +45,7 @@
         "ntl_dim": 7
     },
     "custom_predict": {
-        "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s3_grid/grid_s10_ghana_2008_dhs.csv",
+        "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s3_grid/grid_s10_GHA_adm0_GADM28.csv",
         "imagery_year": 2008,
         "ntl_year": 2008,
         "ntl_calibrated": false,
@@ -57,16 +57,19 @@
     },
     "third_stage": {
         "grid": {
+            "boundary_id": "adm0",
             "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/boundary/GHA_adm0_GADM28.geojson",
             "pixel_size": 0.01
         },
         "predict": {
-            "imagery_year": 2010,
-            "ntl_year": 2010,
+            "imagery_year": 2012,
+            "ntl_year": 2012,
             "ntl_calibrated": false,
             "ntl_dim": 7,
-            "batch_size": 64,
-            "num_workers": 8
+            "batch_size": 32,
+            "num_workers": 8,
+            "models": ["ridge-cv10", "lasso-cv10"],
+            "inputs": ["ntl", "cnn", "all", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
         },
         "surface": {
             "pixel_size": 0.01,
