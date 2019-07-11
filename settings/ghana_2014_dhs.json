@@ -8,10 +8,10 @@
         "n_input_channels": [8],
         "n_epochs": [60],
         "optim": ["adam"],
-        "lr": [0.009, 0.09],
+        "lr": [0.009],
         "momentum": [0.97],
-        "step_size": [10, 20],
-        "gamma": [0.75, 0.25],
+        "step_size": [20],
+        "gamma": [0.75],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
@@ -62,8 +62,8 @@
             "pixel_size": 0.01
         },
         "predict": {
-            "imagery_year": 2015,
-            "ntl_year": 2013,
+            "imagery_year": 2012,
+            "ntl_year": 2012,
             "ntl_calibrated": false,
             "ntl_dim": 7,
             "batch_size": 32,
