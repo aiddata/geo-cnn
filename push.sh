@@ -52,26 +52,31 @@ cp s1_jobscript tmp_s1_jobscript
 cp s2_jobscript tmp_s2_jobscript
 cp s3_s1_jobscript tmp_s3_s1_jobscript
 cp s3_s2_jobscript tmp_s3_s2_jobscript
+cp s4_jobscript tmp_s4_jobscript
 
 echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s1_main.py" >> s1_jobscript
 echo "mpirun --mca mpi_warn_on_fork 0 --map-by node python-mpi /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s2_main.py" >> s2_jobscript
 echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s3_s1_predict.py" >> s3_s1_jobscript
 echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s3_s2_predict.py" >> s3_s2_jobscript
+echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s4_main.py" >> s4_jobscript
 
 push s1_jobscript
 push s2_jobscript
 push s3_s1_jobscript
 push s3_s2_jobscript
+push s4_jobscript
 
 cp tmp_s1_jobscript s1_jobscript
 cp tmp_s2_jobscript s2_jobscript
 cp tmp_s3_s1_jobscript s3_s1_jobscript
 cp tmp_s3_s2_jobscript s3_s2_jobscript
+cp tmp_s4_jobscript s4_jobscript
 
 rm tmp_s1_jobscript
 rm tmp_s2_jobscript
 rm tmp_s3_s1_jobscript
 rm tmp_s3_s2_jobscript
+rm tmp_s4_jobscript
 
 # -----------------------------------------------------------------------------
 
@@ -82,6 +87,7 @@ sfiles=(
     s3_build_grid.py
     s3_s1_predict.py
     s3_s2_predict.py
+    s4_main.py
 )
 
 for i in "${sfiles[@]}"*; do

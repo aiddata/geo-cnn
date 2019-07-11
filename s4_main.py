@@ -16,7 +16,7 @@ json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
-json_path = "settings/ghana_2008_dhs.json"
+# json_path = "settings/ghana_2008_dhs.json"
 
 
 s = Settings()
