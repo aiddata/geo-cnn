@@ -62,8 +62,8 @@
             "pixel_size": 0.01
         },
         "predict": {
-            "imagery_year": 2008,
-            "ntl_year": 2008,
+            "imagery_year": 2016,
+            "ntl_year": 2013,
             "ntl_calibrated": false,
             "ntl_dim": 7,
             "batch_size": 32,
@@ -73,7 +73,9 @@
         },
         "surface": {
             "pixel_size": 0.01,
-            "pixel_agg": 10
+            "pixel_agg": 10,
+            "dim": 224,
+            "scene_max_nodata": 0.5
         }
     },
     "config": {
