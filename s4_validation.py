@@ -33,6 +33,13 @@ def surface_win_mean(src, dim):
     win_val = np.mean(data)
     return win_val
 
+def sign(val):
+    if val > 0:
+        return 1
+    elif val < 0:
+        return -1
+    else:
+        return 0
 
 survey_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2014_dhs_cluster.csv"
 
@@ -48,7 +55,6 @@ validation_data = []
 
 for i, row in survey_df.iterrows():
     validation_data.append({
-        "wealthscorex": row.wealthscore,
         "point": surface_src.sample([(row.lon, row.lat)]).next()[0],
         "dim3": surface_win_mean(surface_src, 3),
         "dim16": surface_win_mean(surface_src, 16),
@@ -58,9 +64,24 @@ for i, row in survey_df.iterrows():
 
 validation_df = pd.DataFrame(validation_data)
 
+wealthscore_sign = survey_df.wealthscore.apply(lambda x: sign(x))
+
+print "Survey points: {}".format(len(survey_df))
+
 for i in validation_df.columns:
     survey_df[i] = validation_df[i]
+    survey_df[i+"err"] = (survey_df.wealthscore - survey_df[i]) / survey_df.wealthscore
+    survey_df[i+"sign"] = (wealthscore_sign != survey_df[i].apply(lambda x: sign(x))).astype(int)
+    print i
+    print "\t{}".format(np.sum(survey_df[i+"sign"] ))
 
+final_cols = ["lon", "lat", "wealthscore"]
+for i in validation_df.columns:
+    final_cols.append(i)
+    final_cols.append(i+"err")
+    final_cols.append(i+"sign")
+
+survey_df = survey_df[final_cols]
 
 validation_dir = os.path.dirname(os.path.dirname(surface_path)) + "/s4_validation"
 
@@ -69,4 +90,4 @@ validation_fname = os.path.basename(surface_path)[:-4] + "_" + os.path.basename(
 validation_path = os.path.join(validation_dir, validation_fname)
 
 make_dir(validation_dir)
-survey_df.to_csv(validation_path)
+survey_df.to_csv(validation_path, index=False)
