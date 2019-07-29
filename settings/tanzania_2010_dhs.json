@@ -62,8 +62,8 @@
             "pixel_size": 0.01
         },
         "predict": {
-            "imagery_year": 2009,
-            "ntl_year": 2009,
+            "imagery_year": 2017,
+            "ntl_year": 2013,
             "ntl_calibrated": false,
             "ntl_dim": 7,
             "batch_size": 32,
