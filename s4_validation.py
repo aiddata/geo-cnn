@@ -41,9 +41,12 @@ def sign(val):
     else:
         return 0
 
-survey_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2014_dhs_cluster.csv"
 
-surface_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2017_v10_p10_m10_s10.tif"
+survey_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2015_dhs_cluster.csv"
+surface_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2015_v10_p10_m10_s10.tif"
+
+survey_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2014_dhs_cluster.csv"
+surface_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2014_v10_p10_m10_s10.tif"
 
 
 surface_src = rasterio.open(surface_path, 'r')
@@ -91,3 +94,46 @@ validation_path = os.path.join(validation_dir, validation_fname)
 
 make_dir(validation_dir)
 survey_df.to_csv(validation_path, index=False)
+
+
+# -----------------------------------------------------------------------------
+
+import os
+import rasterio
+import numpy as np
+from scipy.stats.stats import pearsonr
+
+surface_a_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2010_v10_p10_m10_s10.tif"
+surface_b_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2015_v10_p10_m10_s10.tif"
+
+# surface_a_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2008_v10_p10_m10_s10.tif"
+# surface_b_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2014_v10_p10_m10_s10.tif"
+
+surface_a_src = rasterio.open(surface_a_path, 'r')
+surface_b_src = rasterio.open(surface_b_path, 'r')
+
+surface_a = surface_a_src.read(1)
+surface_b = surface_b_src.read(1)
+
+flat_a = surface_a.flatten()
+flat_b = surface_b.flatten()
+
+c1 = pearsonr(flat_a, flat_b)[0]
+c2 = np.corrcoef(flat_a, flat_b)[0,1]
+
+raw_diff = surface_a - surface_b
+abs_diff = np.abs(raw_diff)
+
+validation_dir = os.path.dirname(os.path.dirname(surface_a_path)) + "/s4_validation"
+
+raw_diff_path = os.path.join(validation_dir, "raw_diff_" + os.path.basename(surface_a_path))
+abs_diff_path = os.path.join(validation_dir, "abs_diff_" + os.path.basename(surface_a_path))
+
+meta = surface_a_src.profile
+
+meta["crs"] = rasterio.crs.CRS.from_epsg(4236)
+with rasterio.open(raw_diff_path, 'w', **meta) as result:
+    result.write(np.array([raw_diff]))
+
+with rasterio.open(abs_diff_path, 'w', **meta) as result:
+    result.write(np.array([abs_diff]))
