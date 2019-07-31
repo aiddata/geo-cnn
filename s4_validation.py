@@ -130,8 +130,8 @@ raw_diff_path = os.path.join(validation_dir, "raw_diff_" + os.path.basename(surf
 abs_diff_path = os.path.join(validation_dir, "abs_diff_" + os.path.basename(surface_a_path))
 
 meta = surface_a_src.profile
-
 meta["crs"] = rasterio.crs.CRS.from_epsg(4236)
+
 with rasterio.open(raw_diff_path, 'w', **meta) as result:
     result.write(np.array([raw_diff]))
 
