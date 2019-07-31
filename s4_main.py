@@ -98,6 +98,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             xmin, ymax = min(df.lon), max(df.lat)
             pixel_size =  s3_info["surface"]["pixel_size"]
             meta = {}
+            meta["crs"] = rasterio.crs.CRS.from_epsg(4236)
             meta["transform"] = Affine(pixel_size, 0, xmin,
                                        0, -pixel_size, ymax)
             meta['height'] = shape[0]
