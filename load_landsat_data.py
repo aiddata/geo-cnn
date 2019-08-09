@@ -15,7 +15,7 @@ class BandDataset(Dataset):
         self.imagery_type = imagery_type
 
         # self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"] # landsat7
-        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b9", "b10", "b11"] # landsat8
+        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"] # landsat8
         self.bands = imagery_bands
 
         self.dataframe = dataframe
@@ -49,12 +49,19 @@ class BandDataset(Dataset):
             season_mosaics_path = os.path.join(
                 self.root_dir, "landsat/data/{}/mosaics/{}_all".format(self.imagery_type, self.year), self.agg_method,
                 "{}_all_{}.tif".format(self.year, band))
-
-            season_mosaics = rasterio.open(season_mosaics_path)
+            try:
+                season_mosaics = rasterio.open(season_mosaics_path)
+            except:
+                print(season_mosaics_path)
+                raise
 
             r, c = season_mosaics.index(lon, lat)
             win = ((r-dim/2, r+dim/2), (c-dim/2, c+dim/2))
-            data = season_mosaics.read(1, window=win)
+            try:
+                data = season_mosaics.read(1, window=win)
+            except:
+                print(win)
+                raise
 
             if data.shape != (dim, dim):
                 raise Exception("bad feature (dim: ({0}, {0}), data shape: {1}".format(dim, data.shape))
