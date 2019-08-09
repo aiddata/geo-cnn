@@ -1,0 +1,107 @@
+{
+    "csv": {
+        "path": "none",
+        "field": "none"
+    },
+    "batch": {
+        "run_type": [1],
+        "n_input_channels": [8],
+        "n_epochs": [60],
+        "optim": ["adam"],
+        "lr": [0.009],
+        "momentum": [0.97],
+        "step_size": [10],
+        "gamma": [0.75],
+        "loss_weights": [
+            [1.0, 1.0, 1.0]
+        ],
+        "net": ["resnet34"],
+        "batch_size": [64],
+        "num_workers": [16],
+        "dim": [224],
+        "agg_method": ["mean"]
+    },
+    "static": {
+        "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/boundary/GHA_adm0_GADM28.geojson",
+        "grid_pixel_size": 0.08,
+        "grid_nfill": 225,
+        "grid_fill_dist": 0.01,
+        "grid_fill_mode": "fixed",
+        "ntl_type": "viirs",
+        "ntl_year": 2014,
+        "ntl_class_bins": [0, 3, 8],
+        "ntl_calibrated": false,
+        "ntl_dim": 14,
+        "ntl_min": 0,
+        "cat_names": [0, 1, 2],
+        "type_names": ["train", "val", "test", "predict"],
+        "type_weights": [0.850, 0.150, 0.0, 0.0],
+        "imagery_year": 2014,
+        "imagery_type": "landsat8",
+        "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b7", "b9", "b10", "b11"]
+    },
+    "survey_predict": {
+        "survey": "ghana_2008_dhs_cluster",
+        "imagery_year": 2008,
+        "ntl_year": 2008,
+        "ntl_calibrated": false,
+        "ntl_dim": 7
+    },
+    "custom_predict": {
+        "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s3_grid/grid_s10_GHA_adm0_GADM28.csv",
+        "imagery_year": 2008,
+        "ntl_year": 2008,
+        "ntl_calibrated": false,
+        "ntl_dim": 7
+    },
+    "second_stage": {
+        "models": ["ridge-cv10", "lasso-cv10"],
+        "metrics": ["r2"]
+    },
+    "third_stage": {
+        "grid": {
+            "boundary_id": "adm0",
+            "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/boundary/GHA_adm0_GADM28.geojson",
+            "pixel_size": 0.01
+        },
+        "predict": {
+            "imagery_year": 2014,
+            "ntl_year": 2014,
+            "ntl_calibrated": false,
+            "ntl_dim": 14,
+            "batch_size": 32,
+            "num_workers": 8,
+            "models": ["ridge-cv10", "lasso-cv10"],
+            "inputs": ["ntl", "cnn", "all", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
+        },
+        "surface": {
+            "pixel_size": 0.01,
+            "pixel_agg": 10,
+            "dim": 224,
+            "scene_max_nodata": 0.5
+        }
+    },
+    "config": {
+        "base_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria",
+        "mode": "batch",
+        "predict": "survey_predict",
+        "version": "v11",
+        "predict_tag": "p11",
+        "model_tag": "m11",
+        "surface_tag": "s11",
+        "quiet": false,
+        "overwrite_sample_prep": false,
+        "overwrite_train": true,
+        "overwrite_survey_predict": true,
+        "overwrite_custom_predict": true,
+        "run": {
+            "train": true,
+            "test": false,
+            "predict": false,
+            "survey_predict": true,
+            "custom_predict": false
+        },
+        "cuda_device_id": 0,
+        "second_stage_mode": "parallel"
+    }
+}

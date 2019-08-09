@@ -8,13 +8,15 @@ from torch.utils.data import Dataset
 class BandDataset(Dataset):
     """Get the data
     """
-    def __init__(self, dataframe, root_dir, year, dim=224, transform=None, agg_method="mean"):
+    def __init__(self, dataframe, root_dir, imagery_year, imagery_type, imagery_bands, dim=224, transform=None, agg_method="mean"):
 
         self.dim = dim
-        self.year = year
-        # self.bands = ["b1", "b2", "b3", ]
-        self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"]
-        # self.bands = ["b3", "b4", "b5"]
+        self.year = imagery_year
+        self.imagery_type = imagery_type
+
+        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"] # landsat7
+        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b9", "b10", "b11"] # landsat8
+        self.bands = imagery_bands
 
         self.dataframe = dataframe
         self.root_dir = root_dir
@@ -45,8 +47,8 @@ class BandDataset(Dataset):
         for bnum, band in enumerate(self.bands):
 
             season_mosaics_path = os.path.join(
-                self.root_dir, "landsat/data/mosaics/{0}_all".format(self.year), self.agg_method,
-                "{0}_all_{1}.tif".format(self.year, band))
+                self.root_dir, "landsat/data/{}/mosaics/{}_all".format(self.imagery_type, self.year), self.agg_method,
+                "{}_all_{}.tif".format(self.year, band))
 
             season_mosaics = rasterio.open(season_mosaics_path)
 

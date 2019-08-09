@@ -15,7 +15,7 @@ from torchvision import transforms
 from load_landsat_data import BandDataset
 
 
-def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="mean", shuffle=True):
+def build_dataloaders(df_dict, base_path, imagery_year, imagery_type, imagery_bands, data_transform=None, dim=224, batch_size=64, num_workers=16, agg_method="mean", shuffle=True):
 
     if data_transform == None:
 
@@ -31,7 +31,7 @@ def build_dataloaders(df_dict, base_path, year, data_transform=None, dim=224, ba
 
     # where group is train, val, test, predict
     for group in df_dict:
-        tmp_dset = BandDataset(df_dict[group], base_path, year, dim=dim, transform=data_transform, agg_method=agg_method)
+        tmp_dset = BandDataset(df_dict[group], base_path, imagery_year, imagery_type, imagery_bands, dim=dim, transform=data_transform, agg_method=agg_method)
         dataloaders[group] = DataLoader(tmp_dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
     return dataloaders
