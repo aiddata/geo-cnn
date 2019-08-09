@@ -18,6 +18,7 @@ class SurveyData():
 
         self.base_path = base_path
 
+        self.ntl_type = settings["ntl_type"]
         self.ntl_calibrated = settings["ntl_calibrated"]
         self.ntl_dim = settings["ntl_dim"]
         self.ntl_year = settings["ntl_year"]

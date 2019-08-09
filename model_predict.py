@@ -36,7 +36,7 @@ def run_models(task, settings):
     s3_info = settings.data["third_stage"]
     s3_predict = s3_info["predict"]
 
-    ntl = NTL_Reader(calibrated=s3_predict["ntl_calibrated"])
+    ntl = NTL_Reader(ntl_type=s3_predict["ntl_type"], calibrated=s3_predict["ntl_calibrated"])
     ntl.set_year(s3_predict["ntl_year"])
     pred_data['ntl'] = pred_data.apply(
         lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=s3_predict["ntl_dim"]), axis=1)

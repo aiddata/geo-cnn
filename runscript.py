@@ -91,7 +91,7 @@ class RunCNN():
 
         net_args = {
             "pretrained":True,
-            "n_input_channels": self.kwargs["n_input_channels"]
+            "n_input_channels": len(self.kwargs["static"]["imagery_bands"])
         }
 
         # https://pytorch.org/docs/stable/torchvision/models.html

@@ -153,6 +153,9 @@ class PrepareSamples():
         #   Final value capped at max of data
         self.ntl_class_bins = static_params["ntl_class_bins"]
 
+        # dmsp or viirs
+        self.ntl_type = static_params["ntl_type"]
+
         # whether to use calibrated ntl data or original
         self.ntl_calibrated = static_params["ntl_calibrated"]
 
@@ -197,7 +200,7 @@ class PrepareSamples():
 
     def assign_ntl(self):
         # ntl data
-        self.ntl = NTL_Reader(calibrated=self.ntl_calibrated)
+        self.ntl = NTL_Reader(ntl_type=self.ntl_type, calibrated=self.ntl_calibrated)
         self.ntl.set_year(self.ntl_year)
         # ----------
         self.df = self.grid_df.copy(deep=True)

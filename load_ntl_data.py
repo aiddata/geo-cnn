@@ -8,17 +8,17 @@ class NTL_Reader():
     """ Read in NTL data
     """
 
-    def __init__(self, ntl_type="dmsp", calibrated=False):
+    def __init__(self, ntl_type, calibrated=False):
         self.ntl_type = ntl_type
         if ntl_type == "dmsp":
             self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites"
             if calibrated:
                 self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
-            self.fregex = os.path.join(self.base, "F*{0}.*.tif")
+            self.fregex = os.path.join(self.base, "F*{}.*.tif")
             self.default_dim = 7
         elif ntl_type == "viirs":
             self.base = "/sciclone/aiddata10/REU/geo/data/rasters/viirs/vcmcfg_dnb_composites_v10/yearly/max/"
-            self.fregex = os.path.join(self.base, "{0}_*.tif")
+            self.fregex = os.path.join(self.base, "{}_*.tif")
             self.default_dim = 14
         else:
             raise ValueError("NTL_Reader: invalid ntl_type `{}`".format(ntl_type))
@@ -30,7 +30,11 @@ class NTL_Reader():
         if self.file is not None:
             self.file.close()
         self.year = year
-        self.path = glob.glob(self.fregex.format(self.year))[0]
+        try:
+            self.path = glob.glob(self.fregex.format(self.year))[0]
+        except:
+            print(self.fregex.format(self.year))
+            raise
         self.file = rasterio.open(self.path)
 
     def value(self, lon, lat, ntl_dim=-1, method="mean"):

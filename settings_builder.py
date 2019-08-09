@@ -125,6 +125,7 @@ class Settings():
         # self.param_count = np.prod([len(i) for i in data.values()])
         print("\nPreparing batch parameter set:")
         pprint.pprint(data, indent=4)
+        print("\n")
 
 
     def _batch_check(self, data):

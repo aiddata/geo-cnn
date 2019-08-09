@@ -14,7 +14,7 @@ from settings_builder import Settings
 from data_prep import make_dir
 
 from create_grid import PointGrid
-from load_ntl_data import NTL_Reader
+# from load_ntl_data import NTL_Reader
 
 # *****************
 # *****************
@@ -58,7 +58,7 @@ grid.grid(pixel_size)
 
 grid.df = grid.to_dataframe()
 
-# ntl = NTL_Reader(calibrated=ntl_calibrated)
+ntl = NTL_Reader(calibrated=ntl_calibrated)
 # ntl.set_year(ntl_year)
 
 # grid.df['ntl'] = grid.df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)

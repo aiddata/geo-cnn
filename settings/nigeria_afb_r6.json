@@ -5,7 +5,6 @@
     },
     "batch": {
         "run_type": [1],
-        "n_input_channels": [8],
         "n_epochs": [60],
         "optim": ["adam"],
         "lr": [0.009],
@@ -22,7 +21,7 @@
         "agg_method": ["mean"]
     },
     "static": {
-        "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/boundary/GHA_adm0_GADM28.geojson",
+        "boundary_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/boundary/NGA_adm0_GADM28.geojson",
         "grid_pixel_size": 0.08,
         "grid_nfill": 225,
         "grid_fill_dist": 0.01,
@@ -38,11 +37,12 @@
         "type_weights": [0.850, 0.150, 0.0, 0.0],
         "imagery_year": 2014,
         "imagery_type": "landsat8",
-        "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b7", "b9", "b10", "b11"]
+        "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"]
     },
     "survey_predict": {
         "survey": "ghana_2008_dhs_cluster",
         "imagery_year": 2008,
+        "ntl_type": "viirs",
         "ntl_year": 2008,
         "ntl_calibrated": false,
         "ntl_dim": 7
@@ -50,6 +50,7 @@
     "custom_predict": {
         "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s3_grid/grid_s10_GHA_adm0_GADM28.csv",
         "imagery_year": 2008,
+        "ntl_type": "viirs",
         "ntl_year": 2008,
         "ntl_calibrated": false,
         "ntl_dim": 7
@@ -66,6 +67,7 @@
         },
         "predict": {
             "imagery_year": 2014,
+            "ntl_type": "viirs",
             "ntl_year": 2014,
             "ntl_calibrated": false,
             "ntl_dim": 14,
