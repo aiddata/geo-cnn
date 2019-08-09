@@ -98,7 +98,7 @@
             "train": true,
             "test": false,
             "predict": false,
-            "survey_predict": true,
+            "survey_predict": false,
             "custom_predict": false
         },
         "cuda_device_id": 0,
