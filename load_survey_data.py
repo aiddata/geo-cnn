@@ -35,11 +35,14 @@ class SurveyData():
         self._tanzania_2015_dhs_cluster()
         self._ghana_2008_dhs_cluster()
         self._ghana_2014_dhs_cluster()
+        self._acled(int(self.ntl_year)+1)
 
 
-    def duplicate(self, df):
-        mod = 0.002
+    def duplicate(self, df, mod):
         df = df.drop("lonlat", axis=1)
+        # set group value so that when additional rows are added
+        # they can be aggregated back based on original row they
+        # were created from
         df["group"] = df.index
         new_df_dict = []
         for ix, row in df.iterrows():
@@ -58,6 +61,30 @@ class SurveyData():
         return new_df
 
 
+    def _acled(self, year):
+        field = 'fatalities'
+
+        data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
+
+        data = pd.read_csv(data_path, quotechar='\"',
+                           na_values='', keep_default_na=False,
+                           encoding='utf-8')
+
+        # data = self.duplicate(data, mod=0.002)
+        data["lon"] = data.longitude
+        data["lat"] = data.latitude
+
+        data['ntl'] = data.apply(
+            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+
+        data["pred_yval"] = data[field]
+
+        out_cols = ["lon", "lat", "pred_yval"]
+        data = data[out_cols]
+
+        self.surveys["acled_{}".format(year)] = data
+
+
     def _tanzania_2010_lsms_cluster(self):
         field = 'cons'
 
@@ -67,7 +94,7 @@ class SurveyData():
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        cluster = self.duplicate(cluster)
+        cluster = self.duplicate(cluster, mode=0.002)
 
         cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
@@ -86,7 +113,7 @@ class SurveyData():
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        cluster = self.duplicate(cluster)
+        cluster = self.duplicate(cluster, mode=0.002)
 
         cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
@@ -105,7 +132,7 @@ class SurveyData():
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        cluster = self.duplicate(cluster)
+        cluster = self.duplicate(cluster, mode=0.002)
 
         cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
@@ -124,7 +151,7 @@ class SurveyData():
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        cluster = self.duplicate(cluster)
+        cluster = self.duplicate(cluster, mode=0.002)
 
         cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
@@ -143,7 +170,7 @@ class SurveyData():
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        cluster = self.duplicate(cluster)
+        cluster = self.duplicate(cluster, mode=0.002)
 
         cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
@@ -162,7 +189,7 @@ class SurveyData():
                                 na_values='', keep_default_na=False,
                                 encoding='utf-8')
 
-        cluster = self.duplicate(cluster)
+        cluster = self.duplicate(cluster, mode=0.002)
 
         cluster['ntl'] = cluster.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
