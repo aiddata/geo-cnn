@@ -86,10 +86,15 @@ for ix, (param_hash, params) in enumerate(tasks):
 
     state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
 
-    full_out_path = os.path.join(base_path, "output/s1_predict/raw_predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
-    group_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
 
-    custom_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
+    raw_out_path = os.path.join(base_path, "output/s1_predict/raw_predict_{}_{}_{}_{}.csv".format(
+        param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
+
+    group_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(
+        param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
+
+    custom_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(
+        param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
 
 
     if (not os.path.isfile(state_path) or s.config["overwrite_train"]) and (s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]):
@@ -141,7 +146,7 @@ for ix, (param_hash, params) in enumerate(tasks):
         #     pred_data, _ = train_cnn.predict(features=True)
 
 
-    if (not os.path.isfile(full_out_path) or s.config["overwrite_survey_predict"]) and (s.config["run"]["survey_predict"]):
+    if (not os.path.isfile(raw_out_path) or s.config["overwrite_survey_predict"]) and (s.config["run"]["survey_predict"]):
 
         # load survey data
         if predict_data is None:
@@ -181,7 +186,7 @@ for ix, (param_hash, params) in enumerate(tasks):
         full_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
         full_col_order = list(predict_data["predict"].columns) + feat_labels
         full_out = full_out[full_col_order]
-        full_out.to_csv(full_out_path, index=False, encoding='utf-8')
+        full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
 
         # aggregate by group
         if "group" in full_col_order:

@@ -5,16 +5,16 @@
     },
     "batch": {
         "run_type": [1],
-        "n_epochs": [1],
+        "n_epochs": [10],
         "optim": ["adam"],
-        "lr": [0.009],
+        "lr": [0.009, 0.0009],
         "momentum": [0.97],
-        "step_size": [10],
-        "gamma": [0.75],
+        "step_size": [10, 20],
+        "gamma": [0.5],
         "loss_weights": [
             [1.0, 1.0, 1.0]
         ],
-        "net": ["resnet34"],
+        "net": ["resnet18", "resnet34"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -40,20 +40,20 @@
         "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"]
     },
     "survey_predict": {
-        "survey": "ghana_2008_dhs_cluster",
-        "imagery_year": 2008,
+        "survey": "nigeria_2014_afb",
+        "imagery_year": 2014,
         "ntl_type": "viirs",
-        "ntl_year": 2008,
+        "ntl_year": 2014,
         "ntl_calibrated": false,
-        "ntl_dim": 7
+        "ntl_dim": 14
     },
     "custom_predict": {
-        "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s3_grid/grid_s10_GHA_adm0_GADM28.csv",
-        "imagery_year": 2008,
+        "data": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_s10_NGA_adm0_GADM28.csv",
+        "imagery_year": 2014,
         "ntl_type": "viirs",
-        "ntl_year": 2008,
+        "ntl_year": 2014,
         "ntl_calibrated": false,
-        "ntl_dim": 7
+        "ntl_dim": 14
     },
     "second_stage": {
         "models": ["ridge-cv10", "lasso-cv10"],
@@ -62,7 +62,7 @@
     "third_stage": {
         "grid": {
             "boundary_id": "adm0",
-            "boundary_path": "/sciclone/aiddata10/REU/projects/mcc_ghana/data/boundary/GHA_adm0_GADM28.geojson",
+            "boundary_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/boundary/NGA_adm0_GADM28.geojson",
             "pixel_size": 0.01
         },
         "predict": {
