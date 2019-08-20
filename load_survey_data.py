@@ -62,13 +62,15 @@ class SurveyData():
 
 
     def _acled(self, year):
-        field = 'fatalities'
 
         data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
 
         data = pd.read_csv(data_path, quotechar='\"',
                            na_values='', keep_default_na=False,
                            encoding='utf-8')
+
+        # binary indicating fatalities
+        data["pred_yval"] = (data["fatalities"] > 0).astype(int)
 
         # data = self.duplicate(data, mod=0.002)
         data["lon"] = data.longitude
@@ -77,9 +79,8 @@ class SurveyData():
         data['ntl'] = data.apply(
             lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
-        data["pred_yval"] = data[field]
 
-        out_cols = ["lon", "lat", "pred_yval"]
+        out_cols = ["lon", "lat", "pred_yval", "ntl"]
         data = data[out_cols]
 
         self.surveys["acled_{}".format(year)] = data
