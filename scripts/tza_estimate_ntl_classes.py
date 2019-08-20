@@ -1,3 +1,4 @@
+
 from __future__ import print_function, division
 
 import os
@@ -7,6 +8,7 @@ import fiona
 import rasterio
 import pandas as pd
 import numpy as np
+import rasterio.mask
 
 # from create_grid import PointGrid
 
@@ -35,6 +37,12 @@ class_bins = {
 ntl_base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites_calibrated_201709"
 ntl_year = 2010
 ntl_path = glob.glob(os.path.join(ntl_base, "*{0}*.tif".format(ntl_year)))[0]
+ntl_dim = 7
+
+
+# -----------------------------------------------------------------------------
+
+
 ntl_file = rasterio.open(ntl_path, 'r')
 
 def get_ntl(lon, lat, ntl_dim=7):
@@ -63,7 +71,7 @@ def classify(val, cat_vals):
 lsms_field = 'cons'
 
 lsms_clusters_path = os.path.join(
-    base_path, "data/surveys/final/tanzania_lsms_cluster.csv")
+    base_path, "data/surveys/final/tanzania_2010_lsms_cluster.csv")
 
 lsms_cluster = pd.read_csv(lsms_clusters_path, quotechar='\"',
                            na_values='', keep_default_na=False,
@@ -80,7 +88,7 @@ lsms_cluster['label'] = lsms_cluster.apply(
 
 # get ntl values for each location
 lsms_cluster['ntl'] = lsms_cluster.apply(
-    lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+    lambda z: get_ntl(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)
 
 # get average ntl values by survey field categories
 lsms_class_ntl_means = dict(zip(cat_names, lsms_cluster.groupby('label')['ntl'].mean()))
@@ -94,7 +102,7 @@ print(lsms_class_ntl_means)
 dhs_field = 'wealthscore'
 
 dhs_clusters_path = os.path.join(
-    base_path, "data/surveys/final/tanzania_dhs_cluster.csv")
+    base_path, "data/surveys/final/tanzania_2010_dhs_cluster.csv")
 
 dhs_cluster = pd.read_csv(dhs_clusters_path, quotechar='\"',
                            na_values='', keep_default_na=False,
@@ -110,7 +118,7 @@ dhs_cluster['label'] = dhs_cluster.apply(
 
 # get ntl values for each location
 dhs_cluster['ntl'] = dhs_cluster.apply(
-    lambda z: get_ntl(z['lon'], z['lat']), axis=1)
+    lambda z: get_ntl(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)
 
 # get average ntl values by survey field categories
 dhs_class_ntl_means = dict(zip(cat_names, dhs_cluster.groupby('label')['ntl'].mean()))
@@ -120,15 +128,16 @@ print(dhs_class_ntl_means)
 # -----------------------------------------------------------------------------
 # distribution based on pixel values in area of interest
 
-tza_adm0_path = os.path.join(base_path, 'data/TZA_ADM0_GADM28_simplified.geojson')
-tza_adm0 = fiona.open(tza_adm0_path)
+boundary_path = os.path.join(base_path, 'data/boundary/TZA_ADM0_GADM28_simplified.geojson')
+boundary = fiona.open(boundary_path)
 
 
-features = [feature["geometry"] for feature in tza_adm0]
+features = [feature["geometry"] for feature in boundary]
 
-import rasterio.mask
 m_img, m_transform = rasterio.mask.mask(ntl_file, features, all_touched=True, crop=True)
 
 pixel_values = m_img[(m_img.data < 255)&(m_img.data > 0)]
 
 cat_vals = [np.percentile(pixel_values, x*100/ncats) for x in range(1, ncats+1)]
+
+print(cat_vals)
