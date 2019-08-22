@@ -23,7 +23,7 @@ import torch
 from runscript import RunCNN, build_dataloaders
 from load_survey_data import SurveyData
 from settings_builder import Settings
-from data_prep import make_dir, gen_sample_size, apply_types, normalize, PrepareSamples
+from data_prep import make_dir, PrepareSamples
 
 
 # *****************
@@ -46,6 +46,9 @@ s = Settings()
 s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
+
+
+print("\nGenerating directories and saving settings/params...")
 
 output_dirs = [
     "s0_settings",
