@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import fiona
 
-from create_grid import PointGrid
+from create_grid import PointGrid, SampleFill
 from load_ntl_data import NTL_Reader
 
 
@@ -76,82 +76,74 @@ def normalize(data, type_field, type_values, class_field, class_values):
     return data
 
 
-
 class PrepareSamples():
 
-    def __init__(self, base_path, static_params, version, overwrite=None):
+    def __init__(self, base_path, static_params, version, overwrite=False):
 
         self.base_path = base_path
         self.static_params = static_params
         self.version = version
 
         # -----------------
-        # output settings
+        # sample settings
 
-        overwrite_all = False
-        if overwrite:
-            overwrite_all = overwrite
-
-        self.overwrite_grid = False | overwrite_all # base grid generation
-        self.overwrite_full = False | overwrite_all # overwrite class/type definitions
-        self.overwrite_trim = False | overwrite_all # overwrite class size trimming (which is randomized)
+        self.overwrite = overwrite
 
 
-        # grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "cal")
-        # grid_tag = "{}_{}".format(str(pixel_size).split(".")[1], "raw")
-        grid_tag = "{}_{}".format(
-            str(static_params["grid_pixel_size"]).split(".")[1],
+        self.sample_type = static_params["sample_type"]
+        if self.sample_type not in ["source", "grid"]:
+            raise ValueError("sample type must be either `source` or `grid`")
+
+        # init = raw sample data
+        # fill = raw sample data filled with additional sample points (grouped with original points)
+        # ntl  = ntl values added
+        # full = full set of data (before trimming)
+        # trim = final set of data (after trimming)
+        sample_stages = ["init", "fill", "ntl", "full", "trim"]
+
+
+        if self.sample_type == "source":
+            tag_name = static_params["source_name"]
+        elif self.sample_type == "grid":
+            tag_name = str(static_params["grid_pixel_size"]).split(".")[1]
+
+
+        sample_tag = "{}_{}_{}_{}_{}".format(
+            tag_name,
+            static_params["sample_nfill"],
+            str(static_params["sample_fill_dist"]).split(".")[1],
+            static_params["sample_fill_mode"],
             version
         )
 
-        # raw grid
-        self.grid_path = os.path.join(
-            base_path,
-            "data/grid/sample_grid_init_{}.csv".format(grid_tag)
-        )
+        self.sample_path = {}
+        for i in sample_stages:
+            self.sample_path[i] = os.path.join(
+                base_path,
+                "data/grid/sample_{}_{}_{}.csv".format(self.sample_type, i, sample_tag)
+            )
 
-        # ntl data (ntl values added)
-        self.ntl_path = os.path.join(
-            base_path,
-            "data/grid/sample_grid_ntl_{}.csv".format(grid_tag)
-        )
+        make_dir(os.path.join(base_path, "data/sample"))
 
-        # full set of data (before trimming)
-        self.full_path = os.path.join(
-            base_path,
-            "data/grid/sample_grid_data_{}.csv".format(grid_tag)
-        )
-
-        # final set of data (after trimming)
-        self.trim_path = os.path.join(
-            base_path,
-            "data/grid/sample_grid_trim_{}.csv".format(grid_tag)
-        )
 
         # -----------------
 
         # boundary path defining grid area
         self.boundary_path = static_params["boundary_path"]
 
-        # -----------------
-        # grid settings
 
-        # base grid resolution
-        self.pixel_size = static_params["grid_pixel_size"]
+        # -----------------
+        # sample fill  settings
+
         # number of additional points to fill for each base point
-        self.nfill = static_params["grid_nfill"]
+        self.nfill = static_params["sample_nfill"]
         # distance from base point to fill in
-        self.fill_dist = static_params["grid_fill_dist"]
+        self.fill_dist = static_params["sample_fill_dist"]
         # fixed or random fill of point
-        self.fill_mode = static_params["grid_fill_mode"]
+        self.fill_mode = static_params["sample_fill_mode"]
 
         # -----------------
         # ntl settings
-
-        # ntl classes (starting value for each bin, ends at following value)
-        #   First value should always be 0
-        #   Final value capped at max of data
-        self.ntl_class_bins = static_params["ntl_class_bins"]
 
         # dmsp or viirs
         self.ntl_type = static_params["ntl_type"]
@@ -170,8 +162,13 @@ class PrepareSamples():
 
         # -----------------
 
-        # ntl cateogories (low, med, high)
-        #   must match number of values in ntl_class_bins
+        # field name used to define cat values
+        self.cat_field = static_params["cat_field"]
+
+        # starting value for each bin, ends at following value
+        self.cat_bins = static_params["cat_bins"]
+
+        # number of items in cat_names must match number of items in cat_bins
         self.cat_names = static_params["cat_names"]
 
         # data types to subset
@@ -181,21 +178,46 @@ class PrepareSamples():
         self.type_weights = static_params["type_weights"]
 
 
-    def prepare_grid(self):
+    def prepare_sample(self):
+        if self.sample_type == "source":
+            self._prepare_source_sample()
+        elif self.sample_type == "grid":
+            self._prepare_grid_sample()
+
+
+    def _prepare_source_sample(self):
+        df = pd.read_csv(self.static_params["source_path"], sep=",", encoding='utf-8')
+        cols = df.columns
+        if "lon" not in cols and "longitude" in cols:
+            df["lon"] = df.longitude
+        if "lat" not in cols and "latitude" in cols:
+            df["lat"] = df.latitude
+        if "lon" not in df.columns and "lat" not in df.columsn:
+            raise Exception("Source for sample data must contain longitude/latitude or lon/lat columns")
+        df["sample_id"] = range(len(df))
+        self.sample_df = df.copy(deep=True)
+
+
+    def _prepare_grid_sample(self):
         # load boundary data
         boundary_src = fiona.open(self.boundary_path)
         grid = PointGrid(boundary_src)
         boundary_src.close()
-        grid.grid(self.pixel_size)
+        grid.grid(self.static_params["grid_pixel_size"])
         # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
         # grid.to_geojson(geo_path)
-        # grid_path = os.path.join(base_path, "data/sample_grid.csv")
-        # grid.to_csv(grid_path)
+        # grid_init_path = os.path.join(base_path, "data/sample_grid.csv")
+        # grid.to_csv(grid_init_path)
         grid.df = grid.to_dataframe()
-        grid.gfill(self.nfill, distance=self.fill_dist, mode=self.fill_mode)
-        make_dir(os.path.dirname(self.grid_path))
-        grid.to_csv(self.grid_path)
-        self.grid_df = grid.df.copy(deep=True)
+        grid.to_csv(self.sample_path["init"])
+        self.sample_df = grid.df.copy(deep=True)
+
+
+    def fill_sample(self):
+        fill = SampleFill(self.sample_df)
+        fill.gfill(self.nfill, distance=self.fill_dist, mode=self.fill_mode)
+        self.sample_df = fill.df.copy(deep=True)
+        self.sample_df.to_csv(self.sample_path["fill"])
 
 
     def assign_ntl(self):
@@ -203,18 +225,18 @@ class PrepareSamples():
         self.ntl = NTL_Reader(ntl_type=self.ntl_type, calibrated=self.ntl_calibrated)
         self.ntl.set_year(self.ntl_year)
         # ----------
-        self.df = self.grid_df.copy(deep=True)
+        self.df = self.sample_df.copy(deep=True)
         # get ntl values
         self.df['ntl'] = self.df.apply(lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
         self.df = self.df.loc[self.df['ntl'] >= self.ntl_min]
-        self.df.to_csv(self.ntl_path, index=False, encoding='utf-8')
+        self.df.to_csv(self.sample_path["ntl"], index=False, encoding='utf-8')
 
 
     def build_datasets(self):
-        # label each point based on ntl value for point and class bins
+        # label each point based on cat ntl value for point and class bins
         self.df["label"] = None
-        for c, b in enumerate(self.ntl_class_bins):
-            self.df.loc[self.df['ntl'] >= b, 'label'] = int(c)
+        for c, b in enumerate(self.cat_bins):
+            self.df.loc[self.df[self.cat_field] >= b, 'label'] = int(c)
         # ----------------------------------------
         # determine size of each data type (train, val, etc)
         self.df['type'] = None
@@ -225,44 +247,49 @@ class PrepareSamples():
         # based on classes for original grid subset, apply classes to
         # all associated subgrid points
         for _, row in tmp_df.iterrows():
-            cell_id = row["cell_id"]
-            self.df.loc[self.df["cell_id"] == cell_id, 'type'] = row['type']
+            sample_id = row["sample_id"]
+            self.df.loc[self.df["sample_id"] == sample_id, 'type'] = row['type']
         # save full set of data
-        self.df.to_csv(self.full_path, index=False, encoding='utf-8')
+        self.df.to_csv(self.sample_path["full"], index=False, encoding='utf-8')
 
 
     def normalize_classes(self):
         self.ndf = normalize(self.df, 'type', self.type_names, 'label', self.cat_names)
-        self.ndf.to_csv(self.trim_path, index=False, encoding='utf-8')
+        self.ndf.to_csv(self.sample_path["trim"], index=False, encoding='utf-8')
 
 
     def run(self):
 
         print("\nPreparing grid...")
         # define, build, and save sample grid
-        if not os.path.isfile(self.grid_path) or self.overwrite_grid:
-            self.prepare_grid()
+        if not os.path.isfile(self.sample_path["init"]) or self.overwrite:
+            self.prepare_sample()
         else:
-            self.grid_df = pd.read_csv(self.grid_path, sep=",", encoding='utf-8')
+            self.sample_df = pd.read_csv(self.sample_path["init"], sep=",", encoding='utf-8')
+
+        print("\nFilling in sample...")
+        if not os.path.isfile(self.sample_path["fill"]) or self.overwrite:
+            self.fill_sample()
+        else:
+            self.sample_df = pd.read_csv(self.sample_path["fill"], sep=",", encoding='utf-8')
 
         print("\nAdding NTL values...")
-        if not os.path.isfile(self.ntl_path) or self.overwrite_full:
+        if not os.path.isfile(self.sample_path["ntl"]) or self.overwrite:
             self.assign_ntl()
         else:
-            self.df = pd.read_csv(self.ntl_path, sep=",", encoding='utf-8')
+            self.df = pd.read_csv(self.sample_path["ntl"], sep=",", encoding='utf-8')
 
         print("\nBuilding datasets...")
-        if not os.path.isfile(self.full_path) or self.overwrite_full:
+        if not os.path.isfile(self.sample_path["full"]) or self.overwrite:
             self.build_datasets()
         else:
-            self.df = pd.read_csv(self.full_path, sep=",", encoding='utf-8')
-
+            self.df = pd.read_csv(self.sample_path["full"], sep=",", encoding='utf-8')
 
         print("\nNormalizing class sizes...")
-        if not os.path.isfile(self.trim_path) or self.overwrite_trim:
+        if not os.path.isfile(self.sample_path["trim"]) or self.overwrite:
             self.normalize_classes()
         else:
-            self.ndf = pd.read_csv(self.trim_path, sep=",", encoding='utf-8')
+            self.ndf = pd.read_csv(self.sample_path["trim"], sep=",", encoding='utf-8')
 
 
         print("\nPreparing dataframe dict...")

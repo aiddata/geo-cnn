@@ -58,7 +58,7 @@ class PointGrid():
                 cell_id = (r * ncols) + c
 
                 props = {
-                    "cell_id": cell_id,
+                    "sample_id": cell_id,
                     "row": r,
                     "column": c,
                     "lon": x,
@@ -71,75 +71,6 @@ class PointGrid():
     def grid(self, pixel_size, **kwargs):
         self.prop_list = list(self.gen_grid(pixel_size, **kwargs))
 
-
-    def gfill(self, nfill, distance, mode="fixed"):
-
-        if self.df is None:
-            warnings.warn("Grid dataframe does not exist and will be created.")
-            self.to_dataframe()
-
-        self.df["group"] = "orig"
-
-        if mode == "fixed":
-            tmp_df = self.gfill_fixed(nfill, distance=distance)
-        elif mode == "random":
-            tmp_df = self.gfill_random(nfill, distance=distance)
-        else:
-            raise ValueError("PointGrid: Invalid gfill mode ({})".format(mode))
-
-        self.df = pd.concat([self.df, tmp_df], ignore_index=True, sort=False)
-
-
-    def gfill_fixed(self, nfill, distance):
-        """
-        nfill (int)
-            number of additional points to add within given bounds for each
-            grid point
-        distance (float)
-            maximum decimal degree distance from original grid point (lon, lat)
-            allowed in each direction
-        """
-        fill_list = []
-
-        for i, parent in self.df.iterrows():
-
-            lon_vals = np.linspace(parent["lon"] - distance, parent["lon"] + distance, np.ceil(np.sqrt(nfill)))
-            lat_vals = np.linspace(parent["lat"] - distance, parent["lat"] + distance, np.ceil(np.sqrt(nfill)))
-            sub_grid = list(itertools.product(lon_vals, lat_vals))
-
-            tmp_fill_list = []
-            for j in sub_grid:
-                child = parent.to_dict()
-                child["group"] = "fill"
-                child["lon"], child["lat"] = j
-                tmp_fill_list.append(child)
-            fill_list.extend(tmp_fill_list)
-
-        tmp_df = pd.DataFrame(fill_list)
-        return tmp_df
-
-
-    def gfill_random(self, nfill, distance):
-        """
-        nfill (int)
-            number of additional points to add within given bounds for each
-            grid point
-        distance (float)
-            maximum decimal degree distance from original grid point (lon, lat)
-            allowed in each direction
-        """
-        fill_list = []
-        for i, parent in self.df.iterrows():
-            tmp_fill_list = []
-            for j in range(nfill):
-                child = parent.to_dict()
-                child["group"] = "fill"
-                child["lon"] = child["lon"] + np.random.uniform(-distance, distance)
-                child["lat"] = child["lat"] + np.random.uniform(-distance, distance)
-                tmp_fill_list.append(child)
-            fill_list.extend(tmp_fill_list)
-        tmp_df = pd.DataFrame(fill_list)
-        return tmp_df
 
     def grid_size(self):
         if self.prop_list is None:
@@ -201,3 +132,94 @@ class PointGrid():
         df['geometry'] = df.apply(lambda z: Point(z['lon'], z['lat']), axis=1)
         self.gdf = gpd.GeoDataFrame(df)
         return self.gdf
+
+
+class SampleFill():
+
+    def __init__(self, df):
+        self.df = df
+
+
+    def rfill(self, nfill, distance, dict, mode):
+        """nfill
+        add new points unrelated to original points
+
+        new points will inherit dict provide
+
+        new points will be buffer distance away from original points
+        """
+
+
+    def gfill(self, nfill, distance, mode="fixed"):
+        """group fill
+        adds additional points grouped with original points
+
+        new points will inherit row attributes of parent
+        """
+        self.df["group"] = "orig"
+
+        if mode in [None, "None", "none", 0, "False", "false", False]:
+            return
+        elif nfill == 0 or distance == 0:
+            warnings.warn("SampleFill: nfill or distance set to 0, sample will not be filled")
+            return
+        elif mode == "fixed":
+            tmp_df = self._gfill_fixed(nfill, distance=distance)
+        elif mode == "random":
+            tmp_df = self._gfill_random(nfill, distance=distance)
+        else:
+            raise ValueError("SampleFill: Invalid fill mode ({})".format(mode))
+
+        self.df = pd.concat([self.df, tmp_df], ignore_index=True, sort=False)
+
+
+    def _gfill_fixed(self, nfill, distance):
+        """
+        nfill (int)
+            number of additional points to add within given bounds for each
+            grid point
+        distance (float)
+            maximum decimal degree distance from original grid point (lon, lat)
+            allowed in each direction
+        """
+        fill_list = []
+
+        for i, parent in self.df.iterrows():
+
+            lon_vals = np.linspace(parent["lon"] - distance, parent["lon"] + distance, np.ceil(np.sqrt(nfill)))
+            lat_vals = np.linspace(parent["lat"] - distance, parent["lat"] + distance, np.ceil(np.sqrt(nfill)))
+            sub_grid = list(itertools.product(lon_vals, lat_vals))
+
+            tmp_fill_list = []
+            for j in sub_grid:
+                child = parent.to_dict()
+                child["group"] = "fill"
+                child["lon"], child["lat"] = j
+                tmp_fill_list.append(child)
+            fill_list.extend(tmp_fill_list)
+
+        tmp_df = pd.DataFrame(fill_list)
+        return tmp_df
+
+
+    def _gfill_random(self, nfill, distance):
+        """
+        nfill (int)
+            number of additional points to add within given bounds for each
+            grid point
+        distance (float)
+            maximum decimal degree distance from original grid point (lon, lat)
+            allowed in each direction
+        """
+        fill_list = []
+        for i, parent in self.df.iterrows():
+            tmp_fill_list = []
+            for j in range(nfill):
+                child = parent.to_dict()
+                child["group"] = "fill"
+                child["lon"] = child["lon"] + np.random.uniform(-distance, distance)
+                child["lat"] = child["lat"] + np.random.uniform(-distance, distance)
+                tmp_fill_list.append(child)
+            fill_list.extend(tmp_fill_list)
+        tmp_df = pd.DataFrame(fill_list)
+        return tmp_df
