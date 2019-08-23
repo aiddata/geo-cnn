@@ -165,7 +165,7 @@ class PrepareSamples():
         # field name used to define cat values
         self.cat_field = static_params["cat_field"]
 
-        # starting value for each bin, ends at following value
+        # starting value for each bin, ends at (not including) following value
         self.cat_bins = static_params["cat_bins"]
 
         # number of items in cat_names must match number of items in cat_bins

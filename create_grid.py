@@ -148,6 +148,26 @@ class SampleFill():
 
         new points will be buffer distance away from original points
         """
+        rfill_list = []
+        gdf = self.df.copy(deep=True)
+        gdf["geometry"] = gdf.apply(lambda x: Point(x.lon, x.lat), axis=1)
+        gdf = gpd.GeoDataFrame(gdf)
+        gdf = gdf.buffer(distance)
+        bnds = gdf.total_bounds
+        import random
+        from shapely.ops import cascaded_union as dissolve
+        from shapely.prepared import prep
+        dissolved_geom = prep(dissolve(gdf.geometry))
+        while len(rfill_list) <= nfill:
+            rlon = random.uniform(bnds[0], bnds[2])
+            rlat = random.uniform(bnds[1], bnds[3])
+            rpoint = Point(rlon, rlat)
+            if not dissolved_geom.contains(rpoint):
+                new_sample = dict.copy()
+                new_sample["group"] = "rfill"
+                rfill_list.append(new_sample)
+        tmp_df = pd.DataFrame(rfill_list)
+        return tmp_df
 
 
     def gfill(self, nfill, distance, mode="fixed"):
