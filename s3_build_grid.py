@@ -25,11 +25,7 @@ json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 
 s = Settings()
 s.load(json_path)
-
-output_dirs = ["s3_grid"]
-for d in output_dirs:
-    abs_d = os.path.join(s.base_path, "output", d)
-    make_dir(abs_d)
+s.build_dirs()
 
 
 boundary_path = s.data["static"]["boundary_path"]
@@ -58,7 +54,7 @@ grid.grid(pixel_size)
 
 grid.df = grid.to_dataframe()
 
-ntl = NTL_Reader(calibrated=ntl_calibrated)
+# ntl = NTL_Reader(calibrated=ntl_calibrated)
 # ntl.set_year(ntl_year)
 
 # grid.df['ntl'] = grid.df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)
