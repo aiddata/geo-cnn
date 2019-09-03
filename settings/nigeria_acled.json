@@ -5,16 +5,16 @@
     },
     "batch": {
         "run_type": [1],
-        "n_epochs": [30],
-        "optim": ["adam", "sgd"],
-        "lr": [0.09, 0.009, 0.0009],
-        "momentum": [0.97],
+        "n_epochs": [1],
+        "optim": ["adam"],
+        "lr": [0.001],
+        "momentum": [0.95],
         "step_size": [10],
-        "gamma": [0.25, 0.5, 0.75],
+        "gamma": [0.25],
         "loss_weights": [
             [1.0, 1.0]
         ],
-        "net": ["resnet18", "resnet50"],
+        "net": ["resnet18"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -27,8 +27,8 @@
         "random_count": 1000,
         "random_buffer": 0.01,
         "random_init": -1,
-        "source_name": "acled2014",
-        "source_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_2014.csv",
+        "source_name": "acled2015",
+        "source_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_2015.csv",
         "grid_pixel_size": 0.2,
         "sample_nfill": 9,
         "sample_fill_dist": 0.01,
@@ -48,15 +48,16 @@
         "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"]
     },
     "survey_predict": {
-        "survey": "nigeria_2014_afb",
+        "survey": "acled_2015",
+        "survey_year": 2015,
         "imagery_year": 2014,
         "ntl_type": "viirs",
         "ntl_year": 2014,
         "ntl_calibrated": false,
         "ntl_dim": 14
     },
-    "custom_predict": {
-        "data": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_s10_NGA_adm0_GADM28.csv",
+    "source_predict": {
+        "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_s10_NGA_adm0_GADM28.csv",
         "imagery_year": 2014,
         "ntl_type": "viirs",
         "ntl_year": 2014,
@@ -74,6 +75,10 @@
             "pixel_size": 0.01
         },
         "predict": {
+            "method": "source_predict",
+            "survey_predict": "acled_2015",
+            "survey_year": 2015,
+            "source_predict": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_s10_NGA_adm0_GADM28.csv",
             "imagery_year": 2014,
             "ntl_type": "viirs",
             "ntl_year": 2014,
@@ -95,23 +100,29 @@
         "base_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria",
         "mode": "batch",
         "predict": "survey_predict",
-        "version": "v11b",
-        "predict_tag": "p11",
-        "model_tag": "m11",
-        "surface_tag": "s11",
+        "version": "v12",
+        "predict_tag": "p12",
+        "model_tag": "m12",
+        "surface_tag": "s12",
         "quiet": false,
-        "overwrite_sample_prep": true,
+        "overwrite_sample_prep": false,
         "overwrite_train": true,
-        "overwrite_survey_predict": true,
-        "overwrite_custom_predict": true,
+        "overwrite_predict": true,
         "run": {
             "train": true,
             "test": false,
             "predict": false,
-            "survey_predict": false,
-            "custom_predict": false
+            "custom_predict": true
         },
         "cuda_device_id": 0,
-        "second_stage_mode": "parallel"
+        "second_stage_mode": "parallel",
+        "directories": [
+            "s0_settings",
+            "s1_params", "s1_predict", "s1_state", "s1_train",
+            "s2_metrics", "s2_models", "s2_merge",
+            "s3_grid", "s3_s1_predict", "s3_s2_predict",
+            "s4_surface", "s4_validation"
+        ]
+
     }
 }
