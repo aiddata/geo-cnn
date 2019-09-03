@@ -99,7 +99,7 @@ for ix, (param_hash, params) in enumerate(tasks):
     if (not os.path.isfile(group_out_path) or s.config["overwrite_predict"]):
 
         if predict_data is None and s.config["predict"] == "source_predict":
-            predict_src = pd.read_csv(s3_info["predict"]["source_predict"], quotechar='\"',
+            predict_src = pd.read_csv(s3_info["predict"]["source"], quotechar='\"',
                                         na_values='', keep_default_na=False,
                                         encoding='utf-8')
             predict_data = {
@@ -110,7 +110,7 @@ for ix, (param_hash, params) in enumerate(tasks):
 
             predict_src = SurveyData(base_path, s3_info["predict"], s3_info["predict"]["survey_year"])
             predict_data = {
-                "predict": predict_src.surveys[s3_info["predict"]["survey_predict"]].copy(deep=True)
+                "predict": predict_src.surveys[s3_info["predict"]["survey"]].copy(deep=True)
             }
 
         elif predict_data is None:
