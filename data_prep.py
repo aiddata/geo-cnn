@@ -13,6 +13,9 @@ from create_grid import PointGrid, SampleFill
 from load_ntl_data import NTL_Reader
 
 
+def make_dirs(path_list):
+    for path in path_list:
+        make_dir(path)
 
 def make_dir(path):
     try:
