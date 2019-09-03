@@ -5,6 +5,7 @@ import errno
 import rasterio
 import pandas as pd
 import numpy as np
+from scipy.stats.stats import pearsonr
 
 """
 specify survey layer (with year) to validate
@@ -29,7 +30,7 @@ def make_dir(path):
 def surface_win_mean(src, dim):
     r, c = src.index(row.lon, row.lat)
     win = ((r-dim/2, r+dim/2), (c-dim/2, c+dim/2))
-    data = src.read(1, window=win)
+    data = src.read(1, window=win, boundless=True)
     win_val = np.mean(data)
     return win_val
 
@@ -42,14 +43,25 @@ def sign(val):
         return 0
 
 
-survey_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2015_dhs_cluster.csv"
-surface_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2015_v10_p10_m10_s10.tif"
+# survey_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2015_dhs_cluster.csv"
+# cnn_surface_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2015_v10_p10_m10_s10.tif"
 
 survey_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2014_dhs_cluster.csv"
-surface_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2014_v10_p10_m10_s10.tif"
+cnn_surface_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2014_v10_p10_m10_s10.tif"
+
+ntl_surface_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_ntl_ridge-cv10_e8b3cac_8f3999d_adm0_2014_v10_p10_m10_s10.tif"
 
 
-surface_src = rasterio.open(surface_path, 'r')
+# -------------------------------------
+
+cnn_surface_src = rasterio.open(cnn_surface_path, 'r')
+ntl_surface_src = rasterio.open(ntl_surface_path, 'r')
+
+# /////////
+# tmp to run this without rewriting a bunch
+cnn_surface_path = ntl_surface_path
+cnn_surface_src = ntl_surface_src
+# /////////
 
 survey_df = pd.read_csv(survey_path)
 
@@ -58,10 +70,10 @@ validation_data = []
 
 for i, row in survey_df.iterrows():
     validation_data.append({
-        "point": surface_src.sample([(row.lon, row.lat)]).next()[0],
-        "dim3": surface_win_mean(surface_src, 3),
-        "dim16": surface_win_mean(surface_src, 16),
-        "dim33": surface_win_mean(surface_src, 33),
+        "point": cnn_surface_src.sample([(row.lon, row.lat)]).next()[0],
+        "dim3": surface_win_mean(cnn_surface_src, 3),
+        "dim16": surface_win_mean(cnn_surface_src, 16),
+        "dim33": surface_win_mean(cnn_surface_src, 33),
     })
 
 
@@ -76,7 +88,9 @@ for i in validation_df.columns:
     survey_df[i+"err"] = (survey_df.wealthscore - survey_df[i]) / survey_df.wealthscore
     survey_df[i+"sign"] = (wealthscore_sign != survey_df[i].apply(lambda x: sign(x))).astype(int)
     print i
-    print "\t{}".format(np.sum(survey_df[i+"sign"] ))
+    print "\tcorr\t\t{}".format(round(pearsonr(survey_df.wealthscore, survey_df[i])[0], 5))
+    print "\tavg_abs_err\t{}".format(round(np.mean(np.abs(survey_df[i+"err"])), 5))
+    print "\tinv_sign\t{}".format(np.sum(survey_df[i+"sign"]))
 
 final_cols = ["lon", "lat", "wealthscore"]
 for i in validation_df.columns:
@@ -86,9 +100,9 @@ for i in validation_df.columns:
 
 survey_df = survey_df[final_cols]
 
-validation_dir = os.path.dirname(os.path.dirname(surface_path)) + "/s4_validation"
+validation_dir = os.path.dirname(os.path.dirname(cnn_surface_path)) + "/s4_validation"
 
-validation_fname = os.path.basename(surface_path)[:-4] + "_" + os.path.basename(survey_path)
+validation_fname = os.path.basename(cnn_surface_path)[:-4] + "_" + os.path.basename(survey_path)
 
 validation_path = os.path.join(validation_dir, validation_fname)
 
@@ -97,17 +111,17 @@ survey_df.to_csv(validation_path, index=False)
 
 
 # -----------------------------------------------------------------------------
+raise Exception("Not running second half")
 
 import os
 import rasterio
 import numpy as np
-from scipy.stats.stats import pearsonr
 
-surface_a_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2010_v10_p10_m10_s10.tif"
-surface_b_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2015_v10_p10_m10_s10.tif"
+# surface_a_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2010_v10_p10_m10_s10.tif"
+# surface_b_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/output/s4_surface/surface_cnn_ridge-cv10_ca5cf25_2810232_adm0_2015_v10_p10_m10_s10.tif"
 
-# surface_a_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2008_v10_p10_m10_s10.tif"
-# surface_b_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2014_v10_p10_m10_s10.tif"
+surface_a_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2008_v10_p10_m10_s10.tif"
+surface_b_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s4_surface/surface_cnn_ridge-cv10_e8b3cac_8f3999d_adm0_2014_v10_p10_m10_s10.tif"
 
 surface_a_src = rasterio.open(surface_a_path, 'r')
 surface_b_src = rasterio.open(surface_b_path, 'r')
