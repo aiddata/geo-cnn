@@ -25,6 +25,7 @@ json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 s = Settings()
 s.load(json_path)
 base_path = s.base_path
+s.build_dirs()
 
 mode = s.config["second_stage_mode"]
 
@@ -43,7 +44,7 @@ for param_hash, _ in tasks:
         param_hash, predict_hash, s.config["version"], s.config["predict_tag"])
 
     qlist.append(
-        "_".join(fname.split("_")[1:])[:-4] 
+        "_".join(fname.split("_")[1:])[:-4]
     )
 
 
