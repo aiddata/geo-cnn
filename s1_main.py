@@ -23,7 +23,7 @@ import torch
 from runscript import RunCNN, build_dataloaders
 from load_survey_data import SurveyData
 from settings_builder import Settings
-from data_prep import make_dir, PrepareSamples
+from data_prep import make_dirs, PrepareSamples
 
 
 # *****************
@@ -46,20 +46,8 @@ s = Settings()
 s.load(json_path)
 base_path = s.base_path
 s.set_param_count()
+s.build_dirs()
 
-
-print("\nGenerating directories and saving settings/params...")
-
-output_dirs = [
-    "s0_settings",
-    "s1_params", "s1_predict", "s1_state", "s1_train",
-    "s2_metrics", "s2_models", "s2_merge",
-    "s3_grid", "s3_s1_predict", "s3_s2_predict",
-    "s4_surface", "s4_validation"
-]
-for d in output_dirs:
-    abs_d = os.path.join(base_path, "output", d)
-    make_dir(abs_d)
 
 job_dir = os.path.basename(os.path.dirname(json_path))
 shutil.copyfile(
@@ -89,18 +77,12 @@ for ix, (param_hash, params) in enumerate(tasks):
 
     state_path = os.path.join(base_path, "output/s1_state/state_{}_{}.pt".format(param_hash, s.config["version"]))
 
-
-    raw_out_path = os.path.join(base_path, "output/s1_predict/raw_predict_{}_{}_{}_{}.csv".format(
-        param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
-
-    group_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(
-        param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
-
-    custom_out_path = os.path.join(base_path, "output/s1_predict/predict_{}_{}_{}_{}.csv".format(
-        param_hash, predict_hash, s.config["version"], s.config["predict_tag"]))
-
-
-    if (not os.path.isfile(state_path) or s.config["overwrite_train"]) and (s.config["run"]["train"] or s.config["run"]["test"] or s.config["run"]["predict"]):
+    # ====================
+    # ====================
+    # TRAIN
+    # ====================
+    # ====================
+    if (s.config["run"]["train"]) and (not os.path.isfile(state_path) or s.config["overwrite_train"]):
 
         if sample_data is None:
             ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
@@ -130,16 +112,17 @@ for ix, (param_hash, params) in enumerate(tasks):
         train_cnn.init_print()
         train_cnn.init_net()
 
-        if s.config["run"]["train"]:
-            train_cnn.init_loss()
-            acc_p, class_p, time_p = train_cnn.train()
-            params["train"]["acc"] = acc_p
-            params["train"]["class_acc"] = class_p
-            params["train"]["time"] = time_p
-            s.write_to_json(param_hash, params)
-            train_cnn.save(state_path)
-        else:
-            train_cnn.load(state_path)
+        # if s.config["run"]["train"]:
+        train_cnn.init_loss()
+        acc_p, class_p, time_p = train_cnn.train()
+        params["train"]["acc"] = acc_p
+        params["train"]["class_acc"] = class_p
+        params["train"]["time"] = time_p
+        s.write_to_json(param_hash, params)
+        train_cnn.save(state_path)
+        # else:
+            # train_cnn.load(state_path)
+
 
         # if s.config["run"]["test"]:
         #     train_cnn.init_loss()
@@ -149,14 +132,39 @@ for ix, (param_hash, params) in enumerate(tasks):
         #     pred_data, _ = train_cnn.predict(features=True)
 
 
-    if (not os.path.isfile(raw_out_path) or s.config["overwrite_survey_predict"]) and (s.config["run"]["survey_predict"]):
 
-        # load survey data
-        if predict_data is None:
-            survey_data = SurveyData(base_path, predict_settings)
+    # ====================
+    # ====================
+    # PREDICT
+    # ====================
+    # ====================
+    fbasename = "predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"])
+
+    raw_out_path = os.path.join(base_path, "output/s1_predict", "raw_" + fbasename)
+    group_out_path = os.path.join(base_path, "output/s1_predict", fbasename)
+
+
+    if (s.config["run"]["custom_predict"]) and not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
+
+        if predict_data is None and s.config["predict"] == "source_predict":
+
+            predict_src = pd.read_csv(predict_settings["source"], quotechar='\"',
+                                    na_values='', keep_default_na=False,
+                                    encoding='utf-8')
             predict_data = {
-                "predict": survey_data.surveys[predict_settings["survey"]].copy(deep=True)
+                "predict": predict_src
             }
+
+        elif predict_data is None and s.config["predict"] == "survey_predict":
+
+            predict_src = SurveyData(base_path, predict_settings, predict_settings["survey_year"])
+            predict_data = {
+                "predict": predict_src.surveys[predict_settings["survey"]].copy(deep=True)
+            }
+
+        elif predict_data is None:
+            raise ValueError("Invalid predict class: `{}`".format(s.config["predict"]))
+
 
         new_dataloaders = build_dataloaders(
             predict_data,
@@ -199,44 +207,5 @@ for ix, (param_hash, params) in enumerate(tasks):
             group_col_order = [i for i in full_col_order if i != "group"]
             group_out = group_out[group_col_order]
             group_out.to_csv(group_out_path, index=False, encoding='utf-8')
-
-
-
-    if (not os.path.isfile(custom_out_path) or s.config["overwrite_custom_predict"]) and (s.config["run"]["custom_predict"]):
-
-        # load custom data
-        if predict_data is None:
-            custom_data = pd.read_csv(predict_settings["data"], quotechar='\"',
-                                     na_values='', keep_default_na=False,
-                                     encoding='utf-8')
-            predict_data = {
-                "predict": custom_data
-            }
-
-        new_dataloaders = build_dataloaders(
-            predict_data,
-            base_path,
-            predict_settings["imagery_year"],
-            predict_settings["imagery_year"],
-            predict_settings["imagery_year"],
-            data_transform=None,
-            dim=params["dim"],
-            batch_size=params["batch_size"],
-            num_workers=params["num_workers"],
-            agg_method=params["agg_method"],
-            shuffle=False)
-
-        new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
-        new_cnn.load(state_path)
-
-        # predict
-        new_pred_data, _ = new_cnn.predict(features=True)
-
-        # merge predict with original data
-        feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
-        pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
-        pred_df = pd.DataFrame(pred_dicts)
-        custom_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
-        full_col_order = list(predict_data["predict"].columns) + feat_labels
-        custom_out = custom_out[full_col_order]
-        custom_out.to_csv(custom_out_path, index=False, encoding='utf-8')
+        else:
+            full_out.to_csv(group_out_path, index=False, encoding='utf-8')
