@@ -7,6 +7,8 @@ import pprint
 import pandas as pd
 import numpy as np
 
+from data_prep import make_dir, make_dirs
+
 
 class Settings():
 
@@ -213,6 +215,7 @@ class Settings():
 
     def write_to_json(self, phash, pdict):
         output_format = os.path.join(self.base_path, "output/s1_train/train_{}_{}.json")
+        make_dirs(os.path.dirname(output_format))
         path = output_format.format(phash, self.config["version"])
         with open(path, "w", 0) as f:
             json.dump(pdict, f)
@@ -221,7 +224,11 @@ class Settings():
     def save_params(self):
         self._param_dict_check()
         output_format = os.path.join(self.base_path, "output/s1_params/params_{}_{}.json")
+        make_dirs(os.path.dirname(output_format))
         for phash, pdict in self.gen_hashed_iter():
             path = output_format.format(phash, self.config["version"])
             with open(path, "w", 0) as f:
                 json.dump(pdict, f, indent=4, sort_keys=True)
+
+    def build_dirs(self):
+        make_dirs([os.path.join(self.base_path, "output", d) for d in self.config["directories"]])
