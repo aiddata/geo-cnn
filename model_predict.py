@@ -96,7 +96,7 @@ def run_models(task, settings):
         results[x_name] = y_predict
 
 
-    df = pred_data[['cell_id','column', 'lat', 'lon', 'row']].copy(deep=True)
+    df = pred_data[['sample_id','column', 'lat', 'lon', 'row']].copy(deep=True)
     for y_name, y_data in results.iteritems():
         df[y_name] = y_data
 
