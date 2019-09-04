@@ -51,7 +51,7 @@ agg_method = "mean"
 band = "b1"
 
 season_mosaics_path = os.path.join(
-    root_dir, "landsat/data/mosaics/{0}_all".format(year), agg_method,
+    root_dir, "landsat/data/{}/mosaics/{}_all".format(s.static["imagery_type"], year), agg_method,
     "{0}_all_{1}.tif".format(year, band))
 
 season_mosaics = rasterio.open(season_mosaics_path)
