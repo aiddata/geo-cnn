@@ -72,13 +72,13 @@
         "grid": {
             "boundary_id": "adm0",
             "boundary_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/boundary/NGA_adm0_GADM28.geojson",
-            "pixel_size": 0.01
+            "pixel_size": 0.1
         },
         "predict": {
             "method": "source_predict",
             "survey": "acled_2015",
             "survey_year": 2015,
-            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_s10_NGA_adm0_GADM28.csv",
+            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_1_s12_NGA_adm0_GADM28.csv",
             "imagery_year": 2014,
             "ntl_type": "viirs",
             "ntl_year": 2014,
