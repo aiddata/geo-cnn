@@ -13,7 +13,7 @@ def snap(val, interval):
 class NN():
     """Use KDTree to find NearestNeighbor values for a given location
 
-    Given DataFrame must have "longitude" and "latitude" columns
+    Given DataFrame must have "lon" and "lat" columns
     Values returned are based on field/column provided
 
     """
@@ -24,18 +24,23 @@ class NN():
         self.default_k = k
         self.default_agg_func = agg_func
 
+        if "lon" not in df.columns and "longitude" in df.columns:
+            df["lon"] = df.longitude
+        if "lat" not in df.columns and "latitude" in df.columns:
+            df["lat"] = df.latitude
+
 
     def snap_to(self, interval):
 
-        self.df["original_longitude"] = list(self.df.longitude)
-        self.df["original_latitude"] = list(self.df.latitude)
+        self.df["original_lon"] = list(self.df.lon)
+        self.df["original_lat"] = list(self.df.lat)
 
-        self.df.longitude = self.df.longitude.apply(lambda x: snap(x, interval))
-        self.df.latitude = self.df.latitude.apply(lambda x: snap(x, interval))
+        self.df.lon = self.df.lon.apply(lambda x: snap(x, interval))
+        self.df.lat = self.df.lat.apply(lambda x: snap(x, interval))
 
 
     def build_tree(self):
-        self.input_geom = zip(self.df.longitude, self.df.latitude)
+        self.input_geom = zip(self.df.lon, self.df.lat)
 
         self.tree = cKDTree(
             data=self.input_geom,
@@ -61,7 +66,7 @@ class NN():
         # lon_vals, lat_vals = zip(*self.tree.data[min_index])
         lon_vals, lat_vals = zip(*[self.input_geom[i] for i in min_index])
 
-        nn_rows = self.df.loc[(self.df.longitude.isin(lon_vals)) & (self.df.latitude.isin(lat_vals))]
+        nn_rows = self.df.loc[(self.df.lon.isin(lon_vals)) & (self.df.lat.isin(lat_vals))]
 
         if len(nn_rows) == 0:
             raise Exception("No NN match could be found")

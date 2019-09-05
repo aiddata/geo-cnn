@@ -223,7 +223,8 @@ def run_models(id_string, model_helper):
         cfunc = getattr(load_custom_covar, i["function"])
         for j in i["inputs"]:
             cname = "{}-{}".format(i["name"], j)
-            x_train[cname] = cfunc(x_train[j])
+            new_var = cfunc(pred_data[["lon", "lat"]])
+            x_train[cname] = np.append(new_var, x_train[j], 1)
 
 
     print("Running models:")

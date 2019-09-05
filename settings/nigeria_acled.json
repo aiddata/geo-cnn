@@ -68,9 +68,9 @@
         "inputs": ["ntl", "cnn", "all", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
         "custom_definitions": [
             {
-                "name": "afb-qx",
+                "name": "afb-q52a",
                 "inputs": ["cnn"],
-                "function": "afb_qx"
+                "function": "afb_q52a"
             }
         ],
         "models": ["ridge-cv10", "lasso-cv10"],
