@@ -17,6 +17,8 @@ from scipy import stats
 
 import matplotlib.pyplot as plot
 
+import load_custom_covar
+
 
 def plot_ntl(ntl_data):
     plot.hist(ntl_data, bins=max(ntl_data), alpha=0.5, histtype='bar', ec='black')
@@ -217,9 +219,14 @@ def run_models(id_string, model_helper):
     x_train["cnn-pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
     x_train["cnn-pca{}-ntl".format(pca_dimension)] = np.append(x_train["cnn-pca{}".format(pca_dimension)], x_train["ntl"], 1)
 
+    for i in mh.settings["second_stage"]["custom_definitions"]:
+        cfunc = getattr(load_custom_covar, i["function"])
+        for j in i["inputs"]:
+            cname = "{}-{}".format(i["name"], j)
+            x_train[cname] = cfunc(x_train[j])
 
-    print "Running models:"
 
+    print("Running models:")
 
     for name in mh.model_list:
 

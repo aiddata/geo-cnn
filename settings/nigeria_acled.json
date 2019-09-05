@@ -65,6 +65,14 @@
         "ntl_dim": 14
     },
     "second_stage": {
+        "inputs": ["ntl", "cnn", "all", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
+        "custom_definitions": [
+            {
+                "name": "afb-qx",
+                "inputs": ["cnn"],
+                "function": "afb_qx"
+            }
+        ],
         "models": ["ridge-cv10", "lasso-cv10"],
         "metrics": ["r2"]
     },
