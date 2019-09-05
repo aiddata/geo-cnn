@@ -5,16 +5,16 @@
     },
     "batch": {
         "run_type": [1],
-        "n_epochs": [1],
-        "optim": ["adam"],
-        "lr": [0.001],
-        "momentum": [0.95],
-        "step_size": [10],
-        "gamma": [0.25],
+        "n_epochs": [30],
+        "optim": ["adam", "sgd"],
+        "lr": [0.1, 0.01, 0.001, 0.0001],
+        "momentum": [0.95, 0.97, 0.99],
+        "step_size": [5, 10],
+        "gamma": [0.25, 0.5, 0.75],
         "loss_weights": [
             [1.0, 1.0]
         ],
-        "net": ["resnet18"],
+        "net": ["resnet18", "resnet50", "resnet152"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],

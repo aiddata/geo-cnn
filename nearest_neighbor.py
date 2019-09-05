@@ -60,8 +60,8 @@ class NN():
 
         min_dist, min_index = self.tree.query([loc], k)
 
-        min_dist = min_dist[0]
-        min_index = min_index[0]
+        # min_dist = min_dist[0]
+        # min_index = min_index[0]
 
         # lon_vals, lat_vals = zip(*self.tree.data[min_index])
         lon_vals, lat_vals = zip(*[self.input_geom[i] for i in min_index])

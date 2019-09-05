@@ -219,12 +219,13 @@ def run_models(id_string, model_helper):
     x_train["cnn-pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
     x_train["cnn-pca{}-ntl".format(pca_dimension)] = np.append(x_train["cnn-pca{}".format(pca_dimension)], x_train["ntl"], 1)
 
-    for i in mh.settings["second_stage"]["custom_definitions"]:
+    for i in mh.settings.data["second_stage"]["custom_definitions"]:
         cfunc = getattr(load_custom_covar, i["function"])
+        new_var = cfunc(pred_data[["lon", "lat"]])
+        x_train[i["name"]] = new_var
         for j in i["inputs"]:
             cname = "{}-{}".format(i["name"], j)
-            new_var = cfunc(pred_data[["lon", "lat"]])
-            x_train[cname] = np.append(new_var, x_train[j], 1)
+            x_train[cname] = np.append(x_train[j], x_train[i["name"]], 1)
 
 
     print("Running models:")
