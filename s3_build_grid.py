@@ -60,3 +60,5 @@ grid.df = grid.to_dataframe()
 # grid.df['ntl'] = grid.df.apply(lambda z: ntl.value(z['lon'], z['lat'], ntl_dim=ntl_dim), axis=1)
 
 grid.to_csv(grid_path)
+
+print("Grid completed ({})".format(grid_path))
