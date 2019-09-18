@@ -6,15 +6,15 @@
     "batch": {
         "run_type": [1],
         "n_epochs": [30],
-        "optim": ["adam", "sgd"],
-        "lr": [0.1, 0.01, 0.001, 0.0001],
+        "optim": ["adam"],
+        "lr": [0.001],
         "momentum": [0.95, 0.97, 0.99],
-        "step_size": [5, 10],
-        "gamma": [0.25, 0.5, 0.75],
+        "step_size": [10],
+        "gamma": [0.5],
         "loss_weights": [
             [1.0, 1.0]
         ],
-        "net": ["resnet18", "resnet50", "resnet152"],
+        "net": ["resnet18"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -65,28 +65,28 @@
         "ntl_dim": 14
     },
     "second_stage": {
-        "inputs": ["ntl", "cnn", "all", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
+        "inputs": ["ntl", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
         "custom_definitions": [
             {
                 "name": "afb-q52a",
-                "inputs": ["cnn"],
+                "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
                 "function": "afb_q52a"
             }
         ],
-        "models": ["ridge-cv10", "lasso-cv10"],
+        "models": ["mlpclassifier-cv10"],
         "metrics": ["r2"]
     },
     "third_stage": {
         "grid": {
             "boundary_id": "adm0",
             "boundary_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/boundary/NGA_adm0_GADM28.geojson",
-            "pixel_size": 0.1
+            "pixel_size": 0.05
         },
         "predict": {
             "method": "source_predict",
             "survey": "acled_2015",
             "survey_year": 2015,
-            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_1_s12_NGA_adm0_GADM28.csv",
+            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_05_s12a_NGA_adm0_GADM28.csv",
             "imagery_year": 2014,
             "ntl_type": "viirs",
             "ntl_year": 2014,
@@ -94,14 +94,14 @@
             "ntl_dim": 14,
             "batch_size": 32,
             "num_workers": 8,
-            "models": ["ridge-cv10", "lasso-cv10"],
-            "inputs": ["ntl", "cnn", "all", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
+            "models": ["mlpclassifier-cv10"],
+            "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
         },
         "surface": {
-            "pixel_size": 0.01,
             "pixel_agg": 10,
             "dim": 224,
-            "scene_max_nodata": 0.5
+            "scene_max_nodata": 0.5,
+            "nodata_val": 255
         }
     },
     "config": {
@@ -111,10 +111,10 @@
         "version": "v12",
         "predict_tag": "p12",
         "model_tag": "m12",
-        "surface_tag": "s12",
+        "surface_tag": "s12b",
         "quiet": false,
         "overwrite_sample_prep": false,
-        "overwrite_train": true,
+        "overwrite_train": false,
         "overwrite_predict": true,
         "run": {
             "train": true,
