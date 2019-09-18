@@ -77,7 +77,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             s4_path = os.path.join(s.base_path, "output/s4_surface/surface_{}_{}_{}.tif".format(input_name, s3_s2_string, surface_tag))
             df = pd.read_csv(s3_s2_path)
             shape = (max(df.row), max(df.column))
-            blank = np.zeros(shape)
+            blank = np.full(shape, s3_info["surface"]["nodata_val"])
 
             for i, row in df.iterrows():
                 dim = s3_info["surface"]["dim"]
@@ -96,7 +96,7 @@ for ix, (param_hash, params) in enumerate(tasks):
 
 
             xmin, ymax = min(df.lon), max(df.lat)
-            pixel_size =  s3_info["surface"]["pixel_size"]
+            pixel_size =  s3_info["grid"]["pixel_size"]
             meta = {}
             meta["crs"] = rasterio.crs.CRS.from_epsg(4236)
             meta["transform"] = Affine(pixel_size, 0, xmin,
@@ -105,7 +105,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             meta['width'] = shape[1]
             meta['driver'] = 'GTiff'
             meta['count'] = 1
-            meta['nodata'] = 0
+            meta['nodata'] = s3_info["surface"]["nodata_val"]
             meta['dtype'] = str(blank.dtype)
             with rasterio.open(s4_path, 'w', **meta) as result:
                 result.write(np.array([blank]))
