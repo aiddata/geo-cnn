@@ -41,3 +41,23 @@
 ### S3C - Generating Secondary Model Values for Surface Grid
 
 ### S3D - Building Raster Surface
+
+
+-------------------------------------------------------------------------------
+
+
+# Usage Notes
+
+
+### Stage 1 Training
+
+
+### Stage 1 Predict
+
+
+### Stage 2 Train and Predict
+
+- running with full set of cnn features (or more; ntl, etc.) will make stage 2 take significantly longer. If testing, start with PCA instead of full feature set.
+- when using MLP Classifier model, single variable models (e.g., only NTL) will not converge
+
+### Stage 3
