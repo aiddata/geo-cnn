@@ -66,12 +66,15 @@ def run_models(task, settings):
     results_path = os.path.join(settings.base_path, "output/s3_s2_predict/predict_{}.csv".format(s3_s2_string))
 
 
+    input_list = s3_info["predict"]["inputs"]
+
     # reduce feature dimensions using PCA
     pca_dimension = 15
     pca = PCA(n_components=pca_dimension)
 
     feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
 
+    # add all standard x_train options
     x_train = {}
     x_train["ntl"] = pred_data[['ntl']].values
     x_train["cnn"] = pred_data[feat_labels].values
@@ -81,6 +84,11 @@ def run_models(task, settings):
 
     x_train["cnn-pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
     x_train["cnn-pca{}-ntl".format(pca_dimension)] = np.append(x_train["cnn-pca{}".format(pca_dimension)], x_train["ntl"], 1)
+
+    # delete standard x_train options not specified by user
+    for i in x_train.keys():
+        if i not in input_list:
+            del x_train[i]
 
 
     results = {}
@@ -92,7 +100,9 @@ def run_models(task, settings):
         X_scaler = StandardScaler(with_mean=True, with_std=False)
         X_data = X_scaler.fit_transform(x_data)
         # predict
-        y_predict = lm.predict(X_data)
+        # y_predict = lm.predict(X_data)
+        y_predict = np.array(lm.predict_proba(X_data))[:,1]
+        print(y_predict)
         results[x_name] = y_predict
 
 

@@ -6,7 +6,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from sklearn import linear_model, metrics
+from sklearn import linear_model, metrics, neural_network
 from sklearn.utils import shuffle
 from sklearn.model_selection import KFold, train_test_split, cross_val_score, cross_val_predict
 from sklearn.decomposition import PCA
@@ -203,12 +203,15 @@ def run_models(id_string, model_helper):
 
 
 
+    input_list = mh.settings.data["second_stage"]["inputs"]
+
     # reduce feature dimensions using PCA
     pca_dimension = 15
     pca = PCA(n_components=pca_dimension)
 
     y_train = pred_data["pred_yval"].values
 
+    # add all standard x_train options
     x_train = {}
     x_train["ntl"] = pred_data[['ntl']].values
     x_train["cnn"] = pred_data[feat_labels].values
@@ -219,6 +222,7 @@ def run_models(id_string, model_helper):
     x_train["cnn-pca{}".format(pca_dimension)] = pca.fit_transform(x_train["cnn"])
     x_train["cnn-pca{}-ntl".format(pca_dimension)] = np.append(x_train["cnn-pca{}".format(pca_dimension)], x_train["ntl"], 1)
 
+    # add custom x_train options
     for i in mh.settings.data["second_stage"]["custom_definitions"]:
         cfunc = getattr(load_custom_covar, i["function"])
         new_var = cfunc(pred_data[["lon", "lat"]])
@@ -226,6 +230,12 @@ def run_models(id_string, model_helper):
         for j in i["inputs"]:
             cname = "{}-{}".format(i["name"], j)
             x_train[cname] = np.append(x_train[j], x_train[i["name"]], 1)
+            input_list.append(cname)
+
+    # delete standard x_train options not specified by user
+    for i in x_train.keys():
+        if i not in input_list:
+            del x_train[i]
 
 
     print("Running models:")
@@ -348,7 +358,7 @@ class ModelHelper():
                 "k": 10,
                 "k_inner": 10,
                 # "alphas": [0.01, 0.1, 1, 5, 10],
-                "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3,1e-2, 1, 5, 10, 20],
+                "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3, 1e-2, 1, 5, 10, 20],
                 # "alphas": np.logspace(0.5, 10, 10),
                 "metric": pearson_r2
             },
@@ -373,13 +383,22 @@ class ModelHelper():
             "linear-cv10": {
                 "model": linear_model.LinearRegression,
                 "k": 10
+            },
+            "logistic-cv10": {
+                "model": linear_model.LogisticRegression,
+                "k": 10
+            },
+            "ridgeclassifier-cv10": {
+                "model": linear_model.RidgeClassifier,
+                "k": 10,
+                "k_inner": 10,
+                "alphas": [1e-15, 1e-10, 1e-8, 1e-4, 1e-3, 1e-2, 1, 5, 10, 20],
+                "metric": pearson_r2
+            },
+            "mlpclassifier-cv10": {
+                "model": neural_network.MLPClassifier,
+                "k": 10
             }
-            # "LassoLarsIC",
-            # "HuberRegressor",
-            # "OrthogonalMatchingPursuit",
-            # "PassiveAggressiveRegressor",
-            # "RANSACRegressor",
-            # "SGDRegressor"
         }
 
 
