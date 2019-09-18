@@ -100,9 +100,10 @@ def run_models(task, settings):
         X_scaler = StandardScaler(with_mean=True, with_std=False)
         X_data = X_scaler.fit_transform(x_data)
         # predict
+        # ==========
         # y_predict = lm.predict(X_data)
         y_predict = np.array(lm.predict_proba(X_data))[:,1]
-        print(y_predict)
+        # ==========
         results[x_name] = y_predict
 
 
