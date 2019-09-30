@@ -148,6 +148,11 @@ class SampleFill():
 
         new points will be buffer distance away from original points
         """
+        if mode in [None, "None", "none", 0, "False", "false", False]:
+            return
+        elif nfill == 0 or distance == 0:
+            warnings.warn("SampleFill: nfill or distance set to 0, sample will not be filled")
+            return
         rfill_list = []
         gdf = self.df.copy(deep=True)
         gdf["geometry"] = gdf.apply(lambda x: Point(x.lon, x.lat), axis=1)
@@ -167,7 +172,7 @@ class SampleFill():
                 new_sample["group"] = "rfill"
                 rfill_list.append(new_sample)
         tmp_df = pd.DataFrame(rfill_list)
-        return tmp_df
+        self.df = pd.concat([self.df, tmp_df], ignore_index=True, sort=False)
 
 
     def gfill(self, nfill, distance, mode="fixed"):
@@ -178,12 +183,15 @@ class SampleFill():
         """
         self.df["group"] = "orig"
 
-        if mode in [None, "None", "none", 0, "False", "false", False]:
+        if distance == 0:
+            warnings.warn("SampleFill: distance set to 0, sample will create duplicates as fill")
+        elif nfill == 0:
+            warnings.warn("SampleFill: nfill set to 0, sample will not be filled")
             return
-        elif nfill == 0 or distance == 0:
-            warnings.warn("SampleFill: nfill or distance set to 0, sample will not be filled")
+        elif mode in [None, "None", "none", 0, "False", "false", False]:
             return
-        elif mode == "fixed":
+
+        if mode == "fixed":
             tmp_df = self._gfill_fixed(nfill, distance=distance)
         elif mode == "random":
             tmp_df = self._gfill_random(nfill, distance=distance)
