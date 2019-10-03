@@ -1,6 +1,7 @@
 
 import os
 import random
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -40,40 +41,7 @@ def plot_cnn_feats(feat_data, feat_labels):
 # -------------------------------------
 
 
-# def cross_validate(model, x, y, folds=10, repeats=5):
-#     '''
-#     Function to do the cross validation - using stacked Out of Bag method instead of averaging across folds.
-#     model = algorithm to validate. Must be scikit learn or scikit-learn like API (Example xgboost XGBRegressor)
-#     x = training data, numpy array
-#     y = training labels, numpy array
-#     folds = K, the number of folds to divide the data into
-#     repeats = Number of times to repeat validation process for more confidence
-#     '''
-#     ypred = np.zeros((len(y), repeats))
-#     score = np.zeros(repeats)
-#     x = np.array(x)
-#     for r in range(repeats):
-#         i = 0
-#         # print('Cross Validating - Run', str(r + 1), 'out of', str(repeats))
-#         x, y = shuffle(x,y,random_state=r) #shuffle data before each repeat
-
-#         kf = KFold(n_splits=folds, random_state=i+1000) #random split, different each time
-#         for train_ind, test_ind in kf.split(y):
-#             # print('Fold', i+1, 'out of',folds)
-#             xtrain, ytrain = x[train_ind,:], y[train_ind]
-#             xtest, ytest = x[test_ind,:], y[test_ind]
-#             model.fit(xtrain, ytrain)
-#             ypred[test_ind, r] = model.predict(xtest)
-
-#             i += 1
-#         score[r] = stats.pearsonr(ypred[:, r], y)[0] ** 2
-#     print 'Overall R2: {}'.format(score)
-#     print 'Mean: {}'.format(np.mean(score))
-#     print 'Deviation: {}'.format(np.std(score))
-#     return score
-
-
-def run_cv(X, y, model, k, k_inner=5, alphas=None, metric=None, randomize=False):
+def run_cv(X, y, model, k, k_inner=5, alphas=None, metric=None, randomize=False, **kwargs):
     """
     Runs nested cross-validation to make predictions and compute r-squared.
 
@@ -82,7 +50,12 @@ def run_cv(X, y, model, k, k_inner=5, alphas=None, metric=None, randomize=False)
     (could add repeats to this, similar to demo cross_validate function above)
 
     """
+    if "params" in kwargs:
+        params = kwargs["params"]
+    else:
+        params = {}
     best_alpha = None
+    best_alpha_list = []
     y_true = []
     y_predict = []
     # score = np.zeros((k,))
@@ -94,37 +67,20 @@ def run_cv(X, y, model, k, k_inner=5, alphas=None, metric=None, randomize=False)
         if randomize:
             random.shuffle(y_train)
         if alphas is not None:
-            best_alpha = find_best_alpha(X_train, y_train, k_inner, model, metric, alphas)
+            best_alpha = find_best_alpha(X_train, y_train, k_inner, model, metric, alphas, params)
+            best_alpha_list.append(best_alpha)
+            params["alpha"] = best_alpha
         X_train, X_test = scale_features(X_train, X_test)
-        y_test_predict = train_and_predict(X_train, y_train, X_test, model, best_alpha)
+        y_test_predict = train_and_predict(X_train, y_train, X_test, model, params)
         y_true.append(y_test)
         y_predict.append(y_test_predict)
         # score[fold] = metric(y_test, y_test_predict)
     # return score.mean(), y_true, y_predict
-    return y_true, y_predict
+    final_alpha = np.mean(best_alpha_list) if best_alpha_list else best_alpha
+    return y_true, y_predict, final_alpha
 
 
-# def evaluate_fold(
-#     model, X, y, train_idx, test_idx, k_inner, alphas, r2s, y_hat, fold, randomize):
-#     """
-#     Evaluates one fold of outer CV.
-#     """
-#     X_train, X_test = X[train_idx], X[test_idx]
-#     y_train, y_test = y[train_idx], y[test_idx]
-#     if randomize:
-#         random.shuffle(y_train)
-
-#     best_alpha = find_best_alpha(X_train, y_train, k_inner, model, alphas)
-#     X_train, X_test = scale_features(X_train, X_test)
-#     y_test_predict = train_and_predict(X_train, y_train, X_test, model, best_alpha)
-
-#     r2 = stats.pearsonr(y_test, y_test_predict)[0] ** 2
-#     r2s[fold] = r2
-#     y_hat[test_idx] = y_test_predict
-#     return r2s, y_hat, fold + 1
-
-
-def find_best_alpha(X, y, k_inner, model, metric, alphas):
+def find_best_alpha(X, y, k_inner, model, metric, alphas, params):
     """
     Finds the best alpha in an inner CV loop.
     """
@@ -134,7 +90,8 @@ def find_best_alpha(X, y, k_inner, model, metric, alphas):
     for idx, alpha in enumerate(alphas):
         y_hat = np.zeros_like(y)
         for train_idx, test_idx in kfa.split(y):
-            y_hat = predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, alpha=alpha)
+            params["alpha"] = alpha
+            y_hat = predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, params)
         score = metric(y, y_hat)
         if score > best_score:
             best_alpha = alpha
@@ -142,14 +99,14 @@ def find_best_alpha(X, y, k_inner, model, metric, alphas):
     return best_alpha
 
 
-def predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, alpha=None):
+def predict_inner_test_fold(X, y, y_hat, train_idx, test_idx, model, params):
     """
     Predicts inner test fold.
     """
     X_train, X_test = X[train_idx], X[test_idx]
     y_train, y_test = y[train_idx], y[test_idx]
     X_train, X_test = scale_features(X_train, X_test)
-    y_hat[test_idx] = train_and_predict(X_train, y_train, X_test, model, alpha=alpha)
+    y_hat[test_idx] = train_and_predict(X_train, y_train, X_test, model, params)
     return y_hat
 
 
@@ -163,23 +120,20 @@ def scale_features(X_train, X_test):
     return X_train, X_test
 
 
-def train(X_train, y_train, model, alpha=None):
+def train(X_train, y_train, model, params):
     """
     Trains model and predicts test set.
     """
-    if alpha:
-        lm = model(alpha)
-    else:
-        lm = model()
+    lm = model(**params)
     lm.fit(X_train, y_train)
     return lm
 
 
-def train_and_predict(X_train, y_train, X_test, model, alpha=None):
+def train_and_predict(X_train, y_train, X_test, model, params):
     """
     Trains model and predicts test set.
     """
-    lm = train(X_train, y_train, model, alpha=None)
+    lm = train(X_train, y_train, model, params)
     y_predict = lm.predict(X_test)
     return y_predict
 
@@ -190,6 +144,7 @@ def run_models(id_string, model_helper):
     """
     print "S2Running: {}".format(id_string)
     mh = model_helper
+
     model_tag = mh.settings.config["model_tag"]
     base_path = mh.settings.base_path
 
@@ -244,37 +199,55 @@ def run_models(id_string, model_helper):
 
         lm_dict = deepcopy(mh.model_lookup[name])
 
+        lm_params = lm_dict["params"] if "params" in lm_dict else {}
+
         results = []
 
         metrics_results_path = os.path.join(base_path, "output/s2_metrics/metrics_{}_{}_{}.csv".format(name, id_string, model_tag))
+
+
 
         for x_name, x_data in x_train.iteritems():
 
             print "\t{}({})...".format(name, x_name)
 
-            lm = train(x_data, y_train, lm_dict["model"])
-
             models_results_path = os.path.join(base_path, "output/s2_models/models_{}_{}_{}_{}.joblib".format(name, x_name, id_string, model_tag))
-            joblib.dump(lm, models_results_path)
 
             # run with or without cross validation
             if "k" in lm_dict:
 
                 try:
-                    y_true, y_predict = run_cv(x_data, y_train, **lm_dict)
+                    y_true, y_predict, best_alpha = run_cv(x_data, y_train, **lm_dict)
+
+                    if best_alpha is not None and "alpha" in lm_params:
+                        if best_alpha != lm_params["alpha"]:
+                            warnings.warn("\tBest alpha does not match specified alpha")
+                        lm_parmas["alpha"] = best_alpha
+
+                    lm = train(x_data, y_train, lm_dict["model"], params=lm_params)
+                    joblib.dump(lm, models_results_path)
+
                 except Exception as e:
                     print(e)
                     metric_vals = ["Error" for i in mh.metric_list]
                 else:
+                    # print y_true
+                    # print "========="
+                    # print y_predict
+                    # raise
                     metric_vals = [
-                        np.array([mh.metric_list[j](y_true[i], y_predict[i])
-                        for i in range(lm_dict["k"])]).mean() for j in mh.metric_list
+                        np.array( [mh.metric_list[j](y_true[i], y_predict[i]) for i in range(lm_dict["k"])] ).mean()
+                        for j in mh.metric_list
                     ]
-
             else:
 
+                if "alphas" in lm_dict:
+                    raise Exception("Must specify alpha manually if not using cross-validation")
+
+                lm = train(x_data, y_train, lm_dict["model"], params=lm_params)
+
                 try:
-                    y_predict = lm.predict(x_data)
+                    y_predict = lm.predict(x_data, **lm_params)
                 except Exception as e:
                     print(e)
                     metric_vals = ["Error" for i in mh.metric_list]
@@ -397,7 +370,11 @@ class ModelHelper():
             },
             "mlpclassifier-cv10": {
                 "model": neural_network.MLPClassifier,
-                "k": 10
+                "k": 10,
+                "params": {
+                    "hidden_layer_sizes": (512, ),
+                    "max_iter": 2000
+                }
             }
         }
 
@@ -409,7 +386,11 @@ class ModelHelper():
             "mae": metrics.mean_absolute_error,
             "mae2": metrics.median_absolute_error,
             "mse": metrics.mean_squared_error,
-            "r2": metrics.r2_score
+            "r2": metrics.r2_score,
+            "recall": metrics.recall_score,
+            "precision": metrics.precision_score,
+            "f1": metrics.f1_score,
+            "accuracy": metrics.accuracy_score
         }
 
         self.model_list = self.settings.data["second_stage"]["models"]
