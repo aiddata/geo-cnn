@@ -110,11 +110,15 @@ class PrepareSamples():
         elif self.sample_type == "grid":
             tag_name = str(static_params["grid_pixel_size"]).split(".")[1]
 
+        if static_params["sample_fill_dist"] < 0:
+            raise ValueError("Sample fill dist must be greater than or equal to zero (Given: {})".format(static_params["sample_fill_dist"]))
+
+
 
         sample_tag = "{}_{}_{}_{}_{}".format(
             tag_name,
             static_params["sample_nfill"],
-            str(static_params["sample_fill_dist"]).split(".")[1],
+            str(static_params["sample_fill_dist"]).split(".")[1] if static_params["sample_fill_dist"] > 0 else "0",
             static_params["sample_fill_mode"],
             version
         )
