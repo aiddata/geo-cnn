@@ -22,7 +22,7 @@ def run_models(task, settings):
     id_string = <train hash>_<predict hash>_<version tag>_<predict tag>
     """
 
-    pred_data_path, models_results_path = task
+    pred_data_path, models_results_path, model_type = task
 
     print "S3-S2 Running: \n\tS1: {}\n\tS2: {}".format(
         os.path.basename(pred_data_path),
@@ -101,8 +101,12 @@ def run_models(task, settings):
         X_data = X_scaler.fit_transform(x_data)
         # predict
         # ==========
-        # y_predict = lm.predict(X_data)
-        y_predict = np.array(lm.predict_proba(X_data))[:,1]
+        if model_type == "class":
+            y_predict = lm.predict(X_data)
+        elif model_type == "proba":
+            y_predict = np.array(lm.predict_proba(X_data))[:,1]
+        else:
+            raise Exception("Invalid model class: `{}`".format(model_type))
         # ==========
         results[x_name] = y_predict
 

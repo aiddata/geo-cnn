@@ -34,7 +34,6 @@ predict_hash = s.build_hash(s.data[s.config["predict"]], nchar=7)
 
 s3_info = s.data["third_stage"]
 
-model_list = s3_info["predict"]["models"]
 model_inputs = s3_info["predict"]["inputs"]
 
 model_tag = s.config["model_tag"]
@@ -61,11 +60,15 @@ for ix, (param_hash, params) in enumerate(tasks):
         param_hash, train_predict_id, s.config["version"], s.config["predict_tag"]
     )
 
-    for name in model_list:
+    for name in s3_info["predict"]["class_models"]:
         joblib_path = os.path.join(base_path, "output/s2_models/models_{}_INPUT_{}_{}.joblib".format(
             name, train_id_string, model_tag))
-        qlist.append((grid_predict_path, joblib_path))
+        qlist.append((grid_predict_path, joblib_path, "class"))
 
+    for name in s3_info["predict"]["proba_models"]:
+        joblib_path = os.path.join(base_path, "output/s2_models/models_{}_INPUT_{}_{}.joblib".format(
+            name, train_id_string, model_tag))
+        qlist.append((grid_predict_path, joblib_path, "proba"))
 
 
 run_tasks(tasks=qlist, func=run_models, args=s, mode=mode)
