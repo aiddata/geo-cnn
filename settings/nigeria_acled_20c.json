@@ -30,7 +30,7 @@
         "source_name": "acled2015",
         "source_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_2015.csv",
         "grid_pixel_size": 0.1,
-        "sample_nfill": 0,
+        "sample_nfill": 9,
         "sample_fill_dist": 0.01,
         "sample_fill_mode": "fixed",
         "cat_names": [0, 1],
