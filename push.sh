@@ -84,6 +84,7 @@ rm tmp_s4_jobscript
 
 sfiles=(
     s1_main.py
+    s1_merge.py
     s2_main.py
     s2_merge.py
     s3_build_grid.py

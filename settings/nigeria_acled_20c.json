@@ -127,7 +127,7 @@
         "second_stage_mode": "parallel",
         "directories": [
             "s0_settings",
-            "s1_params", "s1_predict", "s1_state", "s1_train",
+            "s1_params", "s1_predict", "s1_state", "s1_train", "s1_merge",
             "s2_metrics", "s2_models", "s2_merge",
             "s3_grid", "s3_s1_predict", "s3_s2_predict",
             "s4_surface", "s4_validation"
