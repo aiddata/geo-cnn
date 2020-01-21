@@ -94,6 +94,8 @@ for ix, (param_hash, params) in enumerate(tasks):
         params["train"]["train_class_sizes"] = class_sizes["train"]
         params["train"]["val_class_sizes"] = class_sizes["val"]
 
+        
+
         dataloaders = build_dataloaders(
             sample_data,
             base_path,
