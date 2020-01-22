@@ -109,6 +109,8 @@
         "base_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria",
         "mode": "batch",
         "predict": "survey_predict",
+        "predict_features": false,
+        "predict_probability": true,
         "version": "v20ar",
         "predict_tag": "p20ar",
         "model_tag": "m20ar",
@@ -116,9 +118,9 @@
         "quiet": false,
         "overwrite_sample_prep": false,
         "overwrite_train": false,
-        "overwrite_predict": false,
+        "overwrite_predict": true,
         "run": {
-            "train": true,
+            "train": false,
             "test": false,
             "predict": false,
             "custom_predict": true

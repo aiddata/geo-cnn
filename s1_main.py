@@ -94,7 +94,7 @@ for ix, (param_hash, params) in enumerate(tasks):
         params["train"]["train_class_sizes"] = class_sizes["train"]
         params["train"]["val_class_sizes"] = class_sizes["val"]
 
-        
+
 
         dataloaders = build_dataloaders(
             sample_data,
@@ -145,6 +145,7 @@ for ix, (param_hash, params) in enumerate(tasks):
     raw_out_path = os.path.join(base_path, "output/s1_predict", "raw_" + fbasename)
     group_out_path = os.path.join(base_path, "output/s1_predict", fbasename)
 
+    print("hi")
 
     if (s.config["run"]["custom_predict"]) and not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
 
@@ -189,10 +190,16 @@ for ix, (param_hash, params) in enumerate(tasks):
 
         new_cnn.load(state_path)
 
+
+        print("~~~~~~~~~~ START TEST ~~~~~~~~~~")
+
         # predict
-        new_pred_data, _ = new_cnn.predict(features=True)
+        new_pred_data, _ = new_cnn.predict(features=s.config["predict_features"])
+
+        raise Exception("^^^^^----- END TEST -----^^^^^")
 
         # merge predict with original data
+        # if s.config["predict_features"]:
         feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
         pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
         pred_df = pd.DataFrame(pred_dicts)
@@ -200,6 +207,14 @@ for ix, (param_hash, params) in enumerate(tasks):
         full_col_order = list(predict_data["predict"].columns) + feat_labels
         full_out = full_out[full_col_order]
         full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
+        # else:
+            # feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+            # pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
+            # pred_df = pd.DataFrame(pred_dicts)
+            # full_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
+            # full_col_order = list(predict_data["predict"].columns) + feat_labels
+            # full_out = full_out[full_col_order]
+            # full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
 
         # aggregate by group
         if "group" in full_col_order:
