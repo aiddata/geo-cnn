@@ -378,85 +378,37 @@ class RunCNN():
         return epoch_loss, epoch_acc, class_acc, time_elapsed
 
 
-    # def predict(self, features=False, probability=False):
-    #     print("Predict")
-    #     if features:
-    #         self.pmodel = nn.Sequential(*list(self.model.children())[:-1])
-    #     else:
-    #         self.pmodel = copy.deepcopy(self.model)
+    def predict(self):
+        print("Predict")
 
-    #     pred_out, time_elapsed = self._predict(features=features, probability=probability)
-    #     return pred_out, time_elapsed
+        self.hook_output = []
 
+        def hook(model, input, output):
+            self.hook_output += [[i[0][0] for i in k] for k in output.tolist()]
 
-    # def _predict(self, features=False, probability=False):
+        avgpool_layer = self.model._modules.get('avgpool')
 
-    #     phase = "predict"
+        avgpool_layer.register_forward_hook(hook)
 
-    #     since = time.time()
-
-    #     self.export_to_device()
-
-    #     self.pmodel.eval()
-
-    #     pred_out = []
-
-    #     # iterate over data
-    #     for inputs, _ in self.dataloaders[phase]:
-    #         inputs = inputs.to(self.device)
-
-    #         with torch.set_grad_enabled(False):
-    #             outputs = self.pmodel(inputs)
-    #             if not features:
-    #                 _, preds = torch.max(outputs, 1)
-    #                 pred_out += preds.tolist()
-    #             else:
-    #                 pred_out += [ [i.item() for i in j] for j in outputs]
-
-    #     time_elapsed = time.time() - since
-    #     print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
-    #         time_elapsed // 60, time_elapsed % 60))
-
-    #     # load best model weights
-    #     return pred_out, time_elapsed
-
-
-
-    def predict(self, features=False, probability=False):
-        # print("Predict Features")
-        # self.pmodel = nn.Sequential(*list(self.model.children())[:-1])
-
-        # phase = "predict"
-        # since = time.time()
-        # self.export_to_device()
-        # self.pmodel.eval()
-        # pred_out = []
-
-        # # iterate over data
-        # for inputs, _ in self.dataloaders[phase]:
-        #     inputs = inputs.to(self.device)
-
-        #     with torch.set_grad_enabled(False):
-        #         outputs = self.pmodel(inputs)
-        #         # print(inputs.size())
-        #         # print(outputs.size())
-        #         # print(outputs)
-        #         pred_out += [ [i.item() for i in j] for j in outputs]
-
-        # time_elapsed = time.time() - since
-        # print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
-        #     time_elapsed // 60, time_elapsed % 60))
-
-        # ============================================
-
-        print("Predict Class")
         self.pmodel = copy.deepcopy(self.model)
 
+        pred_out, proba_out, feats_out, time_elapsed = self._predict()
+
+        return pred_out, proba_out, feats_out, time_elapsed
+
+
+    def _predict(self):
+
         phase = "predict"
+
         since = time.time()
+
         self.export_to_device()
+
         self.pmodel.eval()
+
         pred_out = []
+        proba_out = []
 
         # iterate over data
         for inputs, _ in self.dataloaders[phase]:
@@ -465,40 +417,15 @@ class RunCNN():
             with torch.set_grad_enabled(False):
                 outputs = self.pmodel(inputs)
                 _, preds = torch.max(outputs, 1)
-                print(inputs.size())
-                print(outputs.size())
-                print(outputs)
-                proba = torch.nn.functional.softmax(outputs, dim=1)
-                print(proba.size())
-                print(proba)
-                print(preds.size())
-                print(preds)
                 pred_out += preds.tolist()
+                proba = torch.nn.functional.softmax(outputs, dim=1)
+                proba_out += proba.tolist()
+
+        feats_out = self.hook_output
 
         time_elapsed = time.time() - since
         print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
 
-        # ============================================
-
-        # print("Predict Probability")
-        # self.pmodel = copy.deepcopy(self.model)
-
-        # phase = "predict"
-        # since = time.time()
-        # self.export_to_device()
-        # self.pmodel.eval()
-        # pred_out = []
-
-        # # iterate over data
-        # for inputs, _ in self.dataloaders[phase]:
-        #     inputs = inputs.to(self.device)
-
-        #     with torch.set_grad_enabled(False):
-        #         outputs = self.pmodel(inputs)
-        #         preds = outputs
-        #         pred_out += preds.tolist()
-
-        # time_elapsed = time.time() - since
-        # print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
-        #     time_elapsed // 60, time_elapsed % 60))
+        # load best model weights
+        return pred_out, proba_out, feats_out, time_elapsed

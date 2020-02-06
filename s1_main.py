@@ -28,6 +28,7 @@ from data_prep import make_dirs, PrepareSamples
 
 # *****************
 # *****************
+# json_path = "settings/nigeria_acled.json"
 json_path = "settings/settings_example.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
@@ -145,7 +146,6 @@ for ix, (param_hash, params) in enumerate(tasks):
     raw_out_path = os.path.join(base_path, "output/s1_predict", "raw_" + fbasename)
     group_out_path = os.path.join(base_path, "output/s1_predict", fbasename)
 
-    print("hi")
 
     if (s.config["run"]["custom_predict"]) and not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
 
@@ -191,34 +191,53 @@ for ix, (param_hash, params) in enumerate(tasks):
         new_cnn.load(state_path)
 
 
-        print("~~~~~~~~~~ START TEST ~~~~~~~~~~")
-
         # predict
-        new_pred_data, _ = new_cnn.predict(features=s.config["predict_features"])
+        new_pred_data, new_proba_data, new_feats_data, _ = new_cnn.predict()
 
-        raise Exception("^^^^^----- END TEST -----^^^^^")
+        pred_dicts = [{"pred_class": i} for i in new_pred_data]
 
-        # merge predict with original data
-        # if s.config["predict_features"]:
+        proba_labels = ["proba_{}_{}".format(i, j) for i, j in enumerate(s.static["cat_names"])]
+        proba_dicts = [dict(zip(proba_labels, i)) for i in new_proba_data]
+
         feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
-        pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
-        pred_df = pd.DataFrame(pred_dicts)
+        feat_dicts = [dict(zip(feat_labels, i)) for i in new_feats_data]
+
+        results_labels = ["pred_class"] + proba_labels + feat_labels
+
+        # python 2.7
+        results_dicts = []
+        for i in xrange(len(pred_dicts)):
+            tmp = {}
+            tmp.update(pred_dicts[i])
+            tmp.update(proba_dicts[i])
+            tmp.update(feat_dicts[i])
+            results_dicts.append(tmp)
+
+        # python 3.5+
+        # results_dicts = [{**pred_dicts[i], **proba_dicts[i], **feat_dicts[i]} for i in xrange(len(pred_dicts))]
+
+
+        pred_df = pd.DataFrame(results_dicts)
+
         full_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
-        full_col_order = list(predict_data["predict"].columns) + feat_labels
+        full_col_order = list(predict_data["predict"].columns) + results_labels
         full_out = full_out[full_col_order]
         full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
-        # else:
-            # feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
-            # pred_dicts = [dict(zip(feat_labels, i)) for i in new_pred_data]
-            # pred_df = pd.DataFrame(pred_dicts)
-            # full_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
-            # full_col_order = list(predict_data["predict"].columns) + feat_labels
-            # full_out = full_out[full_col_order]
-            # full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
+
 
         # aggregate by group
         if "group" in full_col_order:
-            agg_fields = {i:"mean" if i.startswith("feat") else "last" for i in full_col_order}
+            agg_fields = {}
+            for i in full_col_order:
+                if i.startswith("feat"):
+                    agg_fields[i] = "mean"
+                elif i.startswith("proba"):
+                    agg_fields[i] = "mean"
+                elif i.startswith("pred"):
+                    agg_fields[i] = pd.Series.mode
+                else:
+                    agg_fields[i] = "last"
+
             del agg_fields["group"]
             group_out = full_out.groupby("group").agg(agg_fields).reset_index()
             group_col_order = [i for i in full_col_order if i != "group"]
