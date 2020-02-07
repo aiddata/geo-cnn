@@ -57,7 +57,7 @@
         "ntl_dim": 14
     },
     "source_predict": {
-        "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_s10_NGA_adm0_GADM28.csv",
+        "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv",
         "imagery_year": 2014,
         "ntl_type": "viirs",
         "ntl_year": 2014,
@@ -86,7 +86,7 @@
             "method": "source_predict",
             "survey": "acled_2015",
             "survey_year": 2015,
-            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s3_grid/grid_05_s12a_NGA_adm0_GADM28.csv",
+            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s12a_NGA_adm0_GADM28.csv",
             "imagery_year": 2014,
             "ntl_type": "viirs",
             "ntl_year": 2014,
@@ -99,6 +99,8 @@
             "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
         },
         "surface": {
+            "input_stage": "s1",
+            "value_type": "proba_1_1",
             "pixel_agg": 10,
             "dim": 224,
             "scene_max_nodata": 0.5,
@@ -108,7 +110,7 @@
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria",
         "mode": "batch",
-        "predict": "survey_predict",
+        "predict": "source_predict",
         "predict_features": false,
         "predict_probability": true,
         "version": "v20ar",
@@ -128,11 +130,11 @@
         "cuda_device_id": 0,
         "second_stage_mode": "parallel",
         "directories": [
-            "s0_settings",
+            "s0_settings", "s0_grid",
             "s1_params", "s1_predict", "s1_state", "s1_train",
             "s2_metrics", "s2_models", "s2_merge",
-            "s3_grid", "s3_s1_predict", "s3_s2_predict",
-            "s4_surface", "s4_validation"
+            "s3_s1_predict", "s3_s2_predict", "s3_surface",
+            "s4_validation"
         ]
 
     }
