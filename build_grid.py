@@ -39,7 +39,7 @@ pixel_size = s.data["third_stage"]["grid"]["pixel_size"]
 surface_tag = s.config["surface_tag"]
 # fname = os.path.basename(json_path, ".json")
 fname = ".".join(os.path.basename(boundary_path).split(".")[:-1])
-grid_path = os.path.join(s.base_path, "output/s3_grid/grid_{}_{}_{}.csv".format(str(pixel_size).split(".")[1], surface_tag, fname))
+grid_path = os.path.join(s.base_path, "output/s0_grid/grid_{}_{}_{}.csv".format(str(pixel_size).split(".")[1], surface_tag, fname))
 
 # -----------------------------------------------------------------------------
 
