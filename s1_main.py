@@ -96,7 +96,6 @@ for ix, (param_hash, params) in enumerate(tasks):
         params["train"]["val_class_sizes"] = class_sizes["val"]
 
 
-
         dataloaders = build_dataloaders(
             sample_data,
             base_path,
@@ -148,6 +147,16 @@ for ix, (param_hash, params) in enumerate(tasks):
 
 
     if (s.config["run"]["custom_predict"]) and not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
+
+
+        # ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
+        # sample_data, class_sizes = ps.run()
+        # ps.print_counts()
+
+        # predict_data = {
+        #     "predict": sample_data["val"].reset_index()
+        # }
+        # print(len(predict_data["predict"]))
 
         if predict_data is None and s.config["predict"] == "source_predict":
 
@@ -223,7 +232,6 @@ for ix, (param_hash, params) in enumerate(tasks):
         full_col_order = list(predict_data["predict"].columns) + results_labels
         full_out = full_out[full_col_order]
         full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
-
 
         # aggregate by group
         if "group" in full_col_order:
