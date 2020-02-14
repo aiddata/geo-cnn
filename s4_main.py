@@ -137,8 +137,8 @@ for ix, (param_hash, params) in enumerate(tasks):
             blank[row.row-1, row.column-1] = val
 
 
-        xmin, ymax = min(df.lon), max(df.lat)
         pixel_size =  s3_info["grid"]["pixel_size"]
+        xmin, ymax = min(df.lon)-(0.5*pixel_size), max(df.lat)+(0.5*pixel_size)
         meta = {}
         meta["crs"] = rasterio.crs.CRS.from_epsg(4236)
         meta["transform"] = Affine(pixel_size, 0, xmin,
