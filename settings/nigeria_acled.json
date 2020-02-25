@@ -5,7 +5,7 @@
     },
     "batch": {
         "run_type": [1],
-        "n_epochs": [60],
+        "n_epochs": [300],
         "optim": ["sgd"],
         "lr": [0.0001],
         "momentum": [0.97],
@@ -14,7 +14,7 @@
         "loss_weights": [
             [1.0, 1.0]
         ],
-        "net": ["resnet18"],
+        "net": ["resnet18", "resnet36", "resnet50"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -30,7 +30,7 @@
         "source_name": "acled2015",
         "source_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_2015.csv",
         "grid_pixel_size": 0.1,
-        "sample_nfill": 18,
+        "sample_nfill": 16,
         "sample_fill_dist": 0.0,
         "sample_fill_mode": "fixed",
         "cat_names": [0, 1],
@@ -120,7 +120,7 @@
         "quiet": false,
         "overwrite_sample_prep": false,
         "overwrite_train": false,
-        "overwrite_predict": true,
+        "overwrite_predict": false,
         "run": {
             "train": true,
             "test": false,
