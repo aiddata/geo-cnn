@@ -40,19 +40,22 @@
     "survey_predict": {
         "survey": "ghana_2008_dhs_cluster",
         "imagery_year": 2008,
+        "ntl_type": "dmsp",
         "ntl_year": 2008,
         "ntl_calibrated": false,
         "ntl_dim": 7
     },
-    "custom_predict": {
+    "source_predict": {
         "data": "/sciclone/aiddata10/REU/projects/mcc_ghana/output/s3_grid/grid_s10_GHA_adm0_GADM28.csv",
+        "ntl_type": "dmsp",
         "imagery_year": 2008,
         "ntl_year": 2008,
         "ntl_calibrated": false,
         "ntl_dim": 7
     },
     "second_stage": {
-        "models": ["ridge-cv10", "lasso-cv10"],
+        "inputs": ["ntl", "cnn", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
+        "models": ["ridge-cv10"],
         "metrics": ["r2"]
     },
     "third_stage": {
@@ -62,35 +65,37 @@
             "pixel_size": 0.01
         },
         "predict": {
-            "imagery_year": 2016,
-            "ntl_year": 2013,
+            "imagery_year": 2008,
+            "ntl_year": 2008,
             "ntl_calibrated": false,
             "ntl_dim": 7,
             "batch_size": 32,
             "num_workers": 8,
-            "models": ["ridge-cv10", "lasso-cv10"],
+            "class_models": ["ridge-cv10"],
             "inputs": ["ntl", "cnn", "all", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
         },
         "surface": {
+            "input_stage": "s2",
             "pixel_size": 0.01,
             "pixel_agg": 10,
             "dim": 224,
-            "scene_max_nodata": 0.5
+            "scene_max_nodata": 0.5,
+            "nodata_val": -1.2345
         }
     },
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/mcc_ghana",
         "mode": "batch",
         "predict": "survey_predict",
-        "version": "v10",
-        "predict_tag": "p10",
-        "model_tag": "m10",
-        "surface_tag": "s10",
+        "version": "v11",
+        "predict_tag": "p11",
+        "model_tag": "m11",
+        "surface_tag": "s11",
         "quiet": false,
         "overwrite_sample_prep": false,
-        "overwrite_train": true,
-        "overwrite_survey_predict": true,
-        "overwrite_custom_predict": true,
+        "overwrite_train": false,
+        "overwrite_survey_predict": false,
+        "overwrite_custom_predict": false,
         "run": {
             "train": true,
             "test": false,
@@ -99,6 +104,13 @@
             "custom_predict": false
         },
         "cuda_device_id": 0,
-        "second_stage_mode": "parallel"
+        "second_stage_mode": "parallel",
+        "directories": [
+            "s0_settings", "s0_grid",
+            "s1_params", "s1_predict", "s1_state", "s1_train",
+            "s2_metrics", "s2_models", "s2_merge",
+            "s3_s1_predict", "s3_s2_predict", "s3_surface",
+            "s4_validation"
+        ]
     }
 }
