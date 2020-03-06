@@ -17,6 +17,9 @@ import rasterio
 import pandas as pd
 import numpy as np
 import sklearn.metrics
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 from settings_builder import Settings
 
@@ -122,6 +125,13 @@ for ix, (param_hash, params) in enumerate(tasks):
         # -------------------------------------
 
         cnn_surface_path = s3_surface_path
+
+        validation_dir = os.path.dirname(os.path.dirname(cnn_surface_path)) + "/s4_validation"
+        validation_fname = os.path.basename(cnn_surface_path)[:-4] + "_" + os.path.basename(survey_path)[:-4]
+        validation_base = os.path.join(validation_dir, validation_fname)
+
+        make_dir(validation_dir)
+
         cnn_surface_src = rasterio.open(cnn_surface_path, 'r')
 
         validation_data = []
@@ -156,12 +166,13 @@ for ix, (param_hash, params) in enumerate(tasks):
         metrics = ["tp", "fn", "tn", "fp", "accuracy", "precision", "recall", "f1"]
 
         tmp_summary_list = []
-        count = float(len(tmp_survey_df))
+        # count = float(len(tmp_survey_df))
         for i in tmp_survey_df.columns:
             if i.endswith("class"):
                 print i
                 y_true = tmp_survey_df["binary"]
                 y_pred = tmp_survey_df[i]
+                y_prob = tmp_survey_df[i[:-6]]
                 tmp_survey_df[i+"_match"] = (y_true == y_pred).astype(int)
                 tmp_survey_df[i+"_confusion"] =  None
                 tmp_survey_df.loc[((y_true == 1) & (y_pred == 1)), i+"_confusion"] = "tp"
@@ -187,6 +198,42 @@ for ix, (param_hash, params) in enumerate(tasks):
                 tmp_summary["recall"] = sklearn.metrics.recall_score(y_true, y_pred)
                 tmp_summary["f1"] = sklearn.metrics.f1_score(y_true, y_pred)
                 tmp_summary_list.append(tmp_summary)
+                # ====================
+                # ====================
+                # ====================
+                # generate curves
+                auc = sklearn.metrics.roc_auc_score(y_true, y_prob)
+                fpr, tpr, _ = sklearn.metrics.roc_curve(y_true, y_prob)
+                # 1:1 line (noskill) data
+                ns_probs = [0 for _ in range(len(y_true))]
+                ns_auc = sklearn.metrics.roc_auc_score(y_true, ns_probs)
+                ns_fpr, ns_tpr, _ = sklearn.metrics.roc_curve(y_true, ns_probs)
+                plt.figure()
+                plt.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
+                plt.plot(fpr, tpr, marker='.', label='Actual')
+                plt.xlabel('False Positive Rate')
+                plt.ylabel('True Positive Rate')
+                plt.legend()
+                plt.title("ROC Curve")
+                plot_path = validation_base + "_roc_" + i + ".png"
+                plt.savefig(plot_path)
+                print('No Skill: ROC AUC=%.3f' % (ns_auc))
+                print('Actual: ROC AUC=%.3f' % (auc))
+                precision, recall, thresholds = sklearn.metrics.precision_recall_curve(y_true, y_prob)
+                prc_precision, prc_recall, _ = sklearn.metrics.precision_recall_curve(y_true, y_prob)
+                no_skill = len(y_true[y_true==1]) / len(y_true)
+                plt.figure()
+                plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
+                plt.plot(prc_recall, prc_precision, marker='.', label='Actual')
+                plt.xlabel('Recall')
+                plt.ylabel('Precision')
+                plt.legend()
+                plt.title("PRC Curve")
+                plot_path = validation_base + "_prc_" + i + ".png"
+                plt.savefig(plot_path)
+                # ====================
+                # ====================
+                # ====================
 
 
         tmp_summary_df = pd.DataFrame(tmp_summary_list)
@@ -202,11 +249,7 @@ for ix, (param_hash, params) in enumerate(tasks):
 
         final_survey_df = tmp_survey_df[final_cols]
 
-        validation_dir = os.path.dirname(os.path.dirname(cnn_surface_path)) + "/s4_validation"
-        validation_fname = os.path.basename(cnn_surface_path)[:-4] + "_" + os.path.basename(survey_path)[:-4]
-        validation_base = os.path.join(validation_dir, validation_fname)
 
-        make_dir(validation_dir)
         final_survey_df.to_csv(validation_base + "_survey.csv", index=False)
         tmp_summary_df.to_csv(validation_base + "_summary.csv", index=False)
 
@@ -220,6 +263,9 @@ for ix, (param_hash, params) in enumerate(tasks):
 
 import pandas as pd
 import sklearn.metrics
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 path_2015 = "/home/userz/Desktop/nga_viz_01/nigeria_adm2_extract_2015_acled.csv"
 path_2017 = "/home/userz/Desktop/nga_viz_01/nigeria_adm2_extract_2017_acled.csv"
@@ -276,9 +322,6 @@ for y in [2015, 2017, 2019]:
     ns_probs = [0 for _ in range(len(y_true))]
     ns_auc = sklearn.metrics.roc_auc_score(y_true, ns_probs)
     ns_fpr, ns_tpr, _ = sklearn.metrics.roc_curve(y_true, ns_probs)
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
     plt.figure()
     plt.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
     plt.plot(fpr, tpr, marker='.', label='Actual {}'.format(y))
