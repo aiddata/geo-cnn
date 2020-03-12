@@ -271,15 +271,18 @@ path_2015 = "/home/userz/Desktop/nga_viz_01/nigeria_adm2_extract_2015_acled.csv"
 path_2017 = "/home/userz/Desktop/nga_viz_01/nigeria_adm2_extract_2017_acled.csv"
 path_2019 = "/home/userz/Desktop/nga_viz_01/nigeria_adm2_extract_2019_acled.csv"
 
+path_adm2_adm1_join = "/home/userz/Desktop/nga_viz_01/adm2_adm1_join.csv"
+df_adm2_adm1_join = pd.read_csv(path_adm2_adm1_join)[["id", "adm1_shapeID", "adm1_shapeName"]]
+
 df_dict = {
-    2015: pd.read_csv(path_2015),
-    2017: pd.read_csv(path_2017),
-    2019: pd.read_csv(path_2019)
+    2015: pd.read_csv(path_2015).merge(df_adm2_adm1_join, on="id"),
+    2017: pd.read_csv(path_2017).merge(df_adm2_adm1_join, on="id"),
+    2019: pd.read_csv(path_2019).merge(df_adm2_adm1_join, on="id")
 }
 
-base_df = df_dict[2015][['shapeID', 'shapeName', 'mean_2014', 'mean_2016', 'mean_2018']].copy(deep=True)
+base_df = df_dict[2015][['shapeID', 'shapeName', "adm1_shapeID", "adm1_shapeName", 'mean_2014', 'mean_2016', 'mean_2018']].copy(deep=True)
 
-base_df.columns = ['shapeID', 'shapeName', 'predicted_raw_2015', 'predicted_raw_2017', 'predicted_raw_2019']
+base_df.columns = ['shapeID', 'shapeName', "adm1_shapeID", "adm1_shapeName", 'predicted_raw_2015', 'predicted_raw_2017', 'predicted_raw_2019']
 
 thresh = 0.4
 base_df["predicted_binary_2015"] = (base_df["predicted_raw_2015"] > thresh).astype(int)
@@ -290,67 +293,123 @@ base_df["true_sum_2015"] = df_dict[2015]["fatalities_sum"]
 base_df["true_sum_2017"] = df_dict[2017]["fatalities_sum"]
 base_df["true_sum_2019"] = df_dict[2019]["fatalities_sum"]
 
+class ConfusionMatrix():
+    def __init__(self, true, pred):
+        self.true = true
+        self.pred = pred
+        self.tp = sum((true == 1) & (pred == 1))
+        self.fn = sum((true == 1) & (pred == 0))
+        self.tn = sum((true == 0) & (pred == 0))
+        self.fp = sum((true == 0) & (pred == 1))
+        self.cm = (self.tp, self.fn, self.tn, self.fp)
+        self.gen_rates()
+        self.gen_performance_measures()
+    def run(self):
+        tpr, fnr, tnr, fpr = self.gen_rates()
+        accuracy, precision, recall, f1 = self.gen_performance_measures()
+        out = {
+            "tp": tpr, "fn": fnr, "tn": tnr, "fp": fpr,
+            "accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1
+        }
+        return out
+    def gen_rates(self):
+        tpr = self.calc_tp_rate()
+        fnr = self.calc_fn_rate()
+        tnr = self.calc_tn_rate()
+        fpr = self.calc_fp_rate()
+        return (tpr, fnr, tnr, fpr)
+    def gen_performance_measures(self):
+        accuracy = sklearn.metrics.accuracy_score(self.true, self.pred)
+        precision = sklearn.metrics.precision_score(self.true, self.pred)
+        recall = sklearn.metrics.recall_score(self.true, self.pred)
+        f1 = sklearn.metrics.f1_score(self.true, self.pred)
+        return (accuracy, precision, recall, f1)
+    def calc_tp_rate(self):
+        try:
+            return self.tp / float(self.tp+self.fn)
+        except:
+            return None
+    def calc_fn_rate(self):
+        try:
+            return self.fn / float(self.fn+self.tp)
+        except:
+            return None
+    def calc_tn_rate(self):
+        try:
+            return self.tn / float(self.tn+self.fp)
+        except:
+            return None
+    def calc_fp_rate(self):
+        try:
+            return self.fp / float(self.fp+self.tn)
+        except:
+            return None
+
+gen_curves = False
+group_col_list = ["adm0_shapeID", "adm1_shapeName"]
 adm_summary_list = []
 for y in [2015, 2017, 2019]:
     tmp_df = base_df.copy(deep=True)
-    print "Original size: {}".format(len(tmp_df))
-    tmp_df.dropna(subset=["true_sum_{}".format(y)], inplace=True)
-    print "Dropna size: {}".format(len(tmp_df))
-    tmp_df["true_binary_{}".format(y)] = (tmp_df["true_sum_{}".format(y)] > 0).astype(int)
-    y_true = tmp_df["true_binary_{}".format(y)]
-    y_pred = tmp_df["predicted_binary_{}".format(y)]
-    y_prob = tmp_df["predicted_raw_{}".format(y)]
-    # count = float(len(tmp_df))
-    adm_summary = {}
-    adm_summary["year"] = y
-    tp = sum((y_true == 1) & (y_pred == 1))
-    fn = sum((y_true == 1) & (y_pred == 0))
-    tn = sum((y_true == 0) & (y_pred == 0))
-    fp = sum((y_true == 0) & (y_pred == 1))
-    adm_summary["tp"] = tp / float(tp+fn)
-    adm_summary["fn"] = fn / float(fn+tp)
-    adm_summary["tn"] = tn / float(tn+fp)
-    adm_summary["fp"] = fp / float(fp+tn)
-    adm_summary["accuracy"] = sklearn.metrics.accuracy_score(y_true, y_pred)
-    adm_summary["precision"] = sklearn.metrics.precision_score(y_true, y_pred)
-    adm_summary["recall"] = sklearn.metrics.recall_score(y_true, y_pred)
-    adm_summary["f1"] = sklearn.metrics.f1_score(y_true, y_pred)
-    adm_summary_list.append(adm_summary)
-    auc = sklearn.metrics.roc_auc_score(y_true, y_prob)
-    fpr, tpr, _ = sklearn.metrics.roc_curve(y_true, y_prob)
-    # 1:1 line (noskill) data
-    ns_probs = [0 for _ in range(len(y_true))]
-    ns_auc = sklearn.metrics.roc_auc_score(y_true, ns_probs)
-    ns_fpr, ns_tpr, _ = sklearn.metrics.roc_curve(y_true, ns_probs)
-    plt.figure()
-    plt.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
-    plt.plot(fpr, tpr, marker='.', label='Actual {}'.format(y))
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.legend()
-    plt.title("{} ROC Curve".format(y))
-    plot_path = "/home/userz/Desktop/nigeria_roc_{}.png".format(y)
-    plt.savefig(plot_path)
-    print('No Skill: ROC AUC=%.3f' % (ns_auc))
-    print('Actual: ROC AUC=%.3f' % (auc))
-    precision, recall, thresholds = sklearn.metrics.precision_recall_curve(y_true, y_prob)
-    prc_precision, prc_recall, _ = sklearn.metrics.precision_recall_curve(y_true, y_prob)
-    no_skill = len(y_true[y_true==1]) / len(y_true)
-    plt.figure()
-    plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
-    plt.plot(prc_recall, prc_precision, marker='.', label='Actual')
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.legend()
-    plt.title("{} PRC Curve".format(y))
-    plot_path = "/home/userz/Desktop/nigeria_prc_{}.png".format(y)
-    plt.savefig(plot_path)
-    # f1 = sklearn.metrics.f1_score(y_true, yhat)
-    # auc = auc(recall, precision)
-    # prc_f1, prc_auc = sklearn.metrics.f1_score(y_true, yhat), auc(prc_recall, prc_precision)
-    # print('Actual: f1=%.3f auc=%.3f' % (prc_f1, prc_auc))
+    tmp_df["adm0_shapeID"] = 0
+    for group_col in group_col_list:
+        groups = set(tmp_df[group_col])
+        for group in groups:
+            print "\nGroup {0} : {1}".format(group_col, group)
+            group_df = tmp_df.loc[tmp_df[group_col] == group].copy(deep=True)
+            adm_summary = {}
+            adm_summary["group_col"] = group_col
+            adm_summary["group"] = group
+            adm_summary["year"] = y
+            adm_summary["original_size"] = len(group_df)
+            print "Original size: {}".format(adm_summary["original_size"])
+            group_df.dropna(subset=["true_sum_{}".format(y)], inplace=True)
+            adm_summary["dropna_size"] = len(group_df)
+            print "Dropna size: {}".format(adm_summary["dropna_size"])
+            group_df["true_binary_{}".format(y)] = (group_df["true_sum_{}".format(y)] > 0).astype(int)
+            y_true = group_df["true_binary_{}".format(y)]
+            y_pred = group_df["predicted_binary_{}".format(y)]
+            y_prob = group_df["predicted_raw_{}".format(y)]
+            # count = float(len(group_df))
+            stats = ConfusionMatrix(y_true, y_pred)
+            adm_summary.update(stats.run())
+            adm_summary_list.append(adm_summary)
+            if gen_curves:
+                auc = sklearn.metrics.roc_auc_score(y_true, y_prob)
+                fpr, tpr, _ = sklearn.metrics.roc_curve(y_true, y_prob)
+                # 1:1 line (noskill) data
+                ns_probs = [0 for _ in range(len(y_true))]
+                ns_auc = sklearn.metrics.roc_auc_score(y_true, ns_probs)
+                ns_fpr, ns_tpr, _ = sklearn.metrics.roc_curve(y_true, ns_probs)
+                plt.figure()
+                plt.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
+                plt.plot(fpr, tpr, marker='.', label='Actual {}'.format(y))
+                plt.xlabel('False Positive Rate')
+                plt.ylabel('True Positive Rate')
+                plt.legend()
+                plt.title("{} ROC Curve".format(y))
+                plot_path = "/home/userz/Desktop/nigeria_roc_{}.png".format(y)
+                plt.savefig(plot_path)
+                print('No Skill: ROC AUC=%.3f' % (ns_auc))
+                print('Actual: ROC AUC=%.3f' % (auc))
+                precision, recall, thresholds = sklearn.metrics.precision_recall_curve(y_true, y_prob)
+                prc_precision, prc_recall, _ = sklearn.metrics.precision_recall_curve(y_true, y_prob)
+                no_skill = len(y_true[y_true==1]) / len(y_true)
+                plt.figure()
+                plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
+                plt.plot(prc_recall, prc_precision, marker='.', label='Actual')
+                plt.xlabel('Recall')
+                plt.ylabel('Precision')
+                plt.legend()
+                plt.title("{} PRC Curve".format(y))
+                plot_path = "/home/userz/Desktop/nigeria_prc_{}.png".format(y)
+                plt.savefig(plot_path)
+                # f1 = sklearn.metrics.f1_score(y_true, yhat)
+                # auc = auc(recall, precision)
+                # prc_f1, prc_auc = sklearn.metrics.f1_score(y_true, yhat), auc(prc_recall, prc_precision)
+                # print('Actual: f1=%.3f auc=%.3f' % (prc_f1, prc_auc))
 
 metrics = ["tp", "fn", "tn", "fp", "accuracy", "precision", "recall", "f1"]
 adm_summary_df = pd.DataFrame(adm_summary_list)
-adm_summary_df = adm_summary_df[["year"] + metrics]
+adm_summary_df = adm_summary_df[["year", "group_col", "group", "original_size", "dropna_size"] + metrics]
+adm_summary_df.to_csv("/home/userz/Desktop/nga_adm2_summary.csv", index=False)
 adm_summary_df
