@@ -90,6 +90,12 @@ for ix, (param_hash, params) in enumerate(tasks):
             sample_data, class_sizes = ps.run()
             ps.print_counts()
 
+        # for each temporal epoch in imagery_years list
+        # create copy of sample_data with "epoch" or something column
+        # then append them all so final sample_data has duplicate sample points for each epoch
+        # that epoch col will then be used in dataloader instead of a "year" arg to the function
+        #
+
         params["train"] = {}
         params["train"]['ncats'] = len(ps.cat_names)
         params["train"]["train_class_sizes"] = class_sizes["train"]
