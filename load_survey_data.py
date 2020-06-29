@@ -63,7 +63,8 @@ class SurveyData():
 
     def _acled(self, year):
 
-        data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
+        # data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
+        data_path = self.base_path + "/data/acled/final/acled_{}.csv".format(year)
 
         data = pd.read_csv(data_path, quotechar='\"',
                            na_values='', keep_default_na=False,
@@ -89,7 +90,8 @@ class SurveyData():
     def _tanzania_2010_lsms_cluster(self):
         field = 'cons'
 
-        clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2010_lsms_cluster.csv"
+        # clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2010_lsms_cluster.csv"
+        clusters_path = self.base_path + "/data/surveys/final/tanzania_2010_lsms_cluster.csv"
 
         cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
@@ -108,7 +110,8 @@ class SurveyData():
     def _tanzania_2012_lsms_cluster(self):
         field = 'cons'
 
-        clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2012_lsms_cluster.csv"
+        # clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2012_lsms_cluster.csv"
+        clusters_path = self.base_path + "/data/surveys/final/tanzania_2012_lsms_cluster.csv"
 
         cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
@@ -127,7 +130,8 @@ class SurveyData():
     def _tanzania_2010_dhs_cluster(self):
         field = 'wealthscore'
 
-        clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2010_dhs_cluster.csv"
+        # clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2010_dhs_cluster.csv"
+        clusters_path = self.base_path + "/data/surveys/final/tanzania_2010_dhs_cluster.csv"
 
         cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
@@ -146,7 +150,8 @@ class SurveyData():
     def _tanzania_2015_dhs_cluster(self):
         field = 'wealthscore'
 
-        clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2015_dhs_cluster.csv"
+        # clusters_path = "/sciclone/aiddata10/REU/projects/mcc_tanzania/data/surveys/final/tanzania_2015_dhs_cluster.csv"
+        clusters_path = self.base_path + "/data/surveys/final/tanzania_2015_dhs_cluster.csv"
 
         cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
@@ -165,7 +170,8 @@ class SurveyData():
     def _ghana_2008_dhs_cluster(self):
         field = 'wealthscore'
 
-        clusters_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2008_dhs_cluster.csv"
+        # clusters_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2008_dhs_cluster.csv"
+        clusters_path = self.base_path + "/data/surveys/final/ghana_2008_dhs_cluster.csv"
 
         cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
@@ -184,7 +190,8 @@ class SurveyData():
     def _ghana_2014_dhs_cluster(self):
         field = 'wealthscore'
 
-        clusters_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2014_dhs_cluster.csv"
+        # clusters_path = "/sciclone/aiddata10/REU/projects/mcc_ghana/data/surveys/final/ghana_2014_dhs_cluster.csv"
+        clusters_path = self.base_path + "/data/surveys/final/ghana_2014_dhs_cluster.csv"
 
         cluster = pd.read_csv(clusters_path, quotechar='\"',
                                 na_values='', keep_default_na=False,
