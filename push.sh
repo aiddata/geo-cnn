@@ -11,7 +11,7 @@ if [[ $dir == "" ]]; then
     exit 1
 fi
 
-src=/home/userz/git/geo-cnn
+src=/home/${USER}/git/geo-cnn
 base="/sciclone/aiddata10/REU/projects/${project}"
 
 dst=$base/$dir
