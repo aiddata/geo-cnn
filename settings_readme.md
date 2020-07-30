@@ -33,47 +33,47 @@ Version tags must be manually adjusted by the user. They can be used to distingu
 ### Static
 The static block contains options which are used across multiple stages of processing, but is most heavily tied to data preparation and CNN training.
 
--boundary_path: path of boundary file relative to the `<base_path>/data/boundary` directory. The boundary file should be a GeoJSON that consists of a singly valid polygon which encompases the entire study area. This will be used to define sample and prediction grids.
--sample_type: source/grid, defines whether to use a predefined set of samples (source) such as from existing survey locations, or to use a generated grid of sample locations.
--random_samples: [Not currently functional] true/false, generate random samples not related to existing sample locations
--random_count: [Not currently functional] number of random samples to generate
--random_buffer: [Not currently functional] distance from existing sample locations new random locations must be
--random_init: [Not currently functional] ?
--source_name: identifier for source used to load samples (not used for any path/lookup, only creating unique output file identifiers)
--grid_pixel_size: pixel size to use when generating sample grid
--sample_nfill: number of locations to "fill" or create associated with each existing sample location
--sample_fill_dist: maximum distance to fill for each sample location
--sample_fill_mode: fixed/random, whether to fill locations using a fixed grid (regular intervals within sample_fill_dist) or randomly (but still within sample_fill_dist)
--cat_names: list of names to associate with each bin for classifier
--cat_bins: list of values associated with each bin for classifier (lower bound, using `>=` progressing through list)
--cat_field: field name to use for classifying bins in underlying data (field may either exist in source if using source samples, or may be nighttime lights - or other value which a function exists in code - to generate values for source or grid samples. Only NTL function currently exists.)
--ntl_type: dmsp/viirs, which NTL dataset to use for generating NTL values. Must be within temporal bounds of available data.
--ntl_year: year of NTL data to use by default for samples
--ntl_calibrated: whether to use calibrated data or raw when using dmsp NTL
--ntl_dim: dimension of pixel grid square around sample location to use for NTL value. Make sure to adjust based on resolution of NTL data used (500m VIIRS, 1km DMSP)
--ntl_min: drop samples with NTL values below the ntl_min
--type_names: Names of different sample dataframes to generate. Currently may include combination of ["train", "val", "test", "predict"]
--type_weights: Percentage of samples to allocate to each sample dataframe. Must total to 1
--imagery_year: list of imagery temporal identifier to use
--imagery_type: imagery id (e.g., "landsat8"). Refers to directory with `<base_path>/landsat/data`
+- boundary_path: path of boundary file relative to the `<base_path>/data/boundary` directory. The boundary file should be a GeoJSON that consists of a singly valid polygon which encompases the entire study area. This will be used to define sample and prediction grids.
+- sample_type: source/grid, defines whether to use a predefined set of samples (source) such as from existing survey locations, or to use a generated grid of sample locations.
+- random_samples: [Not currently functional] true/false, generate random samples not related to existing sample locations
+- random_count: [Not currently functional] number of random samples to generate
+- random_buffer: [Not currently functional] distance from existing sample locations new random locations must be
+- random_init: [Not currently functional] ?
+- source_name: identifier for source used to load samples (not used for any path/lookup, only creating unique output file identifiers)
+- grid_pixel_size: pixel size to use when generating sample grid
+- sample_nfill: number of locations to "fill" or create associated with each existing sample location
+- sample_fill_dist: maximum distance to fill for each sample location
+- sample_fill_mode: fixed/random, whether to fill locations using a fixed grid (regular intervals within sample_fill_dist) or randomly (but still within sample_fill_dist)
+- cat_names: list of names to associate with each bin for classifier
+- cat_bins: list of values associated with each bin for classifier (lower bound, using `>=` progressing through list)
+- cat_field: field name to use for classifying bins in underlying data (field may either exist in source if using source samples, or may be nighttime lights - or other value which a function exists in code - to generate values for source or grid samples. Only NTL function currently exists.)
+- ntl_type: dmsp/viirs, which NTL dataset to use for generating NTL values. Must be within temporal bounds of available data.
+- ntl_year: year of NTL data to use by default for samples
+- ntl_calibrated: whether to use calibrated data or raw when using dmsp NTL
+- ntl_dim: dimension of pixel grid square around sample location to use for NTL value. Make sure to adjust based on resolution of NTL data used (500m VIIRS, 1km DMSP)
+- ntl_min: drop samples with NTL values below the ntl_min
+- type_names: Names of different sample dataframes to generate. Currently may include combination of ["train", "val", "test", "predict"]
+- type_weights: Percentage of samples to allocate to each sample dataframe. Must total to 1
+- imagery_year: list of imagery temporal identifier to use
+- imagery_type: imagery id (e.g., "landsat8"). Refers to directory with `<base_path>/landsat/data`
 -imagery_bands: bands of imagery to use (corresponds to value in landsat path)
 
 ### Batch
 The batch field is used to perform a grid search during the training of a CNN. It consists of key value pairs where every value is a list of multiple values to be used in a grid search.
 
--run_type: fine tuning (1) or fixed (0) weights when training the CNN
--n_epochs: number of epochs (1+)
--optim: sgd/adam, optimization algorithm
--lr: learning rate
--momentum: momentum associated with LR
--step_size: every step_size number of epochs LR is adjusted by gamma
--gamma: amount to adjust LR by each step_size epochs (LR * gamma)
--loss_weights: list of weights (size of list must correspond to number of bins for categories in cat_bins). Used to handle imbalanced sampled. Currently just fixed at 1 for all values as we clip class sizes so they are all equal during data prep.
--net: type of network. Currently only includes resnets
--batch_size: Batch size for training
--num_workers: Number of workers to used when training
--dim: dimension of images used. Default 224 for resnet
--agg_method: aggregation method used to generate imagery. Has included mean/min/max when exploring SLC corrections with Landsat7, now just used mean for Landsat8. Used imagery path/file name lookup.
+- run_type: fine tuning (1) or fixed (0) weights when training the CNN
+- n_epochs: number of epochs (1+)
+- optim: sgd/adam, optimization algorithm
+- lr: learning rate
+- momentum: momentum associated with LR
+- step_size: every step_size number of epochs LR is adjusted by gamma
+- gamma: amount to adjust LR by each step_size epochs (LR * gamma)
+- loss_weights: list of weights (size of list must correspond to number of bins for categories in cat_bins). Used to handle imbalanced sampled. Currently just fixed at 1 for all values as we clip class sizes so they are all equal during data prep.
+- net: type of network. Currently only includes resnets
+- batch_size: Batch size for training
+- num_workers: Number of workers to used when training
+- dim: dimension of images used. Default 224 for resnet
+- agg_method: aggregation method used to generate imagery. Has included mean/min/max when exploring SLC corrections with Landsat7, now just used mean for Landsat8. Used imagery path/file name lookup.
 
 ### CSV
 The CSV was intended to be used to load specific hash combinations from training for later stage predictions. It was never used beyond initial functionallity testing, but currently is likely not functional. Will probably remove at some point in future.
@@ -84,14 +84,14 @@ The CSV was intended to be used to load specific hash combinations from training
 ### source_predict
 Settings for generating CNN predictions using source locations (CSV containg lon/lat)
 
--source: absolute path to source file
--imagery_year: imagery year to use
+- source: absolute path to source file
+- imagery_year: imagery year to use
 
 NTL fields below are the same as in static block and are used to include NTL values with prediction outputs for comparison/analysis.
--ntl_type
--ntl_year
--ntl_calibrated
--ntl_dim
+- ntl_type
+- ntl_year
+- ntl_calibrated
+- ntl_dim
 
 
 ### survey_predict
@@ -119,9 +119,9 @@ To be updated...
 
 __surface__
 
--input_stage: s1/s2, s1 generates surface directly from s1 CNN predictions, s2 using second stage model outputs
--value_type: field from output CSV
--pixel_agg: Not used
--dim: dimensions of imagery used for training/prediction. Used here to evaluate no data in predicted scenes
--scene_max_nodata: Max ratio of no data values in prediction scene
--nodata_val: No data value in imagery
+- input_stage: s1/s2, s1 generates surface directly from s1 CNN predictions, s2 using second stage model outputs
+- value_type: field from output CSV
+- pixel_agg: Not used
+- dim: dimensions of imagery used for training/prediction. Used here to evaluate no data in predicted scenes
+- scene_max_nodata: Max ratio of no data values in prediction scene
+- nodata_val: No data value in imagery
