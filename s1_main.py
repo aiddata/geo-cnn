@@ -87,14 +87,23 @@ for ix, (param_hash, params) in enumerate(tasks):
 
         if sample_data is None:
             ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
-            sample_data, class_sizes = ps.run()
+            raw_sample_data, class_sizes = ps.run()
             ps.print_counts()
+
 
         # for each temporal epoch in imagery_years list
         # create copy of sample_data with "epoch" or something column
         # then append them all so final sample_data has duplicate sample points for each epoch
         # that epoch col will then be used in dataloader instead of a "year" arg to the function
-        #
+        sample_data = {}
+        for i in raw_sample_data.keys():
+          tmp_data_list = []
+          for tstep in s.static["imagery_year"]:
+            tmp_data_df = raw_sample_data[i].copy()
+            tmp_data_df["temporal"] = tstep
+            tmp_data_list.append(tmp_data_df)
+          sample_data[i] = pd.concat(tmp_data_list)
+
 
         params["train"] = {}
         params["train"]['ncats'] = len(ps.cat_names)
@@ -105,7 +114,6 @@ for ix, (param_hash, params) in enumerate(tasks):
         dataloaders = build_dataloaders(
             sample_data,
             base_path,
-            params["static"]["imagery_year"],
             params["static"]["imagery_type"],
             params["static"]["imagery_bands"],
             data_transform=None,

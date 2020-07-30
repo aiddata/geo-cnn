@@ -28,7 +28,7 @@ s.load(json_path)
 s.build_dirs()
 
 
-boundary_path = s.data["static"]["boundary_path"]
+boundary_path = os.path.join(s.base_path, "data/boundary", s.data["static"]["boundary_file"])
 
 pixel_size = s.data["third_stage"]["grid"]["pixel_size"]
 

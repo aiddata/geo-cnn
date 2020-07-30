@@ -106,7 +106,7 @@ class PrepareSamples():
 
 
         if self.sample_type == "source":
-            tag_name = static_params["source_name"]
+            tag_name = "".join(os.path.basename(static_params["source_path"]).split("_"))
         elif self.sample_type == "grid":
             tag_name = str(static_params["grid_pixel_size"]).split(".")[1]
 
@@ -130,13 +130,7 @@ class PrepareSamples():
                 "data/grid/sample_{}_{}_{}.csv".format(self.sample_type, i, sample_tag)
             )
 
-        make_dir(os.path.join(base_path, "data/sample"))
-
-
-        # -----------------
-
-        # boundary path defining grid area
-        self.boundary_path = static_params["boundary_path"]
+        # make_dir(os.path.join(base_path, "data/sample"))
 
 
         # -----------------
@@ -193,7 +187,7 @@ class PrepareSamples():
 
 
     def _prepare_source_sample(self):
-        df = pd.read_csv(self.static_params["source_path"], sep=",", encoding='utf-8')
+        df = pd.read_csv(self.base_path, "data/surveys", self.static_params["source_name"] + ".csv", sep=",", encoding='utf-8')
         cols = df.columns
         if "lon" not in cols and "longitude" in cols:
             df["lon"] = df.longitude
@@ -206,6 +200,8 @@ class PrepareSamples():
 
 
     def _prepare_grid_sample(self):
+        # boundary path defining grid area
+        self.boundary_path = os.path.join(self.base_path, "data/boundary", self.static_params["boundary_file"])
         # load boundary data
         boundary_src = fiona.open(self.boundary_path)
         grid = PointGrid(boundary_src)
@@ -267,32 +263,36 @@ class PrepareSamples():
 
     def run(self):
 
-        print("\nPreparing grid...")
-        # define, build, and save sample grid
+        print("\nPreparing sample...")
+        # define, load or build, and save sample dataframe
         if not os.path.isfile(self.sample_path["init"]) or self.overwrite:
             self.prepare_sample()
         else:
             self.sample_df = pd.read_csv(self.sample_path["init"], sep=",", encoding='utf-8')
 
         print("\nFilling in sample...")
+        # fill in additional locations around samples
         if not os.path.isfile(self.sample_path["fill"]) or self.overwrite:
             self.fill_sample()
         else:
             self.sample_df = pd.read_csv(self.sample_path["fill"], sep=",", encoding='utf-8')
 
         print("\nAdding NTL values...")
+        # add NTL values to column in sample df
         if not os.path.isfile(self.sample_path["ntl"]) or self.overwrite:
             self.assign_ntl()
         else:
             self.df = pd.read_csv(self.sample_path["ntl"], sep=",", encoding='utf-8')
 
         print("\nBuilding datasets...")
+        # label samples based on class definitions from settings
         if not os.path.isfile(self.sample_path["full"]) or self.overwrite:
             self.build_datasets()
         else:
             self.df = pd.read_csv(self.sample_path["full"], sep=",", encoding='utf-8')
 
         print("\nNormalizing class sizes...")
+        # make sure all class sizes are same by trimming all to smallest class size
         if not os.path.isfile(self.sample_path["trim"]) or self.overwrite:
             self.normalize_classes()
         else:
@@ -300,6 +300,7 @@ class PrepareSamples():
 
 
         print("\nPreparing dataframe dict...")
+        # create dict suitable for using with PyTorch/dataloaders code
 
         dataframe_dict = {}
         for i in self.type_names:
@@ -313,8 +314,8 @@ class PrepareSamples():
 
 
     def print_counts(self):
-
-        # print resulting split of classes for each data type
+        """print resulting split of classes for each data type in final full/normalized samples
+        """
         print("\nFull data:")
         for i in self.type_names:
             tmp_df = self.df.loc[self.df['type'] == i]

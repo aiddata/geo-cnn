@@ -8,10 +8,9 @@ from torch.utils.data import Dataset
 class BandDataset(Dataset):
     """Get the data
     """
-    def __init__(self, dataframe, root_dir, imagery_year, imagery_type, imagery_bands, dim=224, transform=None, agg_method="mean"):
+    def __init__(self, dataframe, root_dir, imagery_type, imagery_bands, dim=224, transform=None, agg_method="mean"):
 
         self.dim = dim
-        self.year = imagery_year
         self.imagery_type = imagery_type
 
         # self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"] # landsat7
@@ -34,6 +33,8 @@ class BandDataset(Dataset):
 
         row = self.dataframe.iloc[idx]
 
+        temporal = row["temporal"]
+
         # label = None
         label = -1
         if 'label' in row:
@@ -47,8 +48,8 @@ class BandDataset(Dataset):
         for bnum, band in enumerate(self.bands):
 
             season_mosaics_path = os.path.join(
-                self.root_dir, "landsat/data/{}/mosaics/{}_all".format(self.imagery_type, self.year), self.agg_method,
-                "{}_all_{}.tif".format(self.year, band))
+                self.root_dir, "landsat/data/{}/mosaics/{}".format(self.imagery_type, temporal), self.agg_method,
+                "{}_{}.tif".format(temporal, band))
             try:
                 season_mosaics = rasterio.open(season_mosaics_path)
             except:
