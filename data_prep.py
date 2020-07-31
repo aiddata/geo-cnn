@@ -187,7 +187,20 @@ class PrepareSamples():
 
 
     def _prepare_source_sample(self):
-        df = pd.read_csv(self.base_path, "data/surveys", self.static_params["source_name"] + ".csv", sep=",", encoding='utf-8')
+
+        tmp_df_list = []
+        for i in self.static_params["source_name"] :
+            # data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
+            data_path = self.base_path + "/data/surveys/{}.csv".format(self.survey)
+
+            tmp_data = pd.read_csv(data_path, quotechar='\"',
+                            na_values='', keep_default_na=False,
+                            encoding='utf-8')
+
+            tmp_df_list.append(tmp_data)
+
+        df = pd.concat(tmp_df_list)
+
         cols = df.columns
         if "lon" not in cols and "longitude" in cols:
             df["lon"] = df.longitude
@@ -196,7 +209,7 @@ class PrepareSamples():
         if "lon" not in df.columns and "lat" not in df.columsn:
             raise Exception("Source for sample data must contain longitude/latitude or lon/lat columns")
         df["sample_id"] = range(len(df))
-        self.sample_df = df.copy(deep=True)
+        self.df = df.copy(deep=True)
 
 
     def _prepare_grid_sample(self):
@@ -213,29 +226,23 @@ class PrepareSamples():
         # grid.to_csv(grid_init_path)
         grid.df = grid.to_dataframe()
         grid.to_csv(self.sample_path["init"])
-        self.sample_df = grid.df.copy(deep=True)
+        self.df = grid.df.copy(deep=True)
 
 
     def fill_sample(self):
-        fill = SampleFill(self.sample_df)
+        fill = SampleFill(self.df)
         fill.gfill(self.nfill, distance=self.fill_dist, mode=self.fill_mode)
-        self.sample_df = fill.df.copy(deep=True)
-        self.sample_df.to_csv(self.sample_path["fill"])
+        self.df = fill.df.copy(deep=True)
+        self.df.to_csv(self.sample_path["fill"])
 
 
     def assign_ntl(self):
-        # ntl data
-        self.ntl = NTL_Reader(ntl_type=self.ntl_type, calibrated=self.ntl_calibrated)
-        self.ntl.set_year(self.ntl_year)
-        # ----------
-        self.df = self.sample_df.copy(deep=True)
-        # get ntl values
-        self.df['ntl'] = self.df.apply(lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
-        self.df = self.df.loc[self.df['ntl'] >= self.ntl_min]
+        ntl = NTL_Reader(ntl_type=self.ntl_type, calibrated=self.ntl_calibrated, year=self.ntl_year, dim=self.ntl_dim, min_val=self.ntl_min)
+        self.df = ntl.assign_df_values(self.df)
         self.df.to_csv(self.sample_path["ntl"], index=False, encoding='utf-8')
 
 
-    def build_datasets(self):
+    def assign_labels(self):
         # label each point based on cat ntl value for point and class bins
         self.df["label"] = None
         for c, b in enumerate(self.cat_bins):
@@ -268,14 +275,14 @@ class PrepareSamples():
         if not os.path.isfile(self.sample_path["init"]) or self.overwrite:
             self.prepare_sample()
         else:
-            self.sample_df = pd.read_csv(self.sample_path["init"], sep=",", encoding='utf-8')
+            self.df = pd.read_csv(self.sample_path["init"], sep=",", encoding='utf-8')
 
         print("\nFilling in sample...")
         # fill in additional locations around samples
         if not os.path.isfile(self.sample_path["fill"]) or self.overwrite:
             self.fill_sample()
         else:
-            self.sample_df = pd.read_csv(self.sample_path["fill"], sep=",", encoding='utf-8')
+            self.df = pd.read_csv(self.sample_path["fill"], sep=",", encoding='utf-8')
 
         print("\nAdding NTL values...")
         # add NTL values to column in sample df
@@ -284,10 +291,10 @@ class PrepareSamples():
         else:
             self.df = pd.read_csv(self.sample_path["ntl"], sep=",", encoding='utf-8')
 
-        print("\nBuilding datasets...")
+        print("\nAssign class labels...")
         # label samples based on class definitions from settings
         if not os.path.isfile(self.sample_path["full"]) or self.overwrite:
-            self.build_datasets()
+            self.assign_labels()
         else:
             self.df = pd.read_csv(self.sample_path["full"], sep=",", encoding='utf-8')
 
