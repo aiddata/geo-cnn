@@ -35,7 +35,7 @@
         "random_count": 1000,
         "random_buffer": 0.01,
         "random_init": -1,
-        "source_name": "acled_2016_all",
+        "source_name": ["acled_2016_all"],
         "grid_pixel_size": 0.1,
         "sample_nfill": 9,
         "sample_fill_dist": 0.0,
@@ -76,9 +76,8 @@
         "field": "none"
     },
     "survey_predict": {
-        "survey": "acled_2015",
-        "survey_year": 2015,
-        "imagery_year": 2014,
+        "survey": ["acled_2015"],
+        "imagery_year": ["2014_all", "2015_all"],
         "ntl_type": "viirs",
         "ntl_year": 2014,
         "ntl_calibrated": false,
@@ -86,7 +85,7 @@
     },
     "source_predict": {
         "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv",
-        "imagery_year": 2018,
+        "imagery_year": ["2014_all", "2015_all"],
         "ntl_type": "viirs",
         "ntl_year": 2014,
         "ntl_calibrated": false,

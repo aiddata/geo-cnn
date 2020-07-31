@@ -34,12 +34,12 @@ Version tags must be manually adjusted by the user. They can be used to distingu
 The static block contains options which are used across multiple stages of processing, but is most heavily tied to data preparation and CNN training.
 
 - boundary_path: path of boundary file relative to the `<base_path>/data/boundary` directory. The boundary file should be a GeoJSON that consists of a singly valid polygon which encompases the entire study area. This will be used to define sample and prediction grids.
-- sample_type: source/grid, defines whether to use a predefined set of samples (source) such as from existing survey locations, or to use a generated grid of sample locations.
+- sample_type: source/grid/random, defines whether to use a predefined set of samples (source) such as from existing survey locations, or to use a generated grid of sample locations, or to generate random locations (random - not currently functional)
 - random_samples: [Not currently functional] true/false, generate random samples not related to existing sample locations
 - random_count: [Not currently functional] number of random samples to generate
 - random_buffer: [Not currently functional] distance from existing sample locations new random locations must be
 - random_init: [Not currently functional] ?
-- source_name: identifier for source used to load samples (not used for any path/lookup, only creating unique output file identifiers)
+- source_name: identifier for source used to load samples. Must be CSV file basename within `<base_path>/data/surveys` directory
 - grid_pixel_size: pixel size to use when generating sample grid
 - sample_nfill: number of locations to "fill" or create associated with each existing sample location
 - sample_fill_dist: maximum distance to fill for each sample location
