@@ -7,25 +7,26 @@ import rasterio
 import pandas as pd
 import numpy as np
 
-from load_ntl_data import NTL_Reader
+# from load_ntl_data import NTL_Reader
 
 
 class SurveyData():
     """Load survey data based on static settings from settings json
     """
 
-    def __init__(self, base_path, settings, year=None):
+    def __init__(self, base_path, settings):
 
         self.base_path = base_path
-
-        self.ntl_type = settings["ntl_type"]
-        self.ntl_calibrated = settings["ntl_calibrated"]
-        self.ntl_dim = settings["ntl_dim"]
-        self.ntl_year = settings["ntl_year"]
         self.survey = settings["survey"]
 
-        self.ntl = NTL_Reader(self.ntl_type, calibrated=self.ntl_calibrated)
-        self.ntl.set_year(self.ntl_year)
+
+        # self.ntl_type = settings["ntl_type"]
+        # self.ntl_calibrated = settings["ntl_calibrated"]
+        # self.ntl_dim = settings["ntl_dim"]
+        # self.ntl_year = settings["ntl_year"]
+
+        # self.ntl = NTL_Reader(self.ntl_type, calibrated=self.ntl_calibrated)
+        # self.ntl.set_year(self.ntl_year)
 
         self.surveys = {}
 
@@ -35,7 +36,7 @@ class SurveyData():
         self._tanzania_2015_dhs_cluster()
         self._ghana_2008_dhs_cluster()
         self._ghana_2014_dhs_cluster()
-        self._acled(year)
+        self._acled()
 
 
     def duplicate(self, df, mod):
@@ -61,14 +62,20 @@ class SurveyData():
         return new_df
 
 
-    def _acled(self, year):
+    def _acled(self):
 
-        # data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
-        data_path = self.base_path + "/data/acled/final/acled_{}.csv".format(year)
+        tmp_df_list = []
+        for i in self.survey:
+            # data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
+            data_path = self.base_path + "/data/acled/final/.csv".format(self.survey)
 
-        data = pd.read_csv(data_path, quotechar='\"',
-                           na_values='', keep_default_na=False,
-                           encoding='utf-8')
+            tmp_data = pd.read_csv(data_path, quotechar='\"',
+                            na_values='', keep_default_na=False,
+                            encoding='utf-8')
+
+            tmp_df_list.append(tmp_data)
+
+        data = pd.concat(tmp_df_list)
 
         # binary indicating fatalities
         data["pred_yval"] = (data["fatalities"] > 0).astype(int)
@@ -77,11 +84,11 @@ class SurveyData():
         data["lon"] = data.longitude
         data["lat"] = data.latitude
 
-        data['ntl'] = data.apply(
-            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        # data['ntl'] = data.apply(
+        #     lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
-
-        out_cols = ["lon", "lat", "pred_yval", "ntl"]
+        # out_cols = ["lon", "lat", "pred_yval", "ntl"]
+        out_cols = ["lon", "lat", "pred_yval"]
         data = data[out_cols]
 
         self.surveys["acled_{}".format(year)] = data
@@ -99,8 +106,8 @@ class SurveyData():
 
         cluster = self.duplicate(cluster, mod=0.002)
 
-        cluster['ntl'] = cluster.apply(
-            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        # cluster['ntl'] = cluster.apply(
+        #     lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
         cluster["pred_yval"] = cluster[field]
 
@@ -119,8 +126,8 @@ class SurveyData():
 
         cluster = self.duplicate(cluster, mod=0.002)
 
-        cluster['ntl'] = cluster.apply(
-            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        # cluster['ntl'] = cluster.apply(
+        #     lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
         cluster["pred_yval"] = cluster[field]
 
@@ -139,8 +146,8 @@ class SurveyData():
 
         cluster = self.duplicate(cluster, mod=0.002)
 
-        cluster['ntl'] = cluster.apply(
-            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        # cluster['ntl'] = cluster.apply(
+        #     lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
         cluster["pred_yval"] = cluster[field]
 
@@ -159,8 +166,8 @@ class SurveyData():
 
         cluster = self.duplicate(cluster, mod=0.002)
 
-        cluster['ntl'] = cluster.apply(
-            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        # cluster['ntl'] = cluster.apply(
+        #     lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
         cluster["pred_yval"] = cluster[field]
 
@@ -179,8 +186,8 @@ class SurveyData():
 
         cluster = self.duplicate(cluster, mod=0.002)
 
-        cluster['ntl'] = cluster.apply(
-            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        # cluster['ntl'] = cluster.apply(
+        #     lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
         cluster["pred_yval"] = cluster[field]
 
@@ -199,8 +206,8 @@ class SurveyData():
 
         cluster = self.duplicate(cluster, mod=0.002)
 
-        cluster['ntl'] = cluster.apply(
-            lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
+        # cluster['ntl'] = cluster.apply(
+        #     lambda z: self.ntl.value(z['lon'], z['lat'], ntl_dim=self.ntl_dim), axis=1)
 
         cluster["pred_yval"] = cluster[field]
 
