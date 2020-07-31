@@ -85,7 +85,7 @@ The CSV was intended to be used to load specific hash combinations from training
 Settings for generating CNN predictions using source locations (CSV containg lon/lat)
 
 - source: absolute path to source file
-- imagery_year: imagery year to use
+- imagery_year: list of imagery temporal identifiers to use (same as in static block used for training)
 
 NTL fields below are the same as in static block and are used to include NTL values with prediction outputs for comparison/analysis.
 - ntl_type
@@ -121,7 +121,8 @@ __surface__
 
 - input_stage: s1/s2, s1 generates surface directly from s1 CNN predictions, s2 using second stage model outputs
 - value_type: field from output CSV
-- pixel_agg: Not used
+- pixel_size: resolution of raster. Manually defined by user so must be sure it matches resolution of grid/data used for predicting underlying surface values or resulting surface will fail or be distorted
+- pixel_agg: Not currently used (intended to aggregate pixels to coarser resolution)
 - dim: dimensions of imagery used for training/prediction. Used here to evaluate no data in predicted scenes
 - scene_max_nodata: Max ratio of no data values in prediction scene
 - nodata_val: No data value in imagery

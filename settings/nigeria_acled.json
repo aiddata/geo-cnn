@@ -124,14 +124,16 @@
             "class_models": ["ridge-cv10"],
             "proba_models": ["mlpclassifier-cv10"],
             "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
-        },
-        "surface": {
-            "input_stage": "s1",
-            "value_type": "proba_1_1",
-            "pixel_agg": 10,
-            "dim": 224,
-            "scene_max_nodata": 0.5,
-            "nodata_val": 255
         }
+    },
+    "surface": {
+        "input_stage": "s1",
+        "value_type": "proba_1_1",
+        "pixel_size": 0.05,
+        "pixel_agg": 10,
+        "dim": 224,
+        "scene_max_nodata": 0.5,
+        "nodata_val": 255
     }
+
 }

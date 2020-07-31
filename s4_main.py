@@ -28,7 +28,6 @@ predict_settings = s.data[s.config["predict"]]
 predict_hash = s.build_hash(predict_settings, nchar=7)
 
 
-s3_info = s.data["third_stage"]
 
 model_tag = s.config["model_tag"]
 surface_tag = s.config["surface_tag"]
@@ -57,16 +56,18 @@ season_mosaics = rasterio.open(season_mosaics_path)
 
 print "-----"
 
-input_stage = s3_info["surface"]["input_stage"]
+input_stage = s.data["surface"]["input_stage"]
 
 if input_stage == "s2":
+    s3_info = s.data["third_stage"]
+
     model_list = s3_info["predict"]["class_models"] + s3_info["predict"]["proba_models"]
     input_list = s3_info["predict"]["inputs"]
     surface_list = itertools.product(model_list, input_list)
 
 if input_stage == "s1":
     surface_list = [
-        (0, s3_info["surface"]["value_type"])
+        (0, s.data["surface"]["value_type"])
     ]
 
 else:
@@ -116,10 +117,10 @@ for ix, (param_hash, params) in enumerate(tasks):
 
         df = pd.read_csv(input_path)
         shape = (max(df.row), max(df.column))
-        blank = np.full(shape, s3_info["surface"]["nodata_val"])
+        blank = np.full(shape, s.data["surface"]["nodata_val"])
 
         for i, row in df.iterrows():
-            dim = s3_info["surface"]["dim"]
+            dim = s.data["surface"]["dim"]
             r, c = season_mosaics.index(row.lon, row.lat)
             win = ((r-dim/2, r+dim/2), (c-dim/2, c+dim/2))
             data = season_mosaics.read(1, window=win)
@@ -129,15 +130,15 @@ for ix, (param_hash, params) in enumerate(tasks):
 
             val = row[input_name]
 
-            # should this be checking if data == 0 or data == s3_info["surface"]["nodata_val"]?
+            # should this be checking if data == 0 or data == s.data["surface"]["nodata_val"]?
             # and should set value if true be 0 or nodataval?
-            if np.sum(data == 0) / float(data.size) > s3_info["surface"]["scene_max_nodata"]:
+            if np.sum(data == 0) / float(data.size) > s.data["surface"]["scene_max_nodata"]:
                 val = 0
 
             blank[row.row-1, row.column-1] = val
 
 
-        pixel_size =  s3_info["grid"]["pixel_size"]
+        pixel_size =  s.data["surface"]["pixel_size"]
         xmin, ymax = min(df.lon)-(0.5*pixel_size), max(df.lat)+(0.5*pixel_size)
         meta = {}
         meta["crs"] = rasterio.crs.CRS.from_epsg(4236)
@@ -147,7 +148,7 @@ for ix, (param_hash, params) in enumerate(tasks):
         meta['width'] = shape[1]
         meta['driver'] = 'GTiff'
         meta['count'] = 1
-        meta['nodata'] = s3_info["surface"]["nodata_val"]
+        meta['nodata'] = s.data["surface"]["nodata_val"]
         meta['dtype'] = str(blank.dtype)
         with rasterio.open(s3_surface_path, 'w', **meta) as result:
             result.write(np.array([blank]))

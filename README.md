@@ -1,4 +1,4 @@
-# Using Convolutional Neural Networks to Predict Survey Estimates
+# Using Convolutional Neural Networks to Predict Survey Estimates and other Outcome Measures
 
 ## Stage 0 - Settings and Data Preparation
 
@@ -40,7 +40,7 @@
 
 ### S3C - Generating Secondary Model Values for Surface Grid
 
-### S3D - Building Raster Surface
+### S4 - Building Raster Surface
 
 
 -------------------------------------------------------------------------------
@@ -61,3 +61,5 @@
 - when using MLP Classifier model, single variable models (e.g., only NTL) will not converge
 
 ### Stage 3
+
+### Stage 4
