@@ -33,17 +33,31 @@ Version tags must be manually adjusted by the user. They can be used to distingu
 ### Static
 The static block contains options which are used across multiple stages of processing, but is most heavily tied to data preparation and CNN training.
 
-- boundary_path: path of boundary file relative to the `<base_path>/data/boundary` directory. The boundary file should be a GeoJSON that consists of a singly valid polygon which encompases the entire study area. This will be used to define sample and prediction grids.
-- sample_type: source/grid/random, defines whether to use a predefined set of samples (source) such as from existing survey locations, or to use a generated grid of sample locations, or to generate random locations (random - not currently functional)
-- random_samples: [Not currently functional] true/false, generate random samples not related to existing sample locations
-- random_count: [Not currently functional] number of random samples to generate
-- random_buffer: [Not currently functional] distance from existing sample locations new random locations must be
-- random_init: [Not currently functional] ?
-- source_name: identifier for source used to load samples. Must be CSV file basename within `<base_path>/data/surveys` directory
-- grid_pixel_size: pixel size to use when generating sample grid
-- sample_nfill: number of locations to "fill" or create associated with each existing sample location
-- sample_fill_dist: maximum distance to fill for each sample location
-- sample_fill_mode: fixed/random, whether to fill locations using a fixed grid (regular intervals within sample_fill_dist) or randomly (but still within sample_fill_dist)
+- imagery_type: imagery id (e.g., "landsat8"). Refers to directory with `<base_path>/landsat/data`
+- imagery_bands: bands of imagery to use (corresponds to value in landsat path)
+
+    - source_name: identifier for source used to load samples. Must be CSV file basename within `<base_path>/data/surveys` directory
+
+- sample_definition:
+    - imagery: list of imagery temporal identifier to use
+    - sample: list
+
+    - sample_type: source/grid/random, defines whether to use a predefined set of samples (source) such as from existing survey locations, or to use a generated grid of sample locations, or to generate random locations (random - not currently functional)
+
+    - random options:
+        - random_samples: [Not currently functional] true/false, generate random samples not related to existing sample locations
+        - random_count: [Not currently functional] number of random samples to generate
+        - random_buffer: [Not currently functional] distance from existing sample locations new random locations must be
+        - random_init: [Not currently functional] ?
+
+    - grid options:
+        - grid_boundary_file: path of boundary file relative to the `<base_path>/data/boundary` directory. The boundary file should be a GeoJSON that consists of a singly valid polygon which encompases the entire study area. This will be used to define sample and prediction grids.
+        - grid_pixel_size: pixel size to use when generating sample grid
+
+    - sample_nfill: number of locations to "fill" or create associated with each existing sample location
+    - sample_fill_dist: maximum distance to fill for each sample location
+    - sample_fill_mode: fixed/random, whether to fill locations using a fixed grid (regular intervals within sample_fill_dist) or randomly (but still within sample_fill_dist)
+
 - cat_names: list of names to associate with each bin for classifier
 - cat_bins: list of values associated with each bin for classifier (lower bound, using `>=` progressing through list)
 - cat_field: field name to use for classifying bins in underlying data (field may either exist in source if using source samples, or may be nighttime lights - or other value which a function exists in code - to generate values for source or grid samples. Only NTL function currently exists.)
@@ -54,9 +68,6 @@ The static block contains options which are used across multiple stages of proce
 - ntl_min: drop samples with NTL values below the ntl_min
 - type_names: Names of different sample dataframes to generate. Currently may include combination of ["train", "val", "test", "predict"]
 - type_weights: Percentage of samples to allocate to each sample dataframe. Must total to 1
-- imagery_year: list of imagery temporal identifier to use
-- imagery_type: imagery id (e.g., "landsat8"). Refers to directory with `<base_path>/landsat/data`
--imagery_bands: bands of imagery to use (corresponds to value in landsat path)
 
 ### Batch
 The batch field is used to perform a grid search during the training of a CNN. It consists of key value pairs where every value is a list of multiple values to be used in a grid search.
