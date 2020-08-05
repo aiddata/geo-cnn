@@ -2,14 +2,17 @@
 
 ## Stage 0 - Settings and Data Preparation
 
+_Files:_
 * push.sh - shell script to push local data to HPC (script args define dir on HPC and settings JSON to use)
 * settings_builder.py - class to manage settings for different scripts
 * settings/ - folder containing settings JSONs for jobs
 * scripts/ - folder containing one off scripts for preparing survey data and anything else not a core utility used in following stages
 
+_Notes:_
 
 ## Stage 1 - Training CNN
 
+_Files:_
 * s1_jobscripts - jobscript
 * main.py - primary script called by jobscript
 * data_prep.py - class/functions to generate sample data for training CNN
@@ -20,9 +23,12 @@
 * resnet.py - modified ResNet class (based on PyTorch ResNet class)
 * vgg.py - modified VGG class (based on PyTorch VGG class) - NOT FUNCTION
 
+_Notes:_
+
 
 ## Stage 2 - Training Secondary Models
 
+_Files:_
 * s2_jobscript - jobscript
 * second_stage_model.py - primary script called by jobscript
 * model_prep.py - functions and classes for building second stage models
@@ -30,9 +36,12 @@
 * merge_outputs.py - script to merge second stage model metrics
 
 
+
 ## Stage 3 - Generating Predictive Surface
 
+_Files:_
 * build_surface_grid.py
+
 
 ### S3A - Creating Point Grid
 
@@ -42,6 +51,13 @@
 
 ### S4 - Building Raster Surface
 
+_Files:_
+
+* s4_main.py -
+
+_Notes:_
+
+* x
 
 -------------------------------------------------------------------------------
 
