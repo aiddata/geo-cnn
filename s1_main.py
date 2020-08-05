@@ -59,8 +59,7 @@ shutil.copyfile(
 s.save_params()
 tasks = s.hashed_iter()
 
-predict_settings = s.data[s.config["predict"]]
-predict_hash = s.build_hash(predict_settings, nchar=7)
+static_hash = s.build_hash(s.static)
 
 device = torch.device("cuda:{}".format(s.config["cuda_device_id"]) if torch.cuda.is_available() else "cpu")
 print("\nRunning on:", device)
@@ -68,7 +67,6 @@ print("\nRunning on:", device)
 # -----------------------------------------------------------------------------
 
 sample_data = None
-predict_data = None
 
 for ix, (param_hash, params) in enumerate(tasks):
 
@@ -86,23 +84,9 @@ for ix, (param_hash, params) in enumerate(tasks):
     if (s.config["run"]["train"]) and (not os.path.isfile(state_path) or s.config["overwrite_train"]):
 
         if sample_data is None:
-            ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
-            raw_sample_data, class_sizes = ps.run()
+            ps = PrepareSamples(s.base_path, s.static, static_hash, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
+            sample_data, class_sizes = ps.run()
             ps.print_counts()
-
-
-        # for each temporal epoch in imagery_years list
-        # create copy of sample_data with "epoch" or something column
-        # then append them all so final sample_data has duplicate sample points for each epoch
-        # that epoch col will then be used in dataloader instead of a "year" arg to the function
-        sample_data = {}
-        for i in raw_sample_data.keys():
-          tmp_data_list = []
-          for tstep in s.static["imagery_year"]:
-            tmp_data_df = raw_sample_data[i].copy()
-            tmp_data_df["temporal"] = tstep
-            tmp_data_list.append(tmp_data_df)
-          sample_data[i] = pd.concat(tmp_data_list)
 
 
         params["train"] = {}
@@ -146,7 +130,10 @@ for ix, (param_hash, params) in enumerate(tasks):
 
         # if s.config["run"]["predict"]:
         #     pred_data, _ = train_cnn.predict(features=True)
-
+        #     # old line from custom_predict section to use predict from sample data manually,
+        #     # which would involve then building a new dataloader. Just leaving this line and
+        #     # comment here as reminder for potential future implementation
+        #     # predict_df = sample_data["predict"].reset_index()
 
 
     # ====================
@@ -154,116 +141,104 @@ for ix, (param_hash, params) in enumerate(tasks):
     # PREDICT
     # ====================
     # ====================
-    fbasename = "predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"])
 
-    raw_out_path = os.path.join(base_path, "output/s1_predict", "raw_" + fbasename)
-    group_out_path = os.path.join(base_path, "output/s1_predict", fbasename)
+    if (s.config["run"]["custom_predict"]):
 
+        for predict_key in s.data["predict"].keys():
 
-    if (s.config["run"]["custom_predict"]) and not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
+            predict_settings = s.data["predict"][predict_key]
+            predict_hash = s.build_hash(predict_settings, nchar=7)
 
+            fbasename = "predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"])
 
-        # ps = PrepareSamples(s.base_path, s.static, s.config["version"], overwrite=s.config["overwrite_sample_prep"])
-        # sample_data, class_sizes = ps.run()
-        # ps.print_counts()
+            raw_out_path = os.path.join(base_path, "output/s1_predict", "raw_" + fbasename)
+            group_out_path = os.path.join(base_path, "output/s1_predict", fbasename)
 
-        # predict_data = {
-        #     "predict": sample_data["val"].reset_index()
-        # }
-        # print(len(predict_data["predict"]))
+            if not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
 
-        if predict_data is None and s.config["predict"] == "source_predict":
-
-            predict_src = pd.read_csv(predict_settings["source"], quotechar='\"',
-                                    na_values='', keep_default_na=False,
-                                    encoding='utf-8')
-            predict_data = {
-                "predict": predict_src
-            }
-
-        elif predict_data is None and s.config["predict"] == "survey_predict":
-
-            predict_src = SurveyData(base_path, predict_settings, predict_settings["survey_year"])
-            predict_data = {
-                "predict": predict_src.surveys[predict_settings["survey"]].copy(deep=True)
-            }
-
-        elif predict_data is None:
-            raise ValueError("Invalid predict class: `{}`".format(s.config["predict"]))
-
-
-        new_dataloaders = build_dataloaders(
-            predict_data,
-            base_path,
-            predict_settings["imagery_year"],
-            params["static"]["imagery_type"],
-            params["static"]["imagery_bands"],
-            data_transform=None,
-            dim=params["dim"],
-            batch_size=params["batch_size"],
-            num_workers=params["num_workers"],
-            agg_method=params["agg_method"],
-            shuffle=False)
-
-        new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
-
-        new_cnn.init_training()
-        new_cnn.init_print()
-        new_cnn.init_net()
-
-        new_cnn.load(state_path)
-
-
-        # predict
-        new_pred_data, new_proba_data, new_feats_data, _ = new_cnn.predict()
-
-        pred_dicts = [{"pred_class": i} for i in new_pred_data]
-
-        proba_labels = ["proba_{}_{}".format(i, j) for i, j in enumerate(s.static["cat_names"])]
-        proba_dicts = [dict(zip(proba_labels, i)) for i in new_proba_data]
-
-        feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
-        feat_dicts = [dict(zip(feat_labels, i)) for i in new_feats_data]
-
-        results_labels = ["pred_class"] + proba_labels + feat_labels
-
-        # python 2.7
-        results_dicts = []
-        for i in xrange(len(pred_dicts)):
-            tmp = {}
-            tmp.update(pred_dicts[i])
-            tmp.update(proba_dicts[i])
-            tmp.update(feat_dicts[i])
-            results_dicts.append(tmp)
-
-        # python 3.5+
-        # results_dicts = [{**pred_dicts[i], **proba_dicts[i], **feat_dicts[i]} for i in xrange(len(pred_dicts))]
-
-
-        pred_df = pd.DataFrame(results_dicts)
-
-        full_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
-        full_col_order = list(predict_data["predict"].columns) + results_labels
-        full_out = full_out[full_col_order]
-        full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
-
-        # aggregate by group
-        if "group" in full_col_order:
-            agg_fields = {}
-            for i in full_col_order:
-                if i.startswith("feat"):
-                    agg_fields[i] = "mean"
-                elif i.startswith("proba"):
-                    agg_fields[i] = "mean"
-                elif i.startswith("pred"):
-                    agg_fields[i] = pd.Series.mode
+                if os.path.isfile(predict_settings["sample"]):
+                    predict_df = pd.read_csv(predict_settings["sample"], quotechar='\"',
+                                            na_values='', keep_default_na=False,
+                                            encoding='utf-8')
                 else:
-                    agg_fields[i] = "last"
+                    try:
+                        predict_src = SurveyData(base_path, predict_settings["sample"])
+                        predict_df = predict_src.surveys[predict_settings["sample"]].copy(deep=True)
+                    except:
+                        raise ValueError("Invalid predict sample id: `{}`".format(predict_settings["sample"]))
 
-            del agg_fields["group"]
-            group_out = full_out.groupby("group").agg(agg_fields).reset_index()
-            group_col_order = [i for i in full_col_order if i != "group"]
-            group_out = group_out[group_col_order]
-            group_out.to_csv(group_out_path, index=False, encoding='utf-8')
-        else:
-            full_out.to_csv(group_out_path, index=False, encoding='utf-8')
+                predict_data = {"predict": predict_df}
+
+                new_dataloaders = build_dataloaders(
+                    predict_data,
+                    base_path,
+                    params["static"]["imagery_type"],
+                    params["static"]["imagery_bands"],
+                    data_transform=None,
+                    dim=params["dim"],
+                    batch_size=params["batch_size"],
+                    num_workers=params["num_workers"],
+                    agg_method=params["agg_method"],
+                    shuffle=False)
+
+                new_cnn = RunCNN(new_dataloaders, device, parallel=False, **params)
+
+                new_cnn.init_training()
+                new_cnn.init_print()
+                new_cnn.init_net()
+
+                new_cnn.load(state_path)
+
+
+                # predict
+                new_pred_data, new_proba_data, new_feats_data, _ = new_cnn.predict()
+
+                pred_dicts = [{"pred_class": i} for i in new_pred_data]
+
+                proba_labels = ["proba_{}_{}".format(i, j) for i, j in enumerate(s.static["cat_names"])]
+                proba_dicts = [dict(zip(proba_labels, i)) for i in new_proba_data]
+
+                feat_labels = ["feat_{}".format(i) for i in xrange(1,513)]
+                feat_dicts = [dict(zip(feat_labels, i)) for i in new_feats_data]
+
+                results_labels = ["pred_class"] + proba_labels + feat_labels
+
+                # python 2.7
+                results_dicts = []
+                for i in xrange(len(pred_dicts)):
+                    tmp = {}
+                    tmp.update(pred_dicts[i])
+                    tmp.update(proba_dicts[i])
+                    tmp.update(feat_dicts[i])
+                    results_dicts.append(tmp)
+
+                # python 3.5+
+                # results_dicts = [{**pred_dicts[i], **proba_dicts[i], **feat_dicts[i]} for i in xrange(len(pred_dicts))]
+
+                pred_df = pd.DataFrame(results_dicts)
+
+                full_out = predict_data["predict"].merge(pred_df, left_index=True, right_index=True)
+                full_col_order = list(predict_data["predict"].columns) + results_labels
+                full_out = full_out[full_col_order]
+                full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
+
+                # aggregate by group
+                if "group" in full_col_order:
+                    agg_fields = {}
+                    for i in full_col_order:
+                        if i.startswith("feat"):
+                            agg_fields[i] = "mean"
+                        elif i.startswith("proba"):
+                            agg_fields[i] = "mean"
+                        elif i.startswith("pred"):
+                            agg_fields[i] = pd.Series.mode
+                        else:
+                            agg_fields[i] = "last"
+
+                    del agg_fields["group"]
+                    group_out = full_out.groupby("group").agg(agg_fields).reset_index()
+                    group_col_order = [i for i in full_col_order if i != "group"]
+                    group_out = group_out[group_col_order]
+                    group_out.to_csv(group_out_path, index=False, encoding='utf-8')
+                else:
+                    full_out.to_csv(group_out_path, index=False, encoding='utf-8')
