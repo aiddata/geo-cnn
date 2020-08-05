@@ -8,20 +8,19 @@ from torch.utils.data import Dataset
 class BandDataset(Dataset):
     """Get the data
     """
-    def __init__(self, dataframe, root_dir, imagery_type, imagery_bands, dim=224, transform=None, agg_method="mean"):
-
-        self.dim = dim
-        self.imagery_type = imagery_type
-
-        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"] # landsat7
-        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"] # landsat8
-        self.bands = imagery_bands
+    def __init__(self, dataframe, root_dir, imagery_type, imagery_bands, agg_method="mean", dim=224, transform=None):
 
         self.dataframe = dataframe
         self.root_dir = root_dir
-        self.transform = transform
 
+        self.imagery_type = imagery_type
+        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b7", "b61", "b62"] # landsat7
+        # self.bands = ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"] # landsat8
+        self.bands = imagery_bands
         self.agg_method = agg_method
+
+        self.dim = dim
+        self.transform = transform
 
 
     def __len__(self):
