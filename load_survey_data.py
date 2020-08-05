@@ -36,12 +36,12 @@ class SurveyData():
             "ghana_2014_dhs_cluster": _ghana_2014_dhs_cluster
         }
 
-        self._tanzania_2010_lsms_cluster()
-        self._tanzania_2012_lsms_cluster()
-        self._tanzania_2010_dhs_cluster()
-        self._tanzania_2015_dhs_cluster()
-        self._ghana_2008_dhs_cluster()
-        self._ghana_2014_dhs_cluster()
+        # self._tanzania_2010_lsms_cluster()
+        # self._tanzania_2012_lsms_cluster()
+        # self._tanzania_2010_dhs_cluster()
+        # self._tanzania_2015_dhs_cluster()
+        # self._ghana_2008_dhs_cluster()
+        # self._ghana_2014_dhs_cluster()
         # self._acled()
 
 
@@ -67,6 +67,15 @@ class SurveyData():
         new_df = pd.DataFrame(new_df_dict)
         return new_df
 
+
+    def load(self, survey_id):
+        if survey_id.startswith("acled"):
+            return self.surveys["acled"](survey_id)
+        else:
+            try:
+                return self.surveys[survey_id]()
+            except:
+                raise ValueError("Invalid survey id given ({})".format(survey_id))
 
     def _acled(self, survey):
 
