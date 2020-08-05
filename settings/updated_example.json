@@ -1,0 +1,150 @@
+{
+    "config": {
+        "base_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria",
+        "mode": "batch",
+        "predict": "survey_predict",
+        "version": "v30",
+        "predict_tag": "p30",
+        "model_tag": "m30",
+        "surface_tag": "s30",
+        "quiet": false,
+        "overwrite_sample_prep": false,
+        "overwrite_train": false,
+        "overwrite_predict": false,
+        "run": {
+            "train": true,
+            "test": false,
+            "predict": false,
+            "custom_predict": false
+        },
+        "cuda_device_id": 0,
+        "second_stage_mode": "parallel",
+        "directories": [
+            "s0_settings", "s0_grid",
+            "s1_params", "s1_predict", "s1_state", "s1_train",
+            "s2_metrics", "s2_models", "s2_merge",
+            "s3_s1_predict", "s3_s2_predict", "s3_surface",
+            "s4_validation"
+        ]
+    },
+    "static": {
+        "imagery_type": "landsat8",
+        "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"],
+        "sample_definition": {
+            "2014_acled":{
+                "imagery": ["2014_h1", "2014_h2"],
+                "sample": ["acled_2015_h1", "acled_2015_h2"]
+            },
+            "2014_acled_ntl":{
+                "imagery": ["2014_h1", "2014_h2"],
+                "sample": ["acled_2015_h1", "acled_2015_h2"],
+                "ntl_type": "viirs",
+                "ntl_year": 2015,
+                "ntl_calibrated": false,
+                "ntl_dim": 14,
+                "ntl_min": -1
+            },
+            "2014_grid":{
+                "imagery": ["2014_all", "2015_all"],
+                "sample": ["grid"],
+                "grid_boundary_file": "NGA_adm0_GADM28.geojson",
+                "grid_pixel_size": 0.1
+            },
+            "2014_random":{
+                "imagery": ["2014_all", "2015_all"],
+                "sample": ["random"],
+                "random_samples": false,
+                "random_count": 1000,
+                "random_buffer": 0.01,
+                "random_init": -1
+            },
+            "2014_grid_fill":{
+                "imagery": ["2014_all", "2015_all"],
+                "sample": ["grid"],
+                "grid_boundary_file": "NGA_adm0_GADM28.geojson",
+                "grid_pixel_size": 0.1,
+                "sample_nfill": 9,
+                "sample_fill_dist": 0.0,
+                "sample_fill_mode": "fixed"
+            }
+        },
+        "cat_names": [0, 1],
+        "cat_bins": [0, 1],
+        "cat_field": "fatalities",
+        "type_names": ["train", "val", "test", "predict"],
+        "type_weights": [0.850, 0.150, 0.0, 0.0]
+    },
+    "batch": {
+        "run_type": [1],
+        "n_epochs": [60],
+        "optim": ["sgd"],
+        "lr": [0.0001],
+        "momentum": [0.97],
+        "step_size": [15],
+        "gamma": [0.25],
+        "loss_weights": [
+            [1.0, 1.0]
+        ],
+        "net": ["resnet18"],
+        "batch_size": [64],
+        "num_workers": [16],
+        "dim": [224],
+        "agg_method": ["mean"]
+    },
+    "csv": {
+        "path": "none",
+        "field": "none"
+    },
+    "predict": {
+        "survey": ["acled_2015", "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv"],
+        "imagery_year": ["2014_all", "2015_all"],
+        "ntl_type": "viirs",
+        "ntl_year": 2014,
+        "ntl_calibrated": false,
+        "ntl_dim": 14
+    },
+    "second_stage": {
+        "inputs": ["ntl", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
+        "custom_definitions": [
+            {
+                "name": "afb-q52a",
+                "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
+                "function": "afb_q52a"
+            }
+        ],
+        "models": ["mlpclassifier-cv10"],
+        "metrics": ["r2", "recall", "precision", "f1", "accuracy"]
+    },
+    "third_stage": {
+        "grid": {
+            "boundary_id": "adm0",
+            "boundary_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/boundary/NGA_adm0_GADM28.geojson",
+            "pixel_size": 0.05
+        },
+        "predict": {
+            "method": "source_predict",
+            "survey": "acled_2015",
+            "survey_year": 2015,
+            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s12a_NGA_adm0_GADM28.csv",
+            "imagery_year": 2014,
+            "ntl_type": "viirs",
+            "ntl_year": 2014,
+            "ntl_calibrated": false,
+            "ntl_dim": 14,
+            "batch_size": 32,
+            "num_workers": 8,
+            "class_models": ["ridge-cv10"],
+            "proba_models": ["mlpclassifier-cv10"],
+            "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
+        }
+    },
+    "surface": {
+        "input_stage": "s1",
+        "value_type": "proba_1_1",
+        "pixel_size": 0.05,
+        "pixel_agg": 10,
+        "dim": 224,
+        "scene_max_nodata": 0.5,
+        "nodata_val": 255
+    }
+}
