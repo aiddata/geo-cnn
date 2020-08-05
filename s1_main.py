@@ -162,8 +162,8 @@ for ix, (param_hash, params) in enumerate(tasks):
                                             encoding='utf-8')
                 else:
                     try:
-                        predict_src = SurveyData(base_path, predict_settings["sample"])
-                        predict_df = predict_src.surveys[predict_settings["sample"]].copy(deep=True)
+                        predict_src = SurveyData(base_path)
+                        predict_df = predict_src.load(predict_settings["sample"])
                     except:
                         raise ValueError("Invalid predict sample id: `{}`".format(predict_settings["sample"]))
 
