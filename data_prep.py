@@ -81,7 +81,7 @@ def normalize(data, type_field, type_values, class_field, class_values):
 
 class PrepareSamples():
 
-    def __init__(self, base_path, static_params, version, overwrite=False):
+    def __init__(self, base_path, static_params, static_hash, version, overwrite=False):
 
         self.base_path = base_path
         self.static_params = static_params
@@ -92,11 +92,6 @@ class PrepareSamples():
 
         self.overwrite = overwrite
 
-
-        self.sample_type = static_params["sample_type"]
-        if self.sample_type not in ["source", "grid"]:
-            raise ValueError("sample type must be either `source` or `grid`")
-
         # init = raw sample data
         # fill = raw sample data filled with additional sample points (grouped with original points)
         # ntl  = ntl values added
@@ -104,62 +99,41 @@ class PrepareSamples():
         # trim = final set of data (after trimming)
         sample_stages = ["init", "fill", "ntl", "full", "trim"]
 
-
-        if self.sample_type == "source":
-            tag_name = "".join(os.path.basename(static_params["source_path"]).split("_"))
-        elif self.sample_type == "grid":
-            tag_name = str(static_params["grid_pixel_size"]).split(".")[1]
-
-        if static_params["sample_fill_dist"] < 0:
-            raise ValueError("Sample fill dist must be greater than or equal to zero (Given: {})".format(static_params["sample_fill_dist"]))
-
-
-
-        sample_tag = "{}_{}_{}_{}_{}".format(
-            tag_name,
-            static_params["sample_nfill"],
-            str(static_params["sample_fill_dist"]).split(".")[1] if static_params["sample_fill_dist"] > 0 else "0",
-            static_params["sample_fill_mode"],
-            version
-        )
+        sample_tag = "{}_{}".format(static_hash, version)
 
         self.sample_path = {}
         for i in sample_stages:
             self.sample_path[i] = os.path.join(
-                base_path,
-                "data/grid/sample_{}_{}_{}.csv".format(self.sample_type, i, sample_tag)
+                base_path, "data/grid/sample_{}_{}.csv".format(i, sample_tag)
             )
-
-        # make_dir(os.path.join(base_path, "data/sample"))
-
 
         # -----------------
         # sample fill  settings
 
-        # number of additional points to fill for each base point
-        self.nfill = static_params["sample_nfill"]
-        # distance from base point to fill in
-        self.fill_dist = static_params["sample_fill_dist"]
-        # fixed or random fill of point
-        self.fill_mode = static_params["sample_fill_mode"]
+        # # number of additional points to fill for each base point
+        # self.nfill = static_params["sample_nfill"]
+        # # distance from base point to fill in
+        # self.fill_dist = static_params["sample_fill_dist"]
+        # # fixed or random fill of point
+        # self.fill_mode = static_params["sample_fill_mode"]
 
         # -----------------
         # ntl settings
 
-        # dmsp or viirs
-        self.ntl_type = static_params["ntl_type"]
+        # # dmsp or viirs
+        # self.ntl_type = static_params["ntl_type"]
 
-        # whether to use calibrated ntl data or original
-        self.ntl_calibrated = static_params["ntl_calibrated"]
+        # # whether to use calibrated ntl data or original
+        # self.ntl_calibrated = static_params["ntl_calibrated"]
 
-        # ntl year
-        self.ntl_year = static_params["ntl_year"]
+        # # ntl year
+        # self.ntl_year = static_params["ntl_year"]
 
-        # size of square (pixels) to calculate ntl
-        self.ntl_dim = static_params["ntl_dim"]
+        # # size of square (pixels) to calculate ntl
+        # self.ntl_dim = static_params["ntl_dim"]
 
-        # minimum NTL to keep (for dropping zero/low values that may be noise)
-        self.ntl_min = static_params["ntl_min"]
+        # # minimum NTL to keep (for dropping zero/low values that may be noise)
+        # self.ntl_min = static_params["ntl_min"]
 
         # -----------------
 
@@ -180,26 +154,82 @@ class PrepareSamples():
 
 
     def prepare_sample(self):
-        if self.sample_type == "source":
-            self._prepare_source_sample()
-        elif self.sample_type == "grid":
-            self._prepare_grid_sample()
+        """
+        for each temporal id in imagery list
+        create copy of sample df with "temporal" column
+        then append them all so final df has copy of each sample data for each temporal step
+        that temporal col will then be used in dataloader instead of a "year" arg to the function
+        """
+        init_sample_df_list = []
+        fill_sample_df_list = []
+        ntl_sample_df_list = []
+        for k in self.static_params["sample_definition"].keys():
+            definition = self.static_params["sample_definition"][k]
+            tmp_ntl_sample_df_list = []
+
+            # load each sample
+            for s in definition["sample"]:
+                if s == "grid":
+                    # boundary path defining grid area
+                    boundary_path = os.path.join(self.base_path, "data/boundary", definition["grid_boundary_file"])
+                    pixel_size = definition["grid_pixel_size"]
+                    tmp_s_df = self._new_prepare_grid_sample(boundary_path, pixel_size)
+                elif s == "random":
+                    raise ValueError("Random samples are not implemented yet")
+                else:
+                    tmp_s_df = self._new_prepare_source_sample(s)
+
+                # create copy of sample for each imagery id
+                for i in definition["imagery"]:
+                    tmp_si_df = tmp_s_df.copy(deep=True)
+                    tmp_si_df["temporal"] = i
+                    tmp_si_df["sample"] = s
+                    tmp_si_df["definition"] = k
+                    init_sample_df_list.append(tmp_si_df)
+                    # fill in the tmp df with extra points if needed
+                    fill = SampleFill(tmp_si_df)
+                    nfill = 0 if not "sample_nfill" in definition else definition["sample_nfill"]
+                    fill_dist = 0 if not "sample_fill_dist" in definition else definition["sample_fill_dist"]
+                    if fill_dist < 0:
+                        raise ValueError("Sample fill dist must be greater than or equal to zero (Given: {})".format(fill_dist))
+                    fill_mode = None if not "sample_fill_dist" in definition else definition["sample_fill_dist"]
+                    fill.gfill(nfill, distance=fill_dist, mode=fill_mode)
+                    tmp_si_fill_df = fill.df.copy(deep=True)
+                    fill_sample_df_list.append(tmp_si_fill_df)
+                    # add to list for adding supplemental data (e.g., ntl)
+                    tmp_ntl_sample_df_list.append(tmp_si_fill_df)
+
+            tmp_ntl_df = pd.concat(tmp_ntl_sample_df_list)
+
+            if "ntl_type" in definition and definition["ntl_type"] is not None:
+                ntl = NTL_Reader(
+                    ntl_type=definition["ntl_type"],
+                    calibrated=definition["ntl_calibrated"],
+                    year=definition["ntl_year"],
+                    dim=definition["ntl_dim"],
+                    min_val=definition["ntl_min"])
+                tmp_ntl_df = ntl.assign_df_values(tmp_ntl_df)
+
+            # append to list whether ntl data was added or not
+            ntl_sample_df_list.append(tmp_ntl_df)
+
+        init_df = pd.concat(init_sample_df_list)
+        init_df.to_csv(self.sample_path["init"])
+
+        fill_df = pd.concat(fill_sample_df_list)
+        fill_df.to_csv(self.sample_path["fill"])
+
+        ntl_df = pd.concat(ntl_sample_df_list)
+        ntl_df.to_csv(self.sample_path["ntl"])
+
+        self.df = ntl_df
 
 
-    def _prepare_source_sample(self):
-
-        tmp_df_list = []
-        for i in self.static_params["source_name"] :
-            # data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
-            data_path = self.base_path + "/data/surveys/{}.csv".format(self.survey)
-
-            tmp_data = pd.read_csv(data_path, quotechar='\"',
-                            na_values='', keep_default_na=False,
-                            encoding='utf-8')
-
-            tmp_df_list.append(tmp_data)
-
-        df = pd.concat(tmp_df_list)
+    def _prepare_source_sample(self, source_name):
+        data_path = self.base_path + "/data/sample/{}.csv".format(i)
+        df = pd.read_csv(data_path, quotechar='\"',
+                        na_values='', keep_default_na=False,
+                        encoding='utf-8')
 
         cols = df.columns
         if "lon" not in cols and "longitude" in cols:
@@ -209,37 +239,78 @@ class PrepareSamples():
         if "lon" not in df.columns and "lat" not in df.columsn:
             raise Exception("Source for sample data must contain longitude/latitude or lon/lat columns")
         df["sample_id"] = range(len(df))
-        self.df = df.copy(deep=True)
+        return df
 
 
-    def _prepare_grid_sample(self):
-        # boundary path defining grid area
-        self.boundary_path = os.path.join(self.base_path, "data/boundary", self.static_params["boundary_file"])
-        # load boundary data
-        boundary_src = fiona.open(self.boundary_path)
+    def _prepare_grid_sample(self, boundary_path, pixel_size):
+        boundary_src = fiona.open(boundary_path)
         grid = PointGrid(boundary_src)
         boundary_src.close()
-        grid.grid(self.static_params["grid_pixel_size"])
+        grid.grid(pixel_size)
         # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
         # grid.to_geojson(geo_path)
-        # grid_init_path = os.path.join(base_path, "data/sample_grid.csv")
-        # grid.to_csv(grid_init_path)
-        grid.df = grid.to_dataframe()
-        grid.to_csv(self.sample_path["init"])
-        self.df = grid.df.copy(deep=True)
+        return grid.to_dataframe()
 
 
-    def fill_sample(self):
-        fill = SampleFill(self.df)
-        fill.gfill(self.nfill, distance=self.fill_dist, mode=self.fill_mode)
-        self.df = fill.df.copy(deep=True)
-        self.df.to_csv(self.sample_path["fill"])
+    # def assign_ntl(self, df):
+    #     ntl = NTL_Reader(ntl_type=self.ntl_type, calibrated=self.ntl_calibrated, year=self.ntl_year, dim=self.ntl_dim, min_val=self.ntl_min)
+    #     df = ntl.assign_df_values(df)
+    #     return df
+    #     # self.df.to_csv(self.sample_path["ntl"], index=False, encoding='utf-8')
 
 
-    def assign_ntl(self):
-        ntl = NTL_Reader(ntl_type=self.ntl_type, calibrated=self.ntl_calibrated, year=self.ntl_year, dim=self.ntl_dim, min_val=self.ntl_min)
-        self.df = ntl.assign_df_values(self.df)
-        self.df.to_csv(self.sample_path["ntl"], index=False, encoding='utf-8')
+    # =========================================================================
+
+    # def prepare_sample(self):
+    #     if self.sample_type == "source":
+    #         self._prepare_source_sample()
+    #     elif self.sample_type == "grid":
+    #         self._prepare_grid_sample()
+
+
+    # def _prepare_source_sample(self):
+
+    #     tmp_df_list = []
+    #     for i in self.static_params["source_name"] :
+    #         # data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
+    #         data_path = self.base_path + "/data/surveys/{}.csv".format(self.survey)
+
+    #         tmp_data = pd.read_csv(data_path, quotechar='\"',
+    #                         na_values='', keep_default_na=False,
+    #                         encoding='utf-8')
+
+    #         tmp_df_list.append(tmp_data)
+
+    #     df = pd.concat(tmp_df_list)
+
+    #     cols = df.columns
+    #     if "lon" not in cols and "longitude" in cols:
+    #         df["lon"] = df.longitude
+    #     if "lat" not in cols and "latitude" in cols:
+    #         df["lat"] = df.latitude
+    #     if "lon" not in df.columns and "lat" not in df.columsn:
+    #         raise Exception("Source for sample data must contain longitude/latitude or lon/lat columns")
+    #     df["sample_id"] = range(len(df))
+    #     self.df = df.copy(deep=True)
+
+
+    # def _prepare_grid_sample(self):
+    #     # boundary path defining grid area
+    #     self.boundary_path = os.path.join(self.base_path, "data/boundary", self.static_params["grid_boundary_file"])
+    #     # load boundary data
+    #     boundary_src = fiona.open(self.boundary_path)
+    #     grid = PointGrid(boundary_src)
+    #     boundary_src.close()
+    #     grid.grid(self.static_params["grid_pixel_size"])
+    #     # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
+    #     # grid.to_geojson(geo_path)
+    #     # grid_init_path = os.path.join(base_path, "data/sample_grid.csv")
+    #     # grid.to_csv(grid_init_path)
+    #     grid.df = grid.to_dataframe()
+    #     grid.to_csv(self.sample_path["init"])
+    #     self.df = grid.df.copy(deep=True)
+
+    # =========================================================================
 
 
     def assign_labels(self):
@@ -272,22 +343,8 @@ class PrepareSamples():
 
         print("\nPreparing sample...")
         # define, load or build, and save sample dataframe
-        if not os.path.isfile(self.sample_path["init"]) or self.overwrite:
-            self.prepare_sample()
-        else:
-            self.df = pd.read_csv(self.sample_path["init"], sep=",", encoding='utf-8')
-
-        print("\nFilling in sample...")
-        # fill in additional locations around samples
-        if not os.path.isfile(self.sample_path["fill"]) or self.overwrite:
-            self.fill_sample()
-        else:
-            self.df = pd.read_csv(self.sample_path["fill"], sep=",", encoding='utf-8')
-
-        print("\nAdding NTL values...")
-        # add NTL values to column in sample df
         if not os.path.isfile(self.sample_path["ntl"]) or self.overwrite:
-            self.assign_ntl()
+            self.prepare_sample()
         else:
             self.df = pd.read_csv(self.sample_path["ntl"], sep=",", encoding='utf-8')
 
