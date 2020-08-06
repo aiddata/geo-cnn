@@ -185,10 +185,10 @@ class SampleFill():
 
         if distance == 0:
             warnings.warn("SampleFill: distance set to 0, sample will create duplicates as fill")
-        elif nfill == 0:
+        if nfill == 0:
             warnings.warn("SampleFill: nfill set to 0, sample will not be filled")
             return
-        elif mode in [None, "None", "none", 0, "False", "false", False]:
+        if mode in [None, "None", "none", 0, "False", "false", False]:
             return
 
         if mode == "fixed":

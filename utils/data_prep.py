@@ -115,11 +115,11 @@ def prepare_sample(base_path, name, definition):
 
             # fill in the tmp df with extra points if needed
             fill = SampleFill(tmp_si_df)
-            nfill = 0 if not "sample_nfill" in definition else definition["sample_nfill"]
-            fill_dist = 0 if not "sample_fill_dist" in definition else definition["sample_fill_dist"]
+            nfill = 0 if not "sample_nfill" in definition.keys() else definition["sample_nfill"]
+            fill_dist = 0 if not "sample_fill_dist" in definition.keys() else definition["sample_fill_dist"]
             if fill_dist < 0:
                 raise ValueError("Sample fill dist must be greater than or equal to zero (Given: {})".format(fill_dist))
-            fill_mode = None if not "sample_fill_dist" in definition else definition["sample_fill_mode"]
+            fill_mode = None if not "sample_fill_mode" in definition.keys() else definition["sample_fill_mode"]
             fill.gfill(nfill, distance=fill_dist, mode=fill_mode)
             tmp_si_fill_df = fill.df.copy(deep=True)
             # fill_sample_df_list.append(tmp_si_fill_df)
