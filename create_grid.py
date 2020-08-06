@@ -181,7 +181,7 @@ class SampleFill():
 
         new points will inherit row attributes of parent
         """
-        self.df["group"] = "orig"
+        self.df["group"] = "original"
 
         if distance == 0:
             warnings.warn("SampleFill: distance set to 0, sample will create duplicates as fill")
