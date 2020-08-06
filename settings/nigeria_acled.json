@@ -9,8 +9,8 @@
         "surface_tag": "s100",
         "quiet": false,
         "overwrite_sample_prep": true,
-        "overwrite_train": false,
-        "overwrite_predict": false,
+        "overwrite_train": true,
+        "overwrite_predict": true,
         "run": {
             "train": true,
             "test": false,
