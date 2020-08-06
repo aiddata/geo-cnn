@@ -424,7 +424,7 @@ class RunCNN():
         feats_out = self.hook_output
 
         time_elapsed = time.time() - since
-        print('\nPrediction completed in {:.0f}m {:.0f}s'.format(
+        print('\nPrediction completed in {:.0f}m {:.0f}s \n'.format(
             time_elapsed // 60, time_elapsed % 60))
 
         # load best model weights
