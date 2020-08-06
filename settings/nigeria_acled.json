@@ -68,26 +68,13 @@
     },
     "predict": {
         "acled":{
-            "imagery": ["2014_h1", "2014_h2"],
+            "imagery": ["2014_h1"],
             "sample": "acled_2015_h1"
         },
-        "grid_csv": {
-            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv",
-            "imagery_year": ["2014_all", "2015_all"],
-            "ntl_type": "viirs",
-            "ntl_year": 2014,
-            "ntl_calibrated": false,
-            "ntl_dim": 14
-        },
-        "grid_new": {
-            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv",
-            "imagery_year": ["2014_all", "2015_all"],
-            "ntl_type": "viirs",
-            "ntl_year": 2014,
-            "ntl_calibrated": false,
-            "ntl_dim": 14
+        "grid":{
+            "imagery": ["2014_h1"],
+            "sample": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv",
         }
-
     },
     "survey_predict": {
         "survey": ["acled_2015"],
