@@ -23,7 +23,7 @@ import torch
 from runscript import RunCNN, build_dataloaders
 from load_survey_data import SurveyData
 from settings_builder import Settings
-from data_prep import make_dirs, PrepareSamples
+from data_prep import *
 
 
 # *****************
@@ -156,16 +156,18 @@ for ix, (param_hash, params) in enumerate(tasks):
 
             if not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
 
-                if os.path.isfile(predict_settings["sample"]):
-                    predict_df = pd.read_csv(predict_settings["sample"], quotechar='\"',
-                                            na_values='', keep_default_na=False,
-                                            encoding='utf-8')
-                else:
-                    try:
-                        predict_src = SurveyData(base_path)
-                        predict_df = predict_src.load(predict_settings["sample"])
-                    except:
-                        raise ValueError("Invalid predict sample id: `{}`".format(predict_settings["sample"]))
+                predict_df = prepare_sample(base_path, predict_key, predict_settings)
+
+                # if os.path.isfile(predict_settings["sample"]):
+                #     predict_df = pd.read_csv(predict_settings["sample"], quotechar='\"',
+                #                             na_values='', keep_default_na=False,
+                #                             encoding='utf-8')
+                # else:
+                #     try:
+                #         predict_src = SurveyData(base_path)
+                #         predict_df = predict_src.load(predict_settings["sample"])
+                #     except:
+                #         raise ValueError("Invalid predict sample id: `{}`".format(predict_settings["sample"]))
 
                 predict_data = {"predict": predict_df}
 
