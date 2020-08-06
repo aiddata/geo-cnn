@@ -10,11 +10,11 @@ import time
 import fiona
 import pandas as pd
 
-from settings_builder import Settings
-from data_prep import make_dir
+from utils.settings_builder import Settings
+from utils.data_prep import make_dir
 
-from create_grid import PointGrid
-# from load_ntl_data import NTL_Reader
+from utils.create_grid import PointGrid
+# from utils.load_ntl_data import NTL_Reader
 
 # *****************
 # *****************

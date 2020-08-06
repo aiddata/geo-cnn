@@ -6,9 +6,9 @@ import os
 # import datetime
 # import pandas as pd
 
-from settings_builder import Settings
+from utils.settings_builder import Settings
 
-from model_predict import run_models, run_tasks
+from utils.model_predict import run_models, run_tasks
 
 
 # *****************

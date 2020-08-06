@@ -21,7 +21,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from settings_builder import Settings
+from utils.settings_builder import Settings
 
 
 # *****************

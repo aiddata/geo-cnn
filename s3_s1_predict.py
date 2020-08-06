@@ -20,10 +20,10 @@ import time
 import pandas as pd
 import torch
 
-from runscript import RunCNN, build_dataloaders
-from load_survey_data import SurveyData
-from settings_builder import Settings
-from data_prep import make_dir, gen_sample_size, apply_types, normalize, PrepareSamples
+from utils.runscript import RunCNN, build_dataloaders
+from utils.load_survey_data import SurveyData
+from utils.settings_builder import Settings
+from utils.data_prep import make_dir, gen_sample_size, apply_types, normalize, PrepareSamples
 
 
 # *****************

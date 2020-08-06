@@ -8,7 +8,7 @@ import numpy as np
 from affine import Affine
 import rasterio
 
-from settings_builder import Settings
+from utils.settings_builder import Settings
 
 
 # *****************

@@ -21,7 +21,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from settings_builder import Settings
+from utils.settings_builder import Settings
 
 
 # *****************
@@ -123,7 +123,7 @@ for ix, (param_hash, params) in enumerate(tasks):
     y_true = s1_predict_df["pred_yval"]
     y_pred = s1_predict_df["pred_class"]
     y_prob = s1_predict_df["proba_1_1"]
-    
+
     stats = ConfusionMatrix(y_true, y_pred)
     summary = stats.run()
     summary_df = pd.DataFrame([summary])

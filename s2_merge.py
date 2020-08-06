@@ -13,7 +13,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from settings_builder import Settings
+from utils.settings_builder import Settings
 
 # -----------------------------------------------------------------------------
 

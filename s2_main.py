@@ -6,9 +6,9 @@ import time
 import datetime
 import pandas as pd
 
-from settings_builder import Settings
+from utils.settings_builder import Settings
 
-from model_prep import (pearson_r2, ModelHelper,
+from utils.model_prep import (pearson_r2, ModelHelper,
                         run_cv, find_best_alpha, predict_inner_test_fold,
                         scale_features, train, train_and_predict,
                         run_models, run_tasks)
