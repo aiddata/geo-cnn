@@ -87,7 +87,9 @@ def prepare_sample(base_path, name, definition):
 
     # load each sample
     for s in definition["sample"]:
+        sample_name = s
         if os.path.isfile(s):
+            sample_name = os.path.splitext(os.path.basename(s))[0]
             tmp_s_df = pd.read_csv(s, quotechar='\"', na_values='',
                                     keep_default_na=False, encoding='utf-8')
         elif s == "grid":
@@ -101,12 +103,14 @@ def prepare_sample(base_path, name, definition):
             source_path = base_path + "/data/sample/{}.csv".format(s)
             tmp_s_df = prepare_source_sample(source_path)
 
+        tmp_s_df["definition"] = name
+        tmp_s_df["sample"] = sample_name
+
         # create copy of sample for each imagery id
         for i in definition["imagery"]:
             tmp_si_df = tmp_s_df.copy(deep=True)
             tmp_si_df["temporal"] = i
-            tmp_si_df["sample"] = s
-            tmp_si_df["definition"] = name
+
             # init_sample_df_list.append(tmp_si_df)
 
             # fill in the tmp df with extra points if needed
@@ -115,7 +119,7 @@ def prepare_sample(base_path, name, definition):
             fill_dist = 0 if not "sample_fill_dist" in definition else definition["sample_fill_dist"]
             if fill_dist < 0:
                 raise ValueError("Sample fill dist must be greater than or equal to zero (Given: {})".format(fill_dist))
-            fill_mode = None if not "sample_fill_dist" in definition else definition["sample_fill_dist"]
+            fill_mode = None if not "sample_fill_dist" in definition else definition["sample_fill_mode"]
             fill.gfill(nfill, distance=fill_dist, mode=fill_mode)
             tmp_si_fill_df = fill.df.copy(deep=True)
             # fill_sample_df_list.append(tmp_si_fill_df)
@@ -249,12 +253,9 @@ class PrepareSamples():
         # init_sample_df_list = []
         # fill_sample_df_list = []
         ntl_sample_df_list = []
-        for k in self.static_params["sample_definition"].keys():
-            definition = self.static_params["sample_definition"][k]
-
-            tmp_ntl_df = self.prepare_sample_definition(self.base_path, k, definition)
-
-            # append to list whether ntl data was added or not
+        for name in self.static_params["sample_definition"].keys():
+            definition = self.static_params["sample_definition"][name]
+            tmp_ntl_df = prepare_sample(self.base_path, name, definition)
             ntl_sample_df_list.append(tmp_ntl_df)
 
         # init_df = pd.concat(init_sample_df_list)
@@ -267,7 +268,6 @@ class PrepareSamples():
         ntl_df.to_csv(self.sample_path["ntl"])
 
         self.df = ntl_df
-
 
 
     # def assign_ntl(self, df):
