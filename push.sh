@@ -1,4 +1,18 @@
 #!/bin/sh
+#
+# example usage of script:
+#   bash push.sh lab_oi_nigeria nigeria_acled temporal/v1
+#
+# where:
+#   - lab_oi_nigeria is the project name and corresponds to directory in /sciclone/aiddata10/REU/projects
+#   - nigeria_acled is the basename of a json file in the settings dir
+#   - test/v1 is the prefix used to create define path for push (creates subdir if "/" is used). _nigeria_acled will be appended to the prefix
+#
+# this example will result in files being pushed to:
+#   /sciclone/aiddata10/REU/projects/lab_oi_nigeria/test/v1_nigeria_acled
+#   with all relevant scripts updated to use the "settings/nigeria_acled.json" path
+#
+
 
 project=$1
 settings=$2
@@ -30,31 +44,16 @@ pushr() {
 
 pushr scripts
 pushr settings
+pushr utils
 
-push data_prep.py
-push create_grid.py
-push runscript.py
-push resnet.py
-push vgg.py
-push load_ntl_data.py
-push load_landsat_data.py
-push load_survey_data.py
-push model_prep.py
-push model_predict.py
-push load_custom_covar.py
-push nearest_neighbor.py
-
-for i in settings_*; do
-    push $i
-done
 
 # -----------------------------------------------------------------------------
 
-cp s1_jobscript tmp_s1_jobscript
-cp s2_jobscript tmp_s2_jobscript
-cp s3_s1_jobscript tmp_s3_s1_jobscript
-cp s3_s2_jobscript tmp_s3_s2_jobscript
-cp s4_jobscript tmp_s4_jobscript
+cp s1_jobscript     tmp_s1_jobscript
+cp s2_jobscript     tmp_s2_jobscript
+cp s3_s1_jobscript  tmp_s3_s1_jobscript
+cp s3_s2_jobscript  tmp_s3_s2_jobscript
+cp s4_jobscript     tmp_s4_jobscript
 
 echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s1_main.py" >> s1_jobscript
 echo "mpirun --mca mpi_warn_on_fork 0 --map-by node python-mpi /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s2_main.py" >> s2_jobscript
@@ -91,7 +90,12 @@ sfiles=(
     s3_s1_predict.py
     s3_s2_predict.py
     s4_main.py
+
 )
+
+    # s1_validation_nigeria.py
+    # s4_validation.py
+    # s4_validation_nigeria.py
 
 for i in "${sfiles[@]}"*; do
     cp ${i} tmp_${i}
