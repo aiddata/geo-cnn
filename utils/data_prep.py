@@ -66,17 +66,22 @@ def normalize(data, type_field, type_values, class_field, class_values):
     create equal class sizes based on smallest class size
         - randomizes which extras from larger classes are dropped
     """
+    df_list = []
     for j in type_values:
         tmp_data = data.loc[data[type_field] == j].copy(deep=True)
+        tmp_data.reset_index(inplace=True)
         raw_class_sizes = [sum(tmp_data[class_field] == i) for i in class_values]
         nkeep = min(raw_class_sizes)
         tmp_data['drop'] = 'drop'
         for i in class_values:
             class_index = tmp_data.loc[tmp_data[class_field] == i].index
             keepers = np.random.permutation(class_index)[:nkeep]
-            data.loc[keepers, 'drop'] = 'keep'
-    data = data.loc[data['drop'] == 'keep'].copy(deep=True)
-    return data
+            tmp_data.loc[keepers, 'drop'] = 'keep'
+        tmp_data_keep = tmp_data.loc[tmp_data['drop'] == 'keep'].copy(deep=True)
+        df_list.append(tmp_data_keep)
+
+    normalized_data = pd.concat(df_list)
+    return normalized_data
 
 
 def prepare_sample(base_path, name, definition):
@@ -268,67 +273,6 @@ class PrepareSamples():
         ntl_df.to_csv(self.sample_path["ntl"])
 
         self.df = ntl_df
-
-
-    # def assign_ntl(self, df):
-    #     ntl = NTL_Reader(ntl_type=self.ntl_type, calibrated=self.ntl_calibrated, year=self.ntl_year, dim=self.ntl_dim, min_val=self.ntl_min)
-    #     df = ntl.assign_df_values(df)
-    #     return df
-    #     # self.df.to_csv(self.sample_path["ntl"], index=False, encoding='utf-8')
-
-
-    # =========================================================================
-
-    # def prepare_sample(self):
-    #     if self.sample_type == "source":
-    #         self._prepare_source_sample()
-    #     elif self.sample_type == "grid":
-    #         self._prepare_grid_sample()
-
-
-    # def _prepare_source_sample(self):
-
-    #     tmp_df_list = []
-    #     for i in self.static_params["source_name"] :
-    #         # data_path = "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/acled/final/acled_{}.csv".format(year)
-    #         data_path = self.base_path + "/data/surveys/{}.csv".format(self.survey)
-
-    #         tmp_data = pd.read_csv(data_path, quotechar='\"',
-    #                         na_values='', keep_default_na=False,
-    #                         encoding='utf-8')
-
-    #         tmp_df_list.append(tmp_data)
-
-    #     df = pd.concat(tmp_df_list)
-
-    #     cols = df.columns
-    #     if "lon" not in cols and "longitude" in cols:
-    #         df["lon"] = df.longitude
-    #     if "lat" not in cols and "latitude" in cols:
-    #         df["lat"] = df.latitude
-    #     if "lon" not in df.columns and "lat" not in df.columsn:
-    #         raise Exception("Source for sample data must contain longitude/latitude or lon/lat columns")
-    #     df["sample_id"] = range(len(df))
-    #     self.df = df.copy(deep=True)
-
-
-    # def _prepare_grid_sample(self):
-    #     # boundary path defining grid area
-    #     self.boundary_path = os.path.join(self.base_path, "data/boundary", self.static_params["grid_boundary_file"])
-    #     # load boundary data
-    #     boundary_src = fiona.open(self.boundary_path)
-    #     grid = PointGrid(boundary_src)
-    #     boundary_src.close()
-    #     grid.grid(self.static_params["grid_pixel_size"])
-    #     # geo_path = os.path.join(base_path, "data/sample_grid.geojson")
-    #     # grid.to_geojson(geo_path)
-    #     # grid_init_path = os.path.join(base_path, "data/sample_grid.csv")
-    #     # grid.to_csv(grid_init_path)
-    #     grid.df = grid.to_dataframe()
-    #     grid.to_csv(self.sample_path["init"])
-    #     self.df = grid.df.copy(deep=True)
-
-    # =========================================================================
 
 
     def assign_labels(self):
