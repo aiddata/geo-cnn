@@ -150,9 +150,9 @@ for ix, (param_hash, params) in enumerate(tasks):
             predict_hash = s.build_hash(predict_settings, nchar=7)
 
             print("")
-            print("\nPredict key: {}\n".format(predict_key))
-            print("\nPredict hash: {}\n".format(predict_hash))
-            print("\nPredict settings: {}\n".format(predict_settings))
+            print("\nPredict key: {}".format(predict_key))
+            print("\nPredict hash: {}".format(predict_hash))
+            print("\nPredict settings: {}".format(predict_settings))
             print("")
 
             fbasename = "predict_{}_{}_{}_{}.csv".format(param_hash, predict_hash, s.config["version"], s.config["predict_tag"])
