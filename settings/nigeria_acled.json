@@ -8,9 +8,9 @@
         "model_tag": "m100",
         "surface_tag": "s100",
         "quiet": false,
-        "overwrite_sample_prep": true,
-        "overwrite_train": true,
-        "overwrite_predict": true,
+        "overwrite_sample_prep": false,
+        "overwrite_train": false,
+        "overwrite_predict": false,
         "run": {
             "train": true,
             "test": false,
@@ -47,7 +47,7 @@
     },
     "batch": {
         "run_type": [1],
-        "n_epochs": [2],
+        "n_epochs": [60],
         "optim": ["sgd"],
         "lr": [0.0001],
         "momentum": [0.97],
@@ -62,10 +62,6 @@
         "dim": [224],
         "agg_method": ["mean"]
     },
-    "csv": {
-        "path": "none",
-        "field": "none"
-    },
     "predict": {
         "acled":{
             "imagery": ["2014_h1"],
@@ -74,41 +70,6 @@
         "grid":{
             "imagery": ["2014_h1"],
             "sample": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv"
-        }
-    },
-    "second_stage": {
-        "inputs": ["ntl", "all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
-        "custom_definitions": [
-            {
-                "name": "afb-q52a",
-                "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"],
-                "function": "afb_q52a"
-            }
-        ],
-        "models": ["mlpclassifier-cv10"],
-        "metrics": ["r2", "recall", "precision", "f1", "accuracy"]
-    },
-    "third_stage": {
-        "grid": {
-            "boundary_id": "adm0",
-            "boundary_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/data/boundary/NGA_adm0_GADM28.geojson",
-            "pixel_size": 0.05
-        },
-        "predict": {
-            "method": "source_predict",
-            "survey": "acled_2015",
-            "survey_year": 2015,
-            "source": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s12a_NGA_adm0_GADM28.csv",
-            "imagery_year": 2014,
-            "ntl_type": "viirs",
-            "ntl_year": 2014,
-            "ntl_calibrated": false,
-            "ntl_dim": 14,
-            "batch_size": 32,
-            "num_workers": 8,
-            "class_models": ["ridge-cv10"],
-            "proba_models": ["mlpclassifier-cv10"],
-            "inputs": ["all-pca15", "cnn-pca15", "cnn-pca15-ntl"]
         }
     },
     "surface": {

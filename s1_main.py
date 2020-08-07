@@ -49,7 +49,6 @@ base_path = s.base_path
 s.set_param_count()
 s.build_dirs()
 
-
 job_dir = os.path.basename(os.path.dirname(json_path))
 shutil.copyfile(
     json_path,
@@ -88,12 +87,10 @@ for ix, (param_hash, params) in enumerate(tasks):
             sample_data, class_sizes = ps.run()
             ps.print_counts()
 
-
         params["train"] = {}
         params["train"]['ncats'] = len(ps.cat_names)
         params["train"]["train_class_sizes"] = class_sizes["train"]
         params["train"]["val_class_sizes"] = class_sizes["val"]
-
 
         dataloaders = build_dataloaders(
             sample_data,
@@ -122,7 +119,6 @@ for ix, (param_hash, params) in enumerate(tasks):
         train_cnn.save(state_path)
         # else:
             # train_cnn.load(state_path)
-
 
         # if s.config["run"]["test"]:
         #     train_cnn.init_loss()
@@ -163,17 +159,6 @@ for ix, (param_hash, params) in enumerate(tasks):
             if not os.path.isfile(group_out_path) or s.config["overwrite_predict"]:
 
                 predict_df = prepare_sample(base_path, predict_key, predict_settings)
-
-                # if os.path.isfile(predict_settings["sample"]):
-                #     predict_df = pd.read_csv(predict_settings["sample"], quotechar='\"',
-                #                             na_values='', keep_default_na=False,
-                #                             encoding='utf-8')
-                # else:
-                #     try:
-                #         predict_src = SurveyData(base_path)
-                #         predict_df = predict_src.load(predict_settings["sample"])
-                #     except:
-                #         raise ValueError("Invalid predict sample id: `{}`".format(predict_settings["sample"]))
 
                 predict_data = {"predict": predict_df}
 
