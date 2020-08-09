@@ -160,6 +160,9 @@ for ix, (param_hash, params) in enumerate(tasks):
 
                 predict_df = prepare_sample(base_path, predict_key, predict_settings)
 
+                # if "sample_id" not in predict_df.columns:
+                #     predict_df["sample_id"] = list(xrange(len(predict_df)))
+
                 predict_data = {"predict": predict_df}
 
                 new_dataloaders = build_dataloaders(
@@ -215,23 +218,23 @@ for ix, (param_hash, params) in enumerate(tasks):
                 full_out = full_out[full_col_order]
                 full_out.to_csv(raw_out_path, index=False, encoding='utf-8')
 
-                # aggregate by group
-                if "group" in full_col_order:
-                    agg_fields = {}
-                    for i in full_col_order:
-                        if i.startswith("feat"):
-                            agg_fields[i] = "mean"
-                        elif i.startswith("proba"):
-                            agg_fields[i] = "mean"
-                        elif i.startswith("pred"):
-                            agg_fields[i] = pd.Series.mode
-                        else:
-                            agg_fields[i] = "last"
+                # # aggregate by group
+                # if "sample_id" in full_col_order:
+                #     agg_fields = {}
+                #     for i in full_col_order:
+                #         if i.startswith("feat"):
+                #             agg_fields[i] = "mean"
+                #         elif i.startswith("proba"):
+                #             agg_fields[i] = "mean"
+                #         elif i.startswith("pred"):
+                #             agg_fields[i] = pd.Series.mode
+                #         else:
+                #             agg_fields[i] = "last"
 
-                    del agg_fields["group"]
-                    group_out = full_out.groupby("group").agg(agg_fields).reset_index()
-                    group_col_order = [i for i in full_col_order if i != "group"]
-                    group_out = group_out[group_col_order]
-                    group_out.to_csv(group_out_path, index=False, encoding='utf-8')
-                else:
-                    full_out.to_csv(group_out_path, index=False, encoding='utf-8')
+                #     del agg_fields["group"]
+                #     group_out = full_out.groupby("group").agg(agg_fields).reset_index()
+                #     group_col_order = [i for i in full_col_order if i != "group"]
+                #     group_out = group_out[group_col_order]
+                #     group_out.to_csv(group_out_path, index=False, encoding='utf-8')
+                # else:
+                full_out.to_csv(group_out_path, index=False, encoding='utf-8')
