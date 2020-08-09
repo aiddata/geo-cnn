@@ -86,7 +86,7 @@ The CSV was intended to be used to load specific hash combinations from training
 
 
 ### predict
-Settings for generating CNN predictions. This block is a dictionary where each key value pair represents a unique set of predictions to run. Each pair defines the settings for one prediction run, and uses the same settings for each sample definition as described in the "static" block above
+Settings for generating CNN predictions. This block is a dictionary where each key value pair represents a unique set of predictions to run. Each pair defines the settings for one prediction run, and uses the same settings for each sample definition as described in the "static" block above. The one exception is that the "sample" definition can be a single item instead a list (a list will work, but generally this should only be a single item and not using a list helps distinguish this from the static sample definitions used during training)
 
 
 ### second_stage
