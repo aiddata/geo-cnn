@@ -106,7 +106,8 @@ __predict__
 
 To be updated...
 
-__surface__
+
+### surface
 
 - input_stage: s1/s2, s1 generates surface directly from s1 CNN predictions, s2 using second stage model outputs
 - value_type: field from output CSV
