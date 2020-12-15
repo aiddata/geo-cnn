@@ -2,16 +2,16 @@
     "config": {
         "base_path": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria",
         "mode": "batch",
-        "version": "v1014",
-        "predict_tag": "p101",
-        "model_tag": "m101",
-        "surface_tag": "s101",
+        "version": "v1004",
+        "predict_tag": "p100",
+        "model_tag": "m100",
+        "surface_tag": "s100",
         "quiet": false,
         "overwrite_sample_prep": false,
         "overwrite_train": false,
-        "overwrite_predict": true,
+        "overwrite_predict": false,
         "run": {
-            "train": false,
+            "train": true,
             "test": false,
             "predict": false,
             "custom_predict": true
@@ -31,8 +31,8 @@
         "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"],
         "sample_definition": {
             "acled":{
-                "imagery": ["2018_all"],
-                "sample": ["acled_2019_all"],
+                "imagery": ["2018_h1"],
+                "sample": ["acled_2019_h2"],
                 "sample_nfill": 9,
                 "sample_fill_dist": 0.0,
                 "sample_fill_mode": "fixed"
@@ -48,14 +48,14 @@
         "run_type": [1],
         "n_epochs": [60],
         "optim": ["sgd"],
-        "lr": [0.00001],
+        "lr": [0.0001, 0.00001],
         "momentum": [0.97],
-        "step_size": [15],
-        "gamma": [0.25],
+        "step_size": [10, 15],
+        "gamma": [0.25, 0.5],
         "loss_weights": [
             [1.0, 1.0]
         ],
-        "net": ["resnet50"],
+        "net": ["resnet18", "resnet50"],
         "batch_size": [64],
         "num_workers": [16],
         "dim": [224],
@@ -63,11 +63,11 @@
     },
     "predict": {
         "acled":{
-            "imagery": ["2018_all"],
-            "sample": "acled_2019_all"
+            "imagery": ["2018_h1"],
+            "sample": "acled_2019_h2"
         },
         "grid":{
-            "imagery": ["2018_all"],
+            "imagery": ["2018_h1"],
             "sample": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv"
         }
     },
