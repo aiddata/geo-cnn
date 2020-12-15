@@ -49,7 +49,7 @@ surface_tag = s.config["surface_tag"]
 tasks = s.hashed_iter()
 
 
-print "-----"
+print("-----")
 
 input_stage = s3_info["surface"]["input_stage"]
 
@@ -75,7 +75,7 @@ if "lon" not in  survey_df.columns:
 if "lat" not in  survey_df.columns:
     survey_df["lat"] = survey_df["latitude"]
 
-print "Survey points: {}".format(len(survey_df))
+print("Survey points: {}".format(len(survey_df)))
 
 
 
@@ -97,7 +97,7 @@ def surface_win_mean(src, pnt, dim):
 
 for ix, (param_hash, params) in enumerate(tasks):
     for surface_item in surface_list:
-        print "Running: {} - {}".format(param_hash, surface_item)
+        print("Running: {} - {}".format(param_hash, surface_item))
         if input_stage == "s2":
             model_name, input_name = surface_item
             input_string = "_".join(str(i) for i in [
@@ -120,7 +120,7 @@ for ix, (param_hash, params) in enumerate(tasks):
             ])
         surface_string = input_string + "_" + surface_tag
         s3_surface_path = os.path.join(s.base_path, "output/s3_surface/surface_{}_{}.tif".format(input_name, surface_string))
-        print s3_surface_path
+        print(s3_surface_path)
 
         # -------------------------------------
 
@@ -160,8 +160,8 @@ for ix, (param_hash, params) in enumerate(tasks):
 
         tmp_survey_df = tmp_survey_df.loc[tmp_survey_df.point_class != -1]
 
-        print "Original points: {}".format(len(survey_df))
-        print "Clean points: {}".format(len(tmp_survey_df))
+        print("Original points: {}".format(len(survey_df)))
+        print("Clean points: {}".format(len(tmp_survey_df)))
 
         metrics = ["tp", "fn", "tn", "fp", "accuracy", "precision", "recall", "f1"]
 
@@ -169,7 +169,7 @@ for ix, (param_hash, params) in enumerate(tasks):
         # count = float(len(tmp_survey_df))
         for i in tmp_survey_df.columns:
             if i.endswith("class"):
-                print i
+                print(i)
                 y_true = tmp_survey_df["binary"]
                 y_pred = tmp_survey_df[i]
                 y_prob = tmp_survey_df[i[:-6]]
@@ -354,17 +354,17 @@ for y in [2015, 2017, 2019]:
     for group_col in group_col_list:
         groups = set(tmp_df[group_col])
         for group in groups:
-            print "\nGroup {0} : {1}".format(group_col, group)
+            print("\nGroup {0} : {1}".format(group_col, group))
             group_df = tmp_df.loc[tmp_df[group_col] == group].copy(deep=True)
             adm_summary = {}
             adm_summary["group_col"] = group_col
             adm_summary["group"] = group
             adm_summary["year"] = y
             adm_summary["original_size"] = len(group_df)
-            print "Original size: {}".format(adm_summary["original_size"])
+            print("Original size: {}".format(adm_summary["original_size"]))
             group_df.dropna(subset=["true_sum_{}".format(y)], inplace=True)
             adm_summary["dropna_size"] = len(group_df)
-            print "Dropna size: {}".format(adm_summary["dropna_size"])
+            print("Dropna size: {}".format(adm_summary["dropna_size"]))
             group_df["true_binary_{}".format(y)] = (group_df["true_sum_{}".format(y)] > 0).astype(int)
             y_true = group_df["true_binary_{}".format(y)]
             y_pred = group_df["predicted_binary_{}".format(y)]
@@ -393,7 +393,7 @@ for y in [2015, 2017, 2019]:
                 print('Actual: ROC AUC=%.3f' % (auc))
                 precision, recall, thresholds = sklearn.metrics.precision_recall_curve(y_true, y_prob)
                 prc_precision, prc_recall, _ = sklearn.metrics.precision_recall_curve(y_true, y_prob)
-                no_skill = len(y_true[y_true==1]) / len(y_true)
+                no_skill = len(y_true[y_true==1]) / float(len(y_true))
                 plt.figure()
                 plt.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
                 plt.plot(prc_recall, prc_precision, marker='.', label='Actual')

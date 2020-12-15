@@ -13,7 +13,7 @@ from utils.settings_builder import Settings
 
 # *****************
 # *****************
-json_path = "settings/settings_example.json"
+json_path = "settings/nigeria_acled.json"
 json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), json_path)
 # *****************
 # *****************
@@ -24,10 +24,11 @@ s = Settings()
 s.load(json_path)
 
 
-predict_settings = s.data[s.config["predict"]]
+predict_settings = s.data["predict"]["grid"]
 predict_hash = s.build_hash(predict_settings, nchar=7)
 
-
+print(predict_settings)
+print(predict_hash)
 
 model_tag = s.config["model_tag"]
 surface_tag = s.config["surface_tag"]
@@ -39,19 +40,25 @@ qlist = []
 
 # ----------
 # load raster for nodata checks
+# *** REMOVING ALL THIS BECAUSE WE ADDED ABILITY TO DO MULTIPLE
+#     SAMPLE DEFINITIONS PER JSON,
+#     WITH MULTIPLE YEARS OF IMAGERY USED PER SAMPLE DEFINITION.
+#     WILL NEED TO BE REWRITTEN IF WANT TO USE AGAIN, BUT WITH LANDSAT 8
+#     IT IS PROBABLY LESS NECESSARY THAN WITH LANDSAT7, BUT CLOUD COVER
+#     COULD STILL MAKE THIS AN ISSUE
 
-root_dir = s.config["base_path"]
-year = s.static["imagery_year"]
+# root_dir = s.config["base_path"]
+# year = s.static["imagery_year"]
 
-# these will be the same across all so choice does not matter
-agg_method = "mean"
-band = "b1"
+# # these will be the same across all so choice does not matter
+# agg_method = "mean"
+# band = "b1"
 
-season_mosaics_path = os.path.join(
-    root_dir, "landsat/data/{}/mosaics/{}_all".format(s.static["imagery_type"], year), agg_method,
-    "{0}_all_{1}.tif".format(year, band))
+# season_mosaics_path = os.path.join(
+#     root_dir, "landsat/data/{}/mosaics/{}_all".format(s.static["imagery_type"], year), agg_method,
+#     "{0}_all_{1}.tif".format(year, band))
 
-season_mosaics = rasterio.open(season_mosaics_path)
+# season_mosaics = rasterio.open(season_mosaics_path)
 # ----------
 
 print "-----"
@@ -78,7 +85,7 @@ for ix, (param_hash, params) in enumerate(tasks):
 
     for surface_item in surface_list:
 
-        print "Running: {} - {}".format(param_hash, surface_item)
+        print "Running: {}_{} - {}".format(param_hash, predict_hash, surface_item)
 
         if input_stage == "s2":
 
@@ -120,20 +127,23 @@ for ix, (param_hash, params) in enumerate(tasks):
         blank = np.full(shape, s.data["surface"]["nodata_val"])
 
         for i, row in df.iterrows():
-            dim = s.data["surface"]["dim"]
-            r, c = season_mosaics.index(row.lon, row.lat)
-            win = ((r-dim/2, r+dim/2), (c-dim/2, c+dim/2))
-            data = season_mosaics.read(1, window=win)
+            # *** COMMENTED CODE IN HERE WAS REMOVED WITH
+            #     NODATA CHECK STUFF FROM ABOVE
 
-            if data.shape != (dim, dim):
-                raise Exception("bad feature (dim: ({0}, {0}), data shape: {1}".format(dim, data.shape))
+            # dim = s.data["surface"]["dim"]
+            # r, c = season_mosaics.index(row.lon, row.lat)
+            # win = ((r-dim/2, r+dim/2), (c-dim/2, c+dim/2))
+            # data = season_mosaics.read(1, window=win)
+
+            # if data.shape != (dim, dim):
+            #     raise Exception("bad feature (dim: ({0}, {0}), data shape: {1}".format(dim, data.shape))
 
             val = row[input_name]
 
-            # should this be checking if data == 0 or data == s.data["surface"]["nodata_val"]?
-            # and should set value if true be 0 or nodataval?
-            if np.sum(data == 0) / float(data.size) > s.data["surface"]["scene_max_nodata"]:
-                val = 0
+            # # should this be checking if data == 0 or data == s.data["surface"]["nodata_val"]?
+            # # and should set value if true be 0 or nodataval?
+            # if np.sum(data == 0) / float(data.size) > s.data["surface"]["scene_max_nodata"]:
+            #     val = 0
 
             blank[row.row-1, row.column-1] = val
 
