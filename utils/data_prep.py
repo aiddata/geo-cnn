@@ -270,7 +270,7 @@ class PrepareSamples():
         # fill_df.to_csv(self.sample_path["fill"])
 
         ntl_df = pd.concat(ntl_sample_df_list)
-        ntl_df.to_csv(self.sample_path["ntl"])
+        ntl_df.to_csv(self.sample_path["ntl"], encoding="utf-8")
 
         self.df = ntl_df
 

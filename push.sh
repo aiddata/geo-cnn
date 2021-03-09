@@ -26,7 +26,7 @@ if [[ $dir == "" ]]; then
 fi
 
 src=/home/${USER}/git/geo-cnn
-base="/sciclone/aiddata10/REU/projects/${project}"
+base="/sciclone/data10/aiddata20/projects/${project}"
 
 dst=$base/$dir
 
@@ -55,11 +55,11 @@ cp s3_s1_jobscript  tmp_s3_s1_jobscript
 cp s3_s2_jobscript  tmp_s3_s2_jobscript
 cp s4_jobscript     tmp_s4_jobscript
 
-echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s1_main.py" >> s1_jobscript
-echo "mpirun --mca mpi_warn_on_fork 0 --map-by node python-mpi /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s2_main.py" >> s2_jobscript
-echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s3_s1_predict.py" >> s3_s1_jobscript
-echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s3_s2_predict.py" >> s3_s2_jobscript
-echo "python /sciclone/aiddata10/REU/projects/"${project}"/"${dir}"/s4_main.py" >> s4_jobscript
+echo "python /sciclone/data10/aiddata20/projects/"${project}"/"${dir}"/s1_main.py" >> s1_jobscript
+echo "mpirun --mca mpi_warn_on_fork 0 --map-by node python-mpi /sciclone/data10/aiddata20/projects/"${project}"/"${dir}"/s2_main.py" >> s2_jobscript
+echo "python /sciclone/data10/aiddata20/projects/"${project}"/"${dir}"/s3_s1_predict.py" >> s3_s1_jobscript
+echo "python /sciclone/data10/aiddata20/projects/"${project}"/"${dir}"/s3_s2_predict.py" >> s3_s2_jobscript
+echo "python /sciclone/data10/aiddata20/projects/"${project}"/"${dir}"/s4_main.py" >> s4_jobscript
 
 push s1_jobscript
 push s2_jobscript

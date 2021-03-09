@@ -1,0 +1,83 @@
+{
+    "config": {
+        "base_path": "/sciclone/aiddata20/projects/philippines_poverty",
+        "mode": "batch",
+        "version": "v0001",
+        "predict_tag": "p0001",
+        "model_tag": "m0001",
+        "surface_tag": "s0001",
+        "quiet": false,
+        "overwrite_sample_prep": false,
+        "overwrite_train": false,
+        "overwrite_predict": true,
+        "run": {
+            "train": true,
+            "test": false,
+            "predict": false,
+            "custom_predict": true
+        },
+        "cuda_device_id": 0,
+        "second_stage_mode": "parallel",
+        "directories": [
+            "s0_settings", "s0_grid",
+            "s1_params", "s1_predict", "s1_state", "s1_train",
+            "s2_metrics", "s2_models", "s2_merge",
+            "s3_s1_predict", "s3_s2_predict", "s3_surface",
+            "s4_validation"
+        ]
+    },
+    "static": {
+        "imagery_type": "landsat8",
+        "imagery_bands": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b9", "b10", "b11"],
+        "sample_definition": {
+            "baseline":{
+                "imagery": ["2013_all"],
+                "sample": ["baseline_cluster_merged_survey_data"],
+                "sample_nfill": 9,
+                "sample_fill_dist": 0.0,
+                "sample_fill_mode": "fixed"
+            }
+        },
+        "cat_names": [0, 1, 2],
+        "cat_bins": [0, 1, 2],
+        "cat_field": "base_consumption",
+        "type_names": ["train", "val", "test", "predict"],
+        "type_weights": [0.750, 0.150, 0.100, 0.0]
+    },
+    "batch": {
+        "run_type": [1],
+        "n_epochs": [60],
+        "optim": ["sgd"],
+        "lr": [0.00001],
+        "momentum": [0.97],
+        "step_size": [15],
+        "gamma": [0.25],
+        "loss_weights": [
+            [1.0, 1.0, 1.0]
+        ],
+        "net": ["resnet50"],
+        "batch_size": [64],
+        "num_workers": [16],
+        "dim": [224],
+        "agg_method": ["mean"]
+    },
+    "predict": {
+        "acled":{
+            "imagery": ["2018_all"],
+            "sample": "acled_2019_all"
+        },
+        "grid":{
+            "imagery": ["2018_all"],
+            "sample": "/sciclone/aiddata10/REU/projects/lab_oi_nigeria/output/s0_grid/grid_05_s20ar_NGA_adm0_GADM28.csv"
+        }
+    },
+    "surface": {
+        "input_stage": "s1",
+        "value_type": "proba_1_1",
+        "pixel_size": 0.05,
+        "pixel_agg": 10,
+        "dim": 224,
+        "scene_max_nodata": 0.5,
+        "nodata_val": 255
+    }
+}

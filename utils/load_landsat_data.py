@@ -69,7 +69,7 @@ class BandDataset(Dataset):
             feature[bnum] = data
 
         if self.transform:
-            feature = np.transpose(feature,(1,2,0))
+            feature = np.transpose(feature, (1,2,0))
             feature = self.transform(feature)
 
         # return torch.from_numpy(feature).float(), label
