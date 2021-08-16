@@ -6,13 +6,13 @@ import time
 import torch
 import torch.nn as nn
 
-import resnet
-import vgg
+import utils.resnet
+import utils.vgg
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from load_landsat_data import BandDataset
+from utils.load_landsat_data import BandDataset
 
 
 def build_dataloaders(df_dict, base_path, imagery_type, imagery_bands, agg_method="mean", data_transform=None, dim=224, batch_size=64, num_workers=16, shuffle=True):

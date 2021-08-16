@@ -18,7 +18,7 @@ from scipy import stats
 
 import matplotlib.pyplot as plot
 
-import load_custom_covar
+import utils.load_custom_covar
 
 
 def plot_ntl(ntl_data):

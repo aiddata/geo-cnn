@@ -1,14 +1,14 @@
 {
     "config": {
-        "base_path": "/sciclone/aiddata20/projects/philippines_poverty",
+        "base_path": "/sciclone/data10/aiddata20/projects/philippines_poverty",
         "mode": "batch",
-        "version": "v0001",
-        "predict_tag": "p0001",
-        "model_tag": "m0001",
-        "surface_tag": "s0001",
+        "version": "v0002",
+        "predict_tag": "p0002",
+        "model_tag": "m0002",
+        "surface_tag": "s0002",
         "quiet": false,
-        "overwrite_sample_prep": false,
-        "overwrite_train": false,
+        "overwrite_sample_prep": true,
+        "overwrite_train": true,
         "overwrite_predict": true,
         "run": {
             "train": true,
@@ -35,18 +35,22 @@
                 "sample": ["baseline_cluster_merged_survey_data"],
                 "sample_nfill": 9,
                 "sample_fill_dist": 0.0,
-                "sample_fill_mode": "fixed"
+                "sample_fill_mode": "fixed",
+                "ntl_type": "viirs",
+                "ntl_year": 2012,
+                "ntl_dim": 7,
+                "ntl_min": 0
             }
         },
-        "cat_names": [0, 1, 2],
-        "cat_bins": [0, 1, 2],
-        "cat_field": "base_consumption",
+        "cat_names": [1, 2, 3],
+        "cat_bins": [0, 0.01, 1],
+        "cat_field": "ntl",
         "type_names": ["train", "val", "test", "predict"],
         "type_weights": [0.750, 0.150, 0.100, 0.0]
     },
     "batch": {
         "run_type": [1],
-        "n_epochs": [60],
+        "n_epochs": [1],
         "optim": ["sgd"],
         "lr": [0.00001],
         "momentum": [0.97],

@@ -9,6 +9,7 @@ class NTL_Reader():
     """
 
     def __init__(self, ntl_type=None, calibrated=False, dim=None, year=None, min_val=None):
+        self.min_val = min_val
         self.ntl_type = ntl_type
         if ntl_type == "dmsp":
             self.base = "/sciclone/aiddata10/REU/geo/data/rasters/dmsp_ntl/v4composites"
@@ -72,6 +73,6 @@ class NTL_Reader():
         Dimensions of NTL data to use may be specified as can aggregation method
         """
         df[field] = df.apply(lambda z: self.value(z['lon'], z['lat'], ntl_dim=ntl_dim, method=method), axis=1)
-        df = df.loc[df[field] >= self.ntl_min]
+        df = df.loc[df[field] >= self.min_val]
         # df.to_csv(example_path, index=False, encoding='utf-8')
         return df

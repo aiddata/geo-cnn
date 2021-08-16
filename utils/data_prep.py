@@ -9,8 +9,8 @@ import pandas as pd
 import numpy as np
 import fiona
 
-from create_grid import PointGrid, SampleFill
-from load_ntl_data import NTL_Reader
+from utils.create_grid import PointGrid, SampleFill
+from utils.load_ntl_data import NTL_Reader
 
 
 def make_dirs(path_list):
@@ -137,7 +137,7 @@ def prepare_sample(base_path, name, definition):
     if "ntl_type" in definition and definition["ntl_type"] is not None:
         ntl = NTL_Reader(
             ntl_type=definition["ntl_type"],
-            calibrated=definition["ntl_calibrated"],
+            calibrated=definition["ntl_calibrated"] if "ntl_calibrated" in definition else False,
             year=definition["ntl_year"],
             dim=definition["ntl_dim"],
             min_val=definition["ntl_min"])

@@ -110,9 +110,23 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        # self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
+
+        # >>>>>>>>>>>>>>>
+
+        # # self.avgpool = nn.AvgPool2d(7, stride=1)
+        # self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
+        
+        # ===============
+
+        # Replace AdaptiveAvgPool2d with standard AvgPool2d
+        self.avgpool = nn.AvgPool2d((7, 7))
+        # Convert the original fc layer to a convolutional layer. 
+        self.last_conv = torch.nn.Conv2d(in_channels=self.fc.in_features, out_channels=num_classes, kernel_size=1)
+        self.last_conv.weight.data.copy_(self.fc.weight.data.view(*(self.fc.weight.data.shape + (1, 1))))
+        self.last_conv.bias.data.copy_(self.fc.bias.data)
+
+        # <<<<<<<<<<<<<<<
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

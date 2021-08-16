@@ -214,8 +214,8 @@ class SampleFill():
 
         for i, parent in self.df.iterrows():
 
-            lon_vals = np.linspace(parent["lon"] - distance, parent["lon"] + distance, np.ceil(np.sqrt(nfill)))
-            lat_vals = np.linspace(parent["lat"] - distance, parent["lat"] + distance, np.ceil(np.sqrt(nfill)))
+            lon_vals = np.linspace(parent["lon"] - distance, parent["lon"] + distance, int(np.ceil(np.sqrt(nfill))))
+            lat_vals = np.linspace(parent["lat"] - distance, parent["lat"] + distance, int(np.ceil(np.sqrt(nfill))))
             sub_grid = list(itertools.product(lon_vals, lat_vals))
 
             tmp_fill_list = []

@@ -7,7 +7,7 @@ import pprint
 import pandas as pd
 import numpy as np
 
-from data_prep import make_dir, make_dirs
+from utils.data_prep import make_dir, make_dirs
 
 
 class Settings():
@@ -28,7 +28,7 @@ class Settings():
         hash_json = json.dumps(hash_obj,
                             sort_keys = True,
                             ensure_ascii = True,
-                            separators=(', ', ': '))
+                            separators=(', ', ': ')).encode('utf-8')
         hash_builder = hashlib.sha1()
         hash_builder.update(hash_json)
         hash_sha1 = hash_builder.hexdigest()
@@ -217,7 +217,7 @@ class Settings():
         output_format = os.path.join(self.base_path, "output/s1_train/train_{}_{}.json")
         make_dir(os.path.dirname(output_format))
         path = output_format.format(phash, self.config["version"])
-        with open(path, "w", 0) as f:
+        with open(path, "w") as f:
             json.dump(pdict, f)
 
 
@@ -227,7 +227,7 @@ class Settings():
         make_dir(os.path.dirname(output_format))
         for phash, pdict in self.gen_hashed_iter():
             path = output_format.format(phash, self.config["version"])
-            with open(path, "w", 0) as f:
+            with open(path, "w") as f:
                 json.dump(pdict, f, indent=4, sort_keys=True)
 
     def build_dirs(self):
